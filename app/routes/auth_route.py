@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Form, HTTPException, Depends
 from jose import JWTError, jwt
 from app.handlers import login_handler, create_refresh_token, create_access_token
-from app.handlers.auth import SECRET_KEY, ALGORITHM, oauth2_scheme
+from app.handlers.auth import SECRET_KEY, ALGORITHM, get_current_user
 from app.pydantic_models.auth_models import TokenResponse, LoginRequest
 
 auth_router = APIRouter()
 
 
 @auth_router.get("/protected", summary="Пример защищённого эндпоинта")
-async def protected_route(token: str = Depends(oauth2_scheme)):
-    return {"message": "Доступ разрешен", "token": token}
+async def protected_route(token: str = Depends(get_current_user)):
+    return {"message": "Доступ разрешён", "token": token}
 
 
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")

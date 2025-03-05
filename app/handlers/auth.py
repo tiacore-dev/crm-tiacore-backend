@@ -1,9 +1,20 @@
 from datetime import datetime, timedelta
 from jose import jwt
+from fastapi import Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
 from app.config import Settings
 from app.database import User
+
+
+bearer_scheme = HTTPBearer()
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)):
+    token = credentials.credentials  # Достаём сам токен
+    return token  # Тут вместо возврата токена можно добавить декодирование и проверку
+
 
 # Конфигурация JWT
 settings = Settings()
@@ -11,6 +22,7 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 # Создание токена
