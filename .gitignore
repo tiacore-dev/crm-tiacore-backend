@@ -12,7 +12,7 @@ __pycache__/
 celery_docker
 
 beack_up_process_audio
-
+.pylintrc
 audio_files_examples/
 
 # Distribution / packaging

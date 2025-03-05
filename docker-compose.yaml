@@ -7,6 +7,19 @@ services:
     networks:
       - crm_network
 
+  test:
+    build: .
+    command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
+    depends_on:
+      - aerich
+    networks:
+      - crm_network
+    volumes:
+      - .:/app
+      - ./tests:/app/tests
+    environment:
+      - PYTHONPATH=/app
+
   web:
     tty: true
     stdin_open: true

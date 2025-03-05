@@ -8,7 +8,7 @@ aiogram==3.17.0
 jinja2==3.1.5
 asyncpg==0.30.0
 python-dotenv==1.0.1
-pytest==8.3.4
+pytest-asyncio==0.25.3
 python-jose==3.3.0
 python-multipart==0.0.20
 aerich==0.2.4
