@@ -1,0 +1,31 @@
+services:
+  aerich:
+    build: .
+    command: ["/bin/sh", "-c", "aerich init -t app.database.config.TORTOISE_ORM && aerich upgrade"]
+    volumes:
+      - .:/app
+    networks:
+      - crm_network
+
+  web:
+    tty: true
+    stdin_open: true
+    build: .
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    ports:
+      - "${PORT}:${PORT}"
+    depends_on:
+      - aerich
+    volumes:
+      - .:/app
+    command: >
+       gunicorn -c gunicorn.conf.py run:app
+    networks:
+      - crm_network
+
+
+networks:
+  crm_network:
+    external: true
