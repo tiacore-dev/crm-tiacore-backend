@@ -8,8 +8,8 @@ auth_router = APIRouter()
 
 
 @auth_router.get("/protected", summary="Пример защищённого эндпоинта")
-async def protected_route(token: str = Depends(get_current_user)):
-    return {"message": "Доступ разрешён", "token": token}
+async def protected_route(username: str = Depends(get_current_user)):
+    return {"message": "Доступ разрешён", "user": username}
 
 
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
