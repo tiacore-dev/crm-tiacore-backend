@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import register_tortoise
-import openai
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
