@@ -1,33 +1,34 @@
 from datetime import datetime, timedelta
 from jose import jwt
-from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
 from app.config import Settings
 from app.database import User
 
-settings = Settings()
-
 # Конфигурация JWT
+settings = Settings()
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 # Создание токена
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    logger.info(f"Created JWT: {encoded_jwt}")
+    logger.info(f"Created Access JWT: {encoded_jwt}")
     return encoded_jwt
 
 # Проверка токена
 
+
+def create_refresh_token(data: dict):
+    return create_access_token(data, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
 
 # def verify_token(token: str = Depends(oauth2_scheme)):
 #     try:
@@ -66,5 +67,5 @@ def create_access_token(data: dict):
 async def login_handler(username: str, password: str):
     user = await User.filter(username=username).first()
     if user and user.check_password(password):
-        return {"access_token": create_access_token({"sub": username})}
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+        return user
+    return None

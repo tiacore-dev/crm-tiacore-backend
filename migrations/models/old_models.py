@@ -28,7 +28,6 @@ class User(Model):
             return bcrypt.checkpw(password.encode(), self.password_hash.encode())
         return False
 
-from tortoise import Model, fields
 
 MAX_VERSION_LENGTH = 255
 
@@ -39,4 +38,3 @@ class Aerich(Model):
 
     class Meta:
         ordering = ["-id"]
-
