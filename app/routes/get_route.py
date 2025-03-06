@@ -1,6 +1,7 @@
 from typing import Type
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from tortoise.expressions import Q
+from app.handlers.auth import require_auth
 from app.database.models import LegalEntityType, UserRole, ContractStatus
 from app.pydantic_models.get_models import (
     LegalEntityTypeSchema, UserRoleSchema, ContractStatusSchema, FilterParams, PaginatedResponse
@@ -52,15 +53,18 @@ async def get_filtered_data(model: Type, schema: Type, params: FilterParams) -> 
 
 
 @get_router.get("/legal-entity-types/", response_model=PaginatedResponse)
-async def get_legal_entity_types(params: FilterParams = Depends()):
+@require_auth
+async def get_legal_entity_types(request: Request, params: FilterParams = Depends()):
     return await get_filtered_data(LegalEntityType, LegalEntityTypeSchema, params)
 
 
 @get_router.get("/user-roles/", response_model=PaginatedResponse)
-async def get_user_roles(params: FilterParams = Depends()):
+@require_auth
+async def get_user_roles(request: Request, params: FilterParams = Depends()):
     return await get_filtered_data(UserRole, UserRoleSchema, params)
 
 
 @get_router.get("/contract-statuses/", response_model=PaginatedResponse)
-async def get_contract_statuses(params: FilterParams = Depends()):
+@require_auth
+async def get_contract_statuses(request: Request, params: FilterParams = Depends()):
     return await get_filtered_data(ContractStatus, ContractStatusSchema, params)

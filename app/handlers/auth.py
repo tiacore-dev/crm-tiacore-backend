@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+from functools import wraps
 from jose import JWTError, jwt
-from fastapi import HTTPException, Security, status, Depends
+from fastapi import HTTPException, Security, status, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
@@ -74,3 +75,27 @@ async def login_handler(username: str, password: str):
         return user
 
     return None  # Возвращаем None, если пароль неверный
+
+
+def require_auth(endpoint_func):
+    @wraps(endpoint_func)
+    async def wrapper(request: Request, *args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401, detail="Токен отсутствует или неверный формат")
+
+        token = auth_header.split(" ")[1]
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            if not username:
+                raise HTTPException(status_code=401, detail="Неверный токен")
+        except JWTError as exc:
+            raise HTTPException(
+                status_code=401, detail="Неверный или просроченный токен") from exc
+
+        # Передаём request
+        return await endpoint_func(request, *args, **kwargs)
+
+    return wrapper

@@ -17,9 +17,11 @@ async def seed_test_data():
 
 
 @pytest.mark.asyncio
-async def test_get_legal_entity_types(seed_test_data, test_app: AsyncClient):
+async def test_get_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех типов юр. лиц."""
-    response = test_app.get("/api/get-all/legal-entity-types/")
+    headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
+    response = test_app.get(
+        "/api/get-all/legal-entity-types/", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -28,9 +30,10 @@ async def test_get_legal_entity_types(seed_test_data, test_app: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_user_roles(seed_test_data, test_app: AsyncClient):
+async def test_get_user_roles(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех ролей пользователей."""
-    response = test_app.get("/api/get-all/user-roles/")
+    headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
+    response = test_app.get("/api/get-all/user-roles/", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -40,9 +43,10 @@ async def test_get_user_roles(seed_test_data, test_app: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_contract_statuses(seed_test_data, test_app: AsyncClient):
+async def test_get_contract_statuses(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех статусов контрактов."""
-    response = test_app.get("/api/get-all/contract-statuses/")
+    headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
+    response = test_app.get("/api/get-all/contract-statuses/", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -51,9 +55,11 @@ async def test_get_contract_statuses(seed_test_data, test_app: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_filter_like_legal_entity_types(seed_test_data, test_app: AsyncClient):
+async def test_filter_like_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест поиска LIKE (должен находить по части имени)."""
-    response = test_app.get("/api/get-all/legal-entity-types/?search=Комп")
+    headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
+    response = test_app.get(
+        "/api/get-all/legal-entity-types/?search=Комп", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -61,7 +67,8 @@ async def test_filter_like_legal_entity_types(seed_test_data, test_app: AsyncCli
     assert {item["name"]
             for item in data["items"]} == {"Компания ABC", "Компания XYZ"}
 
-    response = test_app.get("/api/get-all/legal-entity-types/?search=ABC")
+    response = test_app.get(
+        "/api/get-all/legal-entity-types/?search=ABC", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
@@ -69,10 +76,11 @@ async def test_filter_like_legal_entity_types(seed_test_data, test_app: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_pagination_legal_entity_types(seed_test_data, test_app: AsyncClient):
+async def test_pagination_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест пагинации."""
+    headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
     response = test_app.get(
-        "/api/get-all/legal-entity-types/?page=1&page_size=1")
+        "/api/get-all/legal-entity-types/?page=1&page_size=1", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -80,17 +88,18 @@ async def test_pagination_legal_entity_types(seed_test_data, test_app: AsyncClie
     assert len(data["items"]) == 1  # Должен вернуть только одну запись
 
     response_page_2 = test_app.get(
-        "/api/get-all/legal-entity-types/?page=2&page_size=1")
+        "/api/get-all/legal-entity-types/?page=2&page_size=1", headers=headers)
     assert response_page_2.status_code == 200
     # Вторая страница тоже с одной записью
     assert len(response_page_2.json()["items"]) == 1
 
 
 @pytest.mark.asyncio
-async def test_sorting_legal_entity_types(seed_test_data, test_app: AsyncClient):
+async def test_sorting_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест сортировки."""
+    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
     response = test_app.get(
-        "/api/get-all/legal-entity-types/?sort_by=name&order=asc")
+        "/api/get-all/legal-entity-types/?sort_by=name&order=asc", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -98,7 +107,7 @@ async def test_sorting_legal_entity_types(seed_test_data, test_app: AsyncClient)
     assert data["items"][0]["name"] == "Компания ABC"
 
     response_desc = test_app.get(
-        "/api/get-all/legal-entity-types/?sort_by=name&order=desc")
+        "/api/get-all/legal-entity-types/?sort_by=name&order=desc", headers=headers)
     assert response_desc.status_code == 200
     # Проверяем сортировку по убыванию
     assert response_desc.json()["items"][0]["name"] == "Компания XYZ"
