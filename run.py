@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from fastapi import Request
+from fastapi.responses import RedirectResponse
 from app import create_app
 
 load_dotenv()
@@ -30,6 +32,15 @@ async def create_test_data():
         print(f"Exception: {e}")
 
 app = create_app()
+
+
+@app.middleware("http")
+async def redirect_https(request: Request, call_next):
+    """Принудительное перенаправление HTTP → HTTPS"""
+    if request.headers.get("x-forwarded-proto", "http") == "http":
+        url = request.url.replace(scheme="https")
+        return RedirectResponse(url)
+    return await call_next(request)
 
 
 @app.on_event("startup")

@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from tortoise.contrib.fastapi import register_tortoise
@@ -23,14 +22,6 @@ def create_app(config_name='Development') -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
     )
-
-    @app.middleware("http")
-    async def redirect_https(request: Request, call_next):
-        """Принудительное перенаправление HTTP → HTTPS"""
-        if request.headers.get("x-forwarded-proto", "http") == "http":
-            url = request.url.replace(scheme="https")
-            return RedirectResponse(url)
-        return await call_next(request)
 
     # Подключаем конфигурацию
     settings = Settings()
