@@ -38,17 +38,23 @@ ORIGIN = os.getenv('ORIGIN')
 
 @app.middleware("http")
 async def redirect_https(request: Request, call_next):
-    """Исправленный редирект HTTP → HTTPS"""
+    """Исправленный редирект HTTP → HTTPS + CORS"""
     forwarded_proto = request.headers.get("x-forwarded-proto", "http")
-    host = request.headers.get("host", "")
+    response = await call_next(request)
 
-    # Проверяем, что редирект нужен только для API-домена
-    if forwarded_proto == "http" and f"{ORIGIN}" in host:
+    # Если пришёл HTTP → отправляем редирект
+    if forwarded_proto == "http":
         url = request.url.replace(scheme="https")
-        # 308 сохраняет метод (POST не сломается)
         return RedirectResponse(url, status_code=308)
 
-    return await call_next(request)
+    # Добавляем CORS заголовки даже при редиректах
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get(
+        "Origin", "*")
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+
+    return response
 
 
 @app.on_event("startup")
