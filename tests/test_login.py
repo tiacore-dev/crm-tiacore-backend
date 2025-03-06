@@ -1,3 +1,4 @@
+import json
 import pytest
 
 
@@ -30,7 +31,7 @@ async def test_login_success(test_app):
 async def test_refresh_token_success(test_app, jwt_token_user):
     """Проверяем, что refresh-токен можно обменять на новый access-токен."""
     response = test_app.post(
-        "/api/auth/refresh", data={"refresh_token": jwt_token_user["refresh_token"]})
+        "/api/auth/refresh", data=json.dumps({"refresh_token": jwt_token_user["refresh_token"]}))
 
     assert response.status_code == 200
     json_data = response.json()
@@ -54,7 +55,7 @@ async def test_login_failure(test_app):
 async def test_refresh_token_invalid(test_app):
     """Проверяем обновление токена с неверным refresh-токеном."""
     response = test_app.post(
-        "/api/auth/refresh", data={"refresh_token": "invalid_token"})
+        "/api/auth/refresh", data=json.dumps({"refresh_token": "invalid_token"}))
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Неверный или просроченный токен"
