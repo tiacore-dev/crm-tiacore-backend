@@ -63,23 +63,6 @@ def verify_token(token: str = Depends(oauth2_scheme)):
         ) from exc
 
 
-# async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-#     """ Декодирует токен и получает объект пользователя """
-#     try:
-#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#         username: str = payload.get("sub")
-#         if username is None:
-#             raise HTTPException(status_code=401, detail="Invalid token")
-
-#         user = await User.get_or_none(username=username)
-#         if user is None:
-#             raise HTTPException(status_code=401, detail="User not found")
-
-#         return user
-#     except JWTError:
-#         raise HTTPException(status_code=401, detail="Invalid token")
-
-
 async def login_handler(username: str, password: str):
     user = await User.filter(username=username).first()
     if user and user.check_password(password):
