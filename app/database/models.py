@@ -1,5 +1,4 @@
 import uuid
-from fastapi import BackgroundTasks
 import bcrypt
 from tortoise.models import Model
 from tortoise import fields
