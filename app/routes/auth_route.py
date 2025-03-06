@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Form, HTTPException, Depends
 from jose import JWTError, jwt
+from loguru import logger
 from app.handlers import login_handler, create_refresh_token, create_access_token
 from app.handlers.auth import SECRET_KEY, ALGORITHM, get_current_user
 from app.pydantic_models.auth_models import TokenResponse, LoginRequest
@@ -28,9 +29,10 @@ async def login(data: LoginRequest):
 @auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
 async def refresh_access_token(refresh_token: str = Form(...)):
     try:
+        logger.info(f"Полученный токен: {refresh_token}")
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-
+        logger.info(f"Полученный токен: {refresh_token}")
         if not username:
             raise HTTPException(status_code=401, detail="Неверный токен")
 
