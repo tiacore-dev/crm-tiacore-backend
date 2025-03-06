@@ -35,17 +35,17 @@ class ContractStatus(Model):
 # Полноценные модели
 
 
-async def create_user(user_name: str, password: str, full_name: str, position: str):
+async def create_user(username: str, password: str, full_name: str, position: str):
     # Хэшируем пароль
     hashed_password = bcrypt.hashpw(
         password.encode(), bcrypt.gensalt()).decode()
-    user = await User.create(user_name=user_name, password_hash=hashed_password, position=position, full_name=full_name)
+    user = await User.create(username=username, password_hash=hashed_password, position=position, full_name=full_name)
     return user
 
 
 class User(Model):
     user_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    user_name = fields.CharField(max_length=255, unique=True)
+    username = fields.CharField(max_length=255, unique=True)
     password_hash = fields.CharField(max_length=255)
     full_name = fields.CharField(max_length=255)
     position = fields.CharField(max_length=255, null=True)
@@ -54,9 +54,10 @@ class User(Model):
         table = "users"
 
     async def check_password(self, password: str):
-        return await BackgroundTasks().add_task(
-            bcrypt.checkpw, password.encode(), self.password_hash.encode()
-        )
+        if not self.password_hash:
+            return False  # Если пароль отсутствует в БД, всегда возвращаем False
+
+        return bcrypt.checkpw(password.encode(), self.password_hash.encode())
 
 
 class Company(Model):

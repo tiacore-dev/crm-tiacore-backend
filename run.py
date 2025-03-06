@@ -12,9 +12,9 @@ PASSWORD = os.getenv('PASSWORD')
 async def create_admin_user():
     from app.database.models import create_user, User
     # Проверяем, существует ли пользователь "admin"
-    admin = await User.filter(user_name="admin").first()
+    admin = await User.filter(username="admin").first()
     if not admin:
-        await create_user(user_name="admin", password=PASSWORD, position='admin', full_name='Поликанова Виктория Сергеевна')
+        await create_user(username="admin", password=PASSWORD, position='admin', full_name='Поликанова Виктория Сергеевна')
 
 
 app = create_app()

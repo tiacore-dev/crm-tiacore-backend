@@ -47,14 +47,14 @@ async def setup_db():
 async def seed_user():
     """Добавляет тестового пользователя в базу перед тестом."""
     user = await create_user(
-        user_name="test_user",
+        username="test_user",
         password="qweasdzcx",
         position="user",
         full_name="Test User"
     )
     return {
         "user_id": str(user.user_id),
-        "username": user.user_name,
+        "username": user.username,
         "position": user.position
     }
 
@@ -65,14 +65,14 @@ async def seed_user():
 async def seed_admin():
     """Добавляет тестового администратора в базу перед тестом."""
     admin = await create_user(
-        user_name="test_admin",
+        username="test_admin",
         password="adminpass",
         position="admin",
         full_name="Test Admin"
     )
     return {
         "user_id": str(admin.user_id),
-        "user_name": admin.user_name,
+        "username": admin.username,
         "position": admin.position
     }
 
@@ -82,7 +82,7 @@ async def seed_admin():
 async def jwt_token_user(seed_user):
     """Генерирует JWT токен для обычного пользователя."""
     token_data = {
-        "sub": seed_user["user_name"]
+        "sub": seed_user["username"]
     }
     return {
         "access_token": create_access_token(token_data),
