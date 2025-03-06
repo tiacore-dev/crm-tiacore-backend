@@ -33,13 +33,21 @@ async def create_test_data():
 
 app = create_app()
 
+ORIGIN = os.getenv('ORIGIN')
+
 
 @app.middleware("http")
 async def redirect_https(request: Request, call_next):
-    """Принудительное перенаправление HTTP → HTTPS"""
-    if request.headers.get("x-forwarded-proto", "http") == "http":
+    """Исправленный редирект HTTP → HTTPS"""
+    forwarded_proto = request.headers.get("x-forwarded-proto", "http")
+    host = request.headers.get("host", "")
+
+    # Проверяем, что редирект нужен только для API-домена
+    if forwarded_proto == "http" and f"{ORIGIN}" in host:
         url = request.url.replace(scheme="https")
-        return RedirectResponse(url)
+        # 308 сохраняет метод (POST не сломается)
+        return RedirectResponse(url, status_code=308)
+
     return await call_next(request)
 
 

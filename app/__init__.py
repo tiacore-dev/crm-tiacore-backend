@@ -11,20 +11,23 @@ from app.config import Settings
 
 def create_app(config_name='Development') -> FastAPI:
     app = FastAPI()
-
+    settings = Settings()
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    allow_origins = settings.ALLOW_ORIGINS
+    dynamic_local_origins = [
+        f"http://192.168.1.{i}:3000" for i in range(1, 255)]
+    allow_origins.extend(dynamic_local_origins)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Или указать твой Netlify-домен
+        allow_origins=allow_origins,
         allow_credentials=True,
-        # Разрешаем все методы (POST, GET, OPTIONS и т.д.)
         allow_methods=["*"],
-        allow_headers=["*"],  # Разрешаем все заголовки
+        allow_headers=["*"],
     )
 
     # Подключаем конфигурацию
-    settings = Settings()
+
     if config_name == 'Test':
         db_url = settings.TEST_DATABASE_URL
     else:

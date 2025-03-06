@@ -16,3 +16,4 @@ class Settings:
     LOG_LEVEL = "DEBUG"
     ALGORITHM = "HS256"
     PORT = os.getenv('PORT')
+    ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "").split(",")
