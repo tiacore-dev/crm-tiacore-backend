@@ -64,7 +64,7 @@ def verify_token(token: str = Depends(oauth2_scheme)):
 
 
 async def login_handler(username: str, password: str):
-    user = await User.filter(username=username).first()
-    if user and user.check_password(password):
+    user = await User.filter(user_name=username).first()
+    if user and await user.check_password(password):
         return user
     return None
