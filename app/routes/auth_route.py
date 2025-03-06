@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, HTTPException, Depends
+from fastapi import APIRouter, Body, HTTPException, Depends
 from jose import JWTError, jwt
 from loguru import logger
 from app.handlers import login_handler, create_refresh_token, create_access_token
@@ -27,7 +27,7 @@ async def login(data: LoginRequest):
 
 
 @auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
-async def refresh_access_token(refresh_token: str = Form(...)):
+async def refresh_access_token(refresh_token: str = Body(...)):
     try:
         logger.info(f"Полученный токен: {refresh_token}")
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
