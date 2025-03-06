@@ -27,8 +27,13 @@ async def login(data: LoginRequest):
 
 
 @auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
-async def refresh_access_token(refresh_token: str = Body(...)):
+async def refresh_access_token(data: dict = Body(...)):
     try:
+
+        refresh_token = data.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(
+                status_code=400, detail="Refresh token is required")
         logger.info(f"Полученный токен: {refresh_token}")
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
