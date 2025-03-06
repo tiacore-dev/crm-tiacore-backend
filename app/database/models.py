@@ -35,11 +35,11 @@ class ContractStatus(Model):
 # Полноценные модели
 
 
-async def create_user(username: str, password: str, role: str, full_name: str):
+async def create_user(user_name: str, password: str, full_name: str, position: str):
     # Хэшируем пароль
     hashed_password = bcrypt.hashpw(
         password.encode(), bcrypt.gensalt()).decode()
-    user = await User.create(username=username, password_hash=hashed_password, role=role, full_name=full_name)
+    user = await User.create(user_name=user_name, password_hash=hashed_password, position=position, full_name=full_name)
     return user
 
 
