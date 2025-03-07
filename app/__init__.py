@@ -13,6 +13,7 @@ def create_app(config_name='Development') -> FastAPI:
     app = FastAPI()
     settings = Settings()
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    # Попытка разрешить всё
     # allow_origins = settings.ALLOW_ORIGINS
     # dynamic_local_origins = [
     #     f"http://192.168.1.{i}:3000" for i in range(1, 255)]
