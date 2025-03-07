@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
@@ -26,10 +25,6 @@ def create_app(config_name='Development') -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    @app.options("/{rest_of_path:path}")
-    async def options_handler(request: Request, rest_of_path: str):
-        return JSONResponse(status_code=200)
 
     # Подключаем конфигурацию
 
