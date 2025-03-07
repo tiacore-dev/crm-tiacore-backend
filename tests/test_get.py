@@ -21,7 +21,7 @@ async def test_get_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt
     """Тест получения всех типов юр. лиц."""
     headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
     response = test_app.get(
-        "/api/get-all/legal-entity-types/", headers=headers)
+        "/api/get-all/legal-entity-types", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -33,7 +33,7 @@ async def test_get_legal_entity_types(seed_test_data, test_app: AsyncClient, jwt
 async def test_get_user_roles(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех ролей пользователей."""
     headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
-    response = test_app.get("/api/get-all/user-roles/", headers=headers)
+    response = test_app.get("/api/get-all/user-roles", headers=headers)
     assert response.status_code == 200
 
     data = response.json()
@@ -46,7 +46,7 @@ async def test_get_user_roles(seed_test_data, test_app: AsyncClient, jwt_token_u
 async def test_get_contract_statuses(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех статусов контрактов."""
     headers = {"Authorization": f"Bearer {jwt_token_user["access_token"]}"}
-    response = test_app.get("/api/get-all/contract-statuses/", headers=headers)
+    response = test_app.get("/api/get-all/contract-statuses", headers=headers)
     assert response.status_code == 200
 
     data = response.json()

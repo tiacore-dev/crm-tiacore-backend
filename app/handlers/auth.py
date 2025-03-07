@@ -2,12 +2,11 @@ from datetime import datetime, timedelta
 from functools import wraps
 from jose import JWTError, jwt
 from fastapi import HTTPException, Security, status, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
 from app.config import Settings
 from app.database import User
-
+from app.auth_schemas import oauth2_scheme, bearer_scheme
 
 # Конфигурация JWT
 settings = Settings()
@@ -15,10 +14,6 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
-
-bearer_scheme = HTTPBearer()
 
 
 # Создание токена
