@@ -17,61 +17,46 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Run Tests in Docker
+      - name: Determine Deployment Path
+        run: |
+          if [[ "${{ github.ref_name }}" == "master" ]]; then
+            echo "DEPLOY_PATH=apps/crm-backend" >> $GITHUB_ENV
+            echo "GIT_BRANCH=master" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
+            echo "DEPLOY_PATH=apps/crm-backend-dev" >> $GITHUB_ENV
+            echo "GIT_BRANCH=dev" >> $GITHUB_ENV
+          else
+            echo "❌ Неизвестная ветка! Прерываем процесс."
+            exit 1
+          fi
+
+      - name: Pull Latest Code and Run Tests
         id: test
         run: |
-          TEST_MODE=1 docker compose up --build
-
-
-        continue-on-error: true  # Если тесты упадут, не ломаем процесс, а обработаем вручную
+          echo "🚀 Обновляем код и запускаем тесты в $DEPLOY_PATH..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd $DEPLOY_PATH &&
+            git pull origin $GIT_BRANCH &&
+            TEST_MODE=1 docker compose up --build test
+          "
+        continue-on-error: true  # Позволяет обработать ошибку вручную
 
       - name: Rollback on Failure
         if: steps.test.outcome == 'failure'
         run: |
           echo "🚨 Тесты провалились! Откатываем изменения..."
-
-         
-          if [[ "${{ github.ref_name }}" == "master" ]]; then
-            DEPLOY_PATH="apps/crm-backend"
-          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
-            DEPLOY_PATH="apps/crm-backend-dev"
-          else
-            echo "❌ Неизвестная ветка, откат не выполняется"
-            exit 1
-          fi
-
-    
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            if [ -d $DEPLOY_PATH ]; then
-              cd $DEPLOY_PATH &&
-              git revert HEAD -m 1 && git push
-              echo '✅ Откат завершен'
-            else
-              echo '❌ Папка $DEPLOY_PATH не найдена, откат невозможен'
-              exit 1
-            fi
+            cd $DEPLOY_PATH &&
+            git revert HEAD -m 1 && git push
           "
-
           exit 1
 
-
-
-      - name: Deploy to Production
-        if: success() && github.ref_name == 'master'
+      - name: Deploy Application
+        if: success()
         run: |
-          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            cd apps/crm-backend &&
-            git pull origin master &&
+          echo "🚀 Тесты успешны, деплоим..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd $DEPLOY_PATH &&
             docker compose down &&
             docker compose up --build -d
-          "
-
-      - name: Deploy to Development
-        if: success() && github.ref_name == 'dev'
-        run: |
-          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            cd apps/crm-backend-dev &&
-            git pull origin dev &&
-            docker compose down &&
-            docker compose up -d
           "
