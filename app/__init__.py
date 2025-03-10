@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
@@ -12,8 +13,9 @@ from app.config import Settings
 def create_app(config_name='Development') -> FastAPI:
     app = FastAPI()
     settings = Settings()
-    # app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-
+    # Разрешаем запросы через прокси
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    app.add_middleware(GZipMiddleware)
     app.add_middleware(
         CORSMiddleware,
         # allow_origins=allow_origins,
