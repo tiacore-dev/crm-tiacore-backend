@@ -20,7 +20,8 @@ jobs:
       - name: Run Tests in Docker
         id: test
         run: |
-          docker compose up --build --profile test
+          TEST_MODE=1 docker-compose up --build
+
 
         continue-on-error: true  # Если тесты упадут, не ломаем процесс, а обработаем вручную
 

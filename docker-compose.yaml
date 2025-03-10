@@ -8,8 +8,6 @@ services:
       - crm_network
 
   test:
-    profiles:
-      - test  # Контейнер запускается только с profile test
     build: .
     command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
     depends_on:
@@ -21,6 +19,8 @@ services:
       - ./tests:/app/tests
     environment:
       - PYTHONPATH=/app
+    deploy:
+      replicas: ${TEST_MODE}
 
   web:
     tty: true
