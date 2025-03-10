@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, HTTPException
+from fastapi import APIRouter, Depends, Path, HTTPException, Body
 from loguru import logger
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
@@ -10,95 +10,106 @@ from app.pydantic_models.user_models import (
     UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema
 )
 
-UserSchema = pydantic_model_creator(User, name="UserSchema")
+UserSchema = pydantic_model_creator(
+    User,
+    name="UserSchema",
+    exclude=("password_hash",)  # Убираем хеш пароля из ответа
+)
+
 
 user_router = APIRouter()
 
 
 @user_router.post("/add", response_model=UserResponseSchema, summary="Добавление нового пользователя")
-async def add_user(data: UserCreateSchema, username: str = Depends(get_current_user)):
+async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(get_current_user)):
+    # Логируем без пароля
+    logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
-        user = await create_user(username=data.username, full_name=data.full_name, position=data.position, password=data.password)
+        user = await create_user(
+            username=data.username,
+            full_name=data.full_name,
+            position=data.position,
+            password=data.password
+        )
         if not user:
+            logger.error("Не удалось создать пользователя")
             raise HTTPException(
                 status_code=500, detail="Не удалось создать пользователя")
+
+        logger.success(
+            f"Пользователь {user.username} ({user.user_id}) успешно создан")
         return {"user_id": str(user.user_id)}
     except Exception as e:
-        logger.error(f"Ошибка при создании пользователя: {e}")
+        logger.exception("Ошибка при создании пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
 @user_router.patch("/{user_id}/edit", response_model=UserResponseSchema, summary="Изменение пользователя")
 async def edit_user(
-        user_id: str = Path(..., title="ID пользователя",
-                            description="ID изменяемого пользователя"),
-        data: UserEditSchema = Depends(),  # Передача данных через тело запроса
+        user_id: UUID = Path(..., title="ID пользователя",
+                             description="ID изменяемого пользователя"),
+        data: UserEditSchema = Body(...),
         username: str = Depends(get_current_user)):
     """
     Обновление пользователя по ID, переданному в URL.
     """
+    logger.info(
+        f"Обновление пользователя {user_id}: {data.dict(exclude_unset=True)}")
     try:
         updated_rows = await User.filter(user_id=user_id).update(**data.dict(exclude_unset=True))
 
         if not updated_rows:
+            logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
                 status_code=404, detail="Пользователь не найден")
 
-        return {"user_id": user_id}
+        logger.success(f"Пользователь {user_id} успешно обновлён")
+        return {"user_id": str(user_id)}
     except Exception as e:
-        logger.error(f"Ошибка при обновлении пользователя: {e}")
+        logger.exception("Ошибка при обновлении пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
 @user_router.delete("/{user_id}/delete", summary="Удаление пользователя")
 async def delete_user(
-        user_id: str = Path(..., title="ID пользователя",
-                            description="ID удаляемого пользователя"),
+        user_id: UUID = Path(..., title="ID пользователя",
+                             description="ID удаляемого пользователя"),
         username: str = Depends(get_current_user)):
+    logger.info(f"Удаление пользователя {user_id}")
     try:
         deleted_count = await User.filter(user_id=user_id).delete()
         if not deleted_count:
+            logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
                 status_code=404, detail="Пользователь не найден")
+
+        logger.success(f"Пользователь {user_id} успешно удален")
         return {"detail": "Пользователь успешно удален"}
     except Exception as e:
-        logger.error(f"Ошибка при удалении пользователя: {e}")
+        logger.exception("Ошибка при удалении пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.get("/{user_id}/view", response_model=UserSchema, summary="Просмотр пользователя")
+@user_router.get("/{user_id}/view", response_model=UserSchema, summary="Просмотр пользователя", response_model_exclude_none=False)
 async def get_user(
-    user_id: str = Path(..., title="ID пользователя",
-                        description="ID просматриваемого пользователя"),
+    user_id: UUID = Path(..., title="ID пользователя",
+                         description="ID просматриваемого пользователя"),
     username: str = Depends(get_current_user)
 ):
+    logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
     try:
-        logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
-
-        # Проверяем, корректен ли UUID
-        try:
-            user_uuid = UUID(user_id)
-        except ValueError as exc:
-            logger.error(f"Некорректный UUID: {user_id}")
-            raise HTTPException(
-                status_code=400, detail="Некорректный формат ID пользователя") from exc
-
-        # Получаем объект пользователя
-        user = await User.get_or_none(user_id=user_uuid)
+        user = await User.get_or_none(user_id=user_id)
         if user is None:
-            logger.warning(f"Пользователь {user_uuid} не найден")
+            logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
                 status_code=404, detail="Пользователь не найден")
 
-        logger.info(f"Найден пользователь: {user}")
-
-        # Используем правильную конвертацию
         user_schema = await UserSchema.from_tortoise_orm(user)
-        logger.info(f"Успешно конвертировано: {user_schema}")
+        logger.success(f"Найден пользователь: {user_schema}")
+        logger.info(f"Реальные данные: {user_schema.model_dump()}")
         return user_schema
-
     except Exception as e:
-        logger.exception(f"Ошибка при просмотре пользователя: {e}")
+        logger.exception("Ошибка при просмотре пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -107,27 +118,25 @@ async def get_users(
     filters: dict = Depends(user_filter_params),
     username: str = Depends(get_current_user)
 ):
+    logger.info(f"Запрос списка пользователей: {filters}")
+
     try:
-        logger.info(f"Получен запрос на список пользователей: {filters}")
-
-        # Формируем динамический фильтр
         query = Q()
-        if filters.get("search"):
-            query &= Q(username__icontains=filters["search"])
+        search_value = filters.get("search")  # ✅ Получаем search безопасно
+        if search_value:
+            query &= Q(username__icontains=search_value)
 
-        # Определяем порядок сортировки
-        order_by = f"{'-' if filters['order'] == 'desc' else ''}{filters['sort_by']}"
+        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'username')}"
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
 
-        # Запрашиваем данные с фильтрацией, сортировкой и пагинацией
-        users = await User.filter(query).order_by(order_by).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        users = await User.filter(query).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
 
-        # Конвертируем в Pydantic
         user_list = [await UserSchema.from_tortoise_orm(user) for user in users]
 
-        logger.info(
-            f"Найдено {len(user_list)} пользователей (страница {filters['page']})")
+        logger.success(
+            f"Найдено {len(user_list)} пользователей (страница {page})")
         return user_list
-
     except Exception as e:
-        logger.exception(f"Ошибка при получении списка пользователей: {e}")
+        logger.exception("Ошибка при получении списка пользователей")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

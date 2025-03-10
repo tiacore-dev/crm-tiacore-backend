@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
-from app.database.models import create_user
+from app.database.models import create_user, Service
 from app.handlers.auth import create_access_token, create_refresh_token
 from app.config import Settings
 
@@ -55,7 +55,8 @@ async def seed_user():
     return {
         "user_id": str(user.user_id),
         "username": user.username,
-        "position": user.position
+        "position": user.position,
+        "full_name": user.full_name
     }
 
 
@@ -73,7 +74,8 @@ async def seed_admin():
     return {
         "user_id": str(admin.user_id),
         "username": admin.username,
-        "position": admin.position
+        "position": admin.position,
+        "full_name": admin.full_name
     }
 
 
@@ -100,4 +102,19 @@ async def jwt_token_admin(seed_admin):
     return {
         "access_token": create_access_token(token_data),
         "refresh_token": create_refresh_token(token_data)
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_service():
+    """Добавляет тестового пользователя в базу перед тестом."""
+    service = await Service.create(
+        service_name="Test Service"
+    )
+    return {
+        "service_id": str(service.service_id),
+        "service_name": service.service_name
+
     }
