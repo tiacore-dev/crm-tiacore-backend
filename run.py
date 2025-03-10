@@ -1,7 +1,5 @@
 import os
 from dotenv import load_dotenv
-from fastapi import Request
-# from fastapi.responses import RedirectResponse
 from app import create_app
 
 load_dotenv()
@@ -34,33 +32,6 @@ async def create_test_data():
 app = create_app()
 
 ORIGIN = os.getenv('ORIGIN')
-
-
-@app.middleware("http")
-async def debug_requests(request: Request, call_next):
-    print(f"Received request from {request.client.host} to {request.url}")
-    return await call_next(request)
-
-
-# @app.middleware("http")
-# async def redirect_https(request: Request, call_next):
-#     """Исправленный редирект HTTP → HTTPS + CORS"""
-#     forwarded_proto = request.headers.get("x-forwarded-proto", "http")
-#     response = await call_next(request)
-
-#     # Если пришёл HTTP → отправляем редирект
-#     if forwarded_proto == "http":
-#         url = request.url.replace(scheme="https")
-#         return RedirectResponse(url, status_code=308)
-
-#     # Добавляем CORS заголовки даже при редиректах
-#     response.headers["Access-Control-Allow-Origin"] = request.headers.get(
-#         "Origin", "*")
-#     response.headers["Access-Control-Allow-Credentials"] = "true"
-#     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
-#     response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-
-#     return response
 
 
 @app.on_event("startup")

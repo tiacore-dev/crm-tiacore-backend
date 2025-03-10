@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
-from functools import wraps
 from jose import JWTError, jwt
-from fastapi import HTTPException, Security, status, Depends, Request
+from fastapi import HTTPException, Security, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
 from app.config import Settings
@@ -70,45 +69,3 @@ async def login_handler(username: str, password: str):
         return user
 
     return None  # Возвращаем None, если пароль неверный
-
-
-def require_auth(endpoint_func):
-    @wraps(endpoint_func)
-    async def wrapper(request: Request, *args, **kwargs):
-        # Обработка OPTIONS запросов
-        if request.method == "OPTIONS":
-            return JSONResponse(
-                status_code=200,
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Authorization, Content-Type",
-                },
-            )
-
-        # Проверка авторизации для остальных запросов
-        auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=401, detail="Токен отсутствует или неверный формат"
-            )
-
-        token = auth_header.split(" ")[1]
-        try:
-            payload = decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-            if not username:
-                raise HTTPException(status_code=401, detail="Неверный токен")
-        except JWTError as exc:
-            raise HTTPException(
-                status_code=401, detail="Неверный или просроченный токен"
-            ) from exc
-
-        # Вызов оригинальной функции
-        response = await endpoint_func(request, *args, **kwargs)
-
-        # Добавление заголовка Access-Control-Allow-Origin
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        return response
-
-    return wrapper
