@@ -34,10 +34,10 @@ app = create_app()
 ORIGIN = os.getenv('ORIGIN')
 
 
-@app.options("/{full_path:path}")
-async def preflight_request(full_path: str):
-    """Глобальная обработка OPTIONS-запросов"""
-    return {"message": "OK"}
+# @app.options("/{full_path:path}")
+# async def preflight_request(full_path: str):
+#     """Глобальная обработка OPTIONS-запросов"""
+#     return {"message": "OK"}
 
 
 @app.on_event("startup")

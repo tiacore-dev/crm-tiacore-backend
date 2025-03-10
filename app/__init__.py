@@ -18,13 +18,11 @@ def create_app(config_name='Development') -> FastAPI:
     app.add_middleware(GZipMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        # allow_origins=allow_origins,
         allow_origins=["*"],
-        allow_credentials=True,
+        allow_credentials=True,  # Разрешаем использование кук и авторизации
         allow_methods=["*"],
-        allow_headers=["*"],
+        allow_headers=["*"],  # Разрешаем все заголовки
     )
-
     # Подключаем конфигурацию
 
     if config_name == 'Test':
