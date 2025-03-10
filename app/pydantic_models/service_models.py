@@ -3,11 +3,6 @@ from pydantic import BaseModel, Field
 from fastapi import Query
 
 
-class ServiceSchema(BaseModel):
-    service_id: str
-    service_name: str
-
-
 class ServiceCreateSchema(BaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
 
