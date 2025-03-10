@@ -14,9 +14,10 @@ services:
       context: .
       dockerfile: Dockerfile
       cache_from:
-        - type=local,src=/tmp/.buildx-cache
+        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache
       cache_to:
-        - type=local,dest=/tmp/.buildx-cache
+        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache,mode=max
+
     command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
     depends_on:
       - aerich
@@ -40,9 +41,9 @@ services:
       context: .
       dockerfile: Dockerfile
       cache_from:
-        - type=local,src=/tmp/.buildx-cache
+        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache
       cache_to:
-        - type=local,dest=/tmp/.buildx-cache
+        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache,mode=max
     dns:
       - 8.8.8.8
       - 1.1.1.1

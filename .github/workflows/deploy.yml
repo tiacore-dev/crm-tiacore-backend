@@ -40,10 +40,11 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
             git pull origin $GIT_BRANCH &&
-            TEST_MODE=1 docker buildx build --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache --load -t test-container .
+            TEST_MODE=1 COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose build test &&
             docker compose up test
           "
         continue-on-error: true
+
 
 
       - name: Clean up Docker Cache
@@ -62,9 +63,10 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
             git fetch origin &&
-            git checkout $(git rev-list --max-count=1 HEAD~1 -- $DEPLOY_PATH)
+            git checkout $(git rev-list --max-count=1 HEAD --skip=1 || echo 'HEAD')
           "
           exit 1
+
 
 
 
