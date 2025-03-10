@@ -95,3 +95,15 @@ async def test_get_companies(test_app: AsyncClient, jwt_token_user, seed_company
     assert isinstance(response_data, list)
     assert any(company["company_id"] == seed_company["company_id"]
                for company in response_data)
+
+
+@pytest.mark.asyncio
+async def test_mass_create_companies(test_app: AsyncClient, jwt_token_user):
+    """Создаем 100 компаний подряд и проверяем, не падает ли API"""
+    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+
+    for i in range(100):
+        data = {"company_name": f"Company {i}"}
+        response = test_app.post("/api/companies/add",
+                                 headers=headers, json=data)
+        assert response.status_code == 200

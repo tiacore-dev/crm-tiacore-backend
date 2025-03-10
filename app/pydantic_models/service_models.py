@@ -1,10 +1,17 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from fastapi import Query
+from app.utils.validate_helpers import sanitize_input
 
 
 class ServiceCreateSchema(BaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
+
+    @field_validator("service_name")
+    @classmethod
+    def validate_service_name(cls, value: str) -> str:
+        """Фильтрация входных данных от XSS и других инъекций"""
+        return sanitize_input(value)
 
 
 class ServiceResponseSchema(BaseModel):
@@ -13,6 +20,12 @@ class ServiceResponseSchema(BaseModel):
 
 class ServiceEditSchema(BaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
+
+    @field_validator("service_name")
+    @classmethod
+    def validate_service_name(cls, value: str) -> str:
+        """Фильтрация входных данных от XSS и других инъекций"""
+        return sanitize_input(value)
 
 
 def service_filter_params(

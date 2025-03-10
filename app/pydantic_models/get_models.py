@@ -1,14 +1,21 @@
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
-from pydantic import BaseModel, Field
 from fastapi import Query
+from app.utils.validate_helpers import sanitize_input
+
+# ✅ Общая схема с валидацией
 
 
-# ✅ Общая схема с alias для маппинга названий
 class BaseListSchema(BaseModel):
     id: str
     name: str
 
     model_config = {"from_attributes": True}
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return sanitize_input(value)
 
 
 class LegalEntityTypeSchema(BaseListSchema):
@@ -40,8 +47,10 @@ class PaginatedResponse(BaseModel):
 class FilterParams(BaseModel):
     search: Optional[str] = Query(None, description="Фильтр по названию")
     sort_by: Optional[str] = Query(
-        "name", description="Сортировка (по умолчанию name)")
+        "name", description="Сортировка (по умолчанию name)"
+    )
     order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc")
+        "asc", description="Порядок сортировки: asc/desc"
+    )
     page: Optional[int] = Query(1, description="Номер страницы")
     page_size: Optional[int] = Query(10, description="Размер страницы")

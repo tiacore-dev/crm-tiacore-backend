@@ -1,6 +1,7 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from fastapi import Query
+from app.utils.validate_helpers import sanitize_input
 
 
 class UserCreateSchema(BaseModel):
@@ -9,12 +10,28 @@ class UserCreateSchema(BaseModel):
     full_name: str = Field(..., min_length=3, max_length=100)
     position: Optional[str] = Field(None, max_length=50)
 
+    @field_validator("username", "full_name", "position", mode="before")
+    @classmethod
+    def validate_text_fields(cls, value: str) -> str:
+        """Фильтрация входных данных от XSS и других инъекций"""
+        if value is None:
+            return value
+        return sanitize_input(value)
+
 
 class UserEditSchema(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     password: Optional[str] = Field(None, min_length=6)
     full_name: Optional[str] = Field(None, min_length=3, max_length=100)
     position: Optional[str] = Field(None, max_length=50)
+
+    @field_validator("username", "full_name", "position", mode="before")
+    @classmethod
+    def validate_text_fields(cls, value: str) -> str:
+        """Фильтрация входных данных от XSS и других инъекций"""
+        if value is None:
+            return value
+        return sanitize_input(value)
 
 
 class UserResponseSchema(BaseModel):
