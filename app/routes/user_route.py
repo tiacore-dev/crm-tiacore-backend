@@ -44,7 +44,7 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.patch("/{user_id}/edit", response_model=UserResponseSchema, summary="Изменение пользователя")
+@user_router.patch("/{user_id}", response_model=UserResponseSchema, summary="Изменение пользователя")
 async def edit_user(
         user_id: UUID = Path(..., title="ID пользователя",
                              description="ID изменяемого пользователя"),
@@ -70,7 +70,7 @@ async def edit_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.delete("/{user_id}/delete", summary="Удаление пользователя")
+@user_router.delete("/{user_id}", summary="Удаление пользователя")
 async def delete_user(
         user_id: UUID = Path(..., title="ID пользователя",
                              description="ID удаляемого пользователя"),
@@ -87,29 +87,6 @@ async def delete_user(
         return {"detail": "Пользователь успешно удален"}
     except Exception as e:
         logger.exception("Ошибка при удалении пользователя")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
-
-
-@user_router.get("/{user_id}/view", response_model=UserSchema, summary="Просмотр пользователя", response_model_exclude_none=False)
-async def get_user(
-    user_id: UUID = Path(..., title="ID пользователя",
-                         description="ID просматриваемого пользователя"),
-    username: str = Depends(get_current_user)
-):
-    logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
-    try:
-        user = await User.get_or_none(user_id=user_id)
-        if user is None:
-            logger.warning(f"Пользователь {user_id} не найден")
-            raise HTTPException(
-                status_code=404, detail="Пользователь не найден")
-
-        user_schema = await UserSchema.from_tortoise_orm(user)
-        logger.success(f"Найден пользователь: {user_schema}")
-        logger.info(f"Реальные данные: {user_schema.model_dump()}")
-        return user_schema
-    except Exception as e:
-        logger.exception("Ошибка при просмотре пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -139,4 +116,27 @@ async def get_users(
         return user_list
     except Exception as e:
         logger.exception("Ошибка при получении списка пользователей")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+
+@user_router.get("/{user_id}", response_model=UserSchema, summary="Просмотр пользователя", response_model_exclude_none=False)
+async def get_user(
+    user_id: UUID = Path(..., title="ID пользователя",
+                         description="ID просматриваемого пользователя"),
+    username: str = Depends(get_current_user)
+):
+    logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
+    try:
+        user = await User.get_or_none(user_id=user_id)
+        if user is None:
+            logger.warning(f"Пользователь {user_id} не найден")
+            raise HTTPException(
+                status_code=404, detail="Пользователь не найден")
+
+        user_schema = await UserSchema.from_tortoise_orm(user)
+        logger.success(f"Найден пользователь: {user_schema}")
+        logger.info(f"Реальные данные: {user_schema.model_dump()}")
+        return user_schema
+    except Exception as e:
+        logger.exception("Ошибка при просмотре пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

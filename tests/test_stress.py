@@ -64,7 +64,7 @@ async def test_mass_delete_companies(test_app: AsyncClient, jwt_token_user):
         logger.info(f"Компания {company_id} найдена перед удалением")
 
         response = test_app.delete(
-            f"/api/companies/{company_id}/delete", headers=headers)
+            f"/api/companies/{company_id}", headers=headers)
         assert response.status_code == 200, f"Ошибка при удалении {company_id}"
 
 

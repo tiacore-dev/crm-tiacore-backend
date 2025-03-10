@@ -35,7 +35,7 @@ async def add_company(data: CompanyCreateSchema = Body(), username: str = Depend
 
 
 # ✅ 2. Изменение компании
-@company_router.patch("/{company_id}/edit", response_model=CompanyResponseSchema, summary="Изменение компании")
+@company_router.patch("/{company_id}", response_model=CompanyResponseSchema, summary="Изменение компании")
 async def edit_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID изменяемой компании"),
@@ -58,7 +58,7 @@ async def edit_company(
 
 
 # ✅ 3. Удаление компании
-@company_router.delete("/{company_id}/delete", summary="Удаление компании")
+@company_router.delete("/{company_id}", summary="Удаление компании")
 async def delete_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID удаляемой компании"),
@@ -77,29 +77,6 @@ async def delete_company(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-# ✅ 4. Просмотр компании по ID
-@company_router.get("/{company_id}/view", response_model=CompanySchema, summary="Просмотр компании")
-async def get_company(
-        company_id: UUID = Path(..., title="ID компании",
-                                description="ID просматриваемой компании"),
-        username: str = Depends(get_current_user)):
-    logger.info(f"Запрос на просмотр компании: {company_id}")
-    try:
-        company = await Company.get_or_none(company_id=company_id)
-        if company is None:
-            logger.warning(f"Компания {company_id} не найдена")
-            raise HTTPException(status_code=404, detail="Компания не найдена")
-
-        company_schema = await CompanySchema.from_tortoise_orm(company)
-        logger.success(f"Найдена компания: {company_schema}")
-        return company_schema
-
-    except Exception as e:
-        logger.exception("Ошибка при просмотре компании")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
-
-
-# ✅ 5. Получение списка компаний с фильтрацией
 @company_router.get("/all", response_model=List[CompanySchema], summary="Получение списка компаний с фильтрацией")
 async def get_companies(
         filters: dict = Depends(company_filter_params),
@@ -121,4 +98,26 @@ async def get_companies(
 
     except Exception as e:
         logger.exception("Ошибка при получении списка компаний")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+
+# ✅ 4. Просмотр компании по ID
+@company_router.get("/{company_id}", response_model=CompanySchema, summary="Просмотр компании")
+async def get_company(
+        company_id: UUID = Path(..., title="ID компании",
+                                description="ID просматриваемой компании"),
+        username: str = Depends(get_current_user)):
+    logger.info(f"Запрос на просмотр компании: {company_id}")
+    try:
+        company = await Company.get_or_none(company_id=company_id)
+        if company is None:
+            logger.warning(f"Компания {company_id} не найдена")
+            raise HTTPException(status_code=404, detail="Компания не найдена")
+
+        company_schema = await CompanySchema.from_tortoise_orm(company)
+        logger.success(f"Найдена компания: {company_schema}")
+        return company_schema
+
+    except Exception as e:
+        logger.exception("Ошибка при просмотре компании")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

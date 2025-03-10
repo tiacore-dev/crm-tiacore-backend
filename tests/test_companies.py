@@ -30,7 +30,7 @@ async def test_edit_company(test_app: AsyncClient, jwt_token_user, seed_company)
     }
 
     response = test_app.patch(
-        f"/api/companies/{seed_company['company_id']}/edit",
+        f"/api/companies/{seed_company['company_id']}",
         headers=headers,
         json=data
     )
@@ -50,7 +50,7 @@ async def test_view_company(test_app: AsyncClient, jwt_token_user, seed_company)
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.get(
-        f"/api/companies/{seed_company['company_id']}/view",
+        f"/api/companies/{seed_company['company_id']}",
         headers=headers
     )
 
@@ -68,7 +68,7 @@ async def test_delete_company(test_app: AsyncClient, jwt_token_user, seed_compan
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.delete(
-        f"/api/companies/{seed_company['company_id']}/delete",
+        f"/api/companies/{seed_company['company_id']}",
         headers=headers
     )
 

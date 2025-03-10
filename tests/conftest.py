@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
-from app.database.models import create_user, Service, Company
+from app.database.models import create_user, Service, Company, UserCompanyRelation, User, UserRole
 from app.handlers.auth import create_access_token, create_refresh_token
 from app.config import Settings
 
@@ -134,4 +134,52 @@ async def seed_company():
         "company_name": company.company_name,
         "description": company.description
 
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_role():
+    role = await UserRole.create(
+        role_id="admin",
+        role_name="Администратор"
+    )
+    return {
+        "role_id": role.role_id,
+        "role_name": role.role_name
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_role_manager():
+    role = await UserRole.create(
+        role_id="manager",
+        role_name="Менеджер"
+    )
+    return {
+        "role_id": role.role_id,
+        "role_name": role.role_name
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_relation(seed_user, seed_company, seed_role):
+    user = await User.get_or_none(user_id=seed_user['user_id'])
+    company = await Company.get_or_none(company_id=seed_company['company_id'])
+    role = await UserRole.get_or_none(role_id=seed_role['role_id'])
+    relation = await UserCompanyRelation.create(
+        company=company,
+        user=user,
+        role=role
+    )
+    return {
+        "user_company_id": str(relation.user_company_id),
+        "user": relation.user,
+        "company": relation.company,
+        "role": relation.role
     }

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query
 from app.utils.validate_helpers import sanitize_input
 
@@ -16,7 +16,7 @@ class CompanyCreateSchema(BaseModel):
 
 
 class CompanyResponseSchema(BaseModel):
-    company_id: str
+    company_id: UUID4
 
 
 class CompanyEditSchema(BaseModel):

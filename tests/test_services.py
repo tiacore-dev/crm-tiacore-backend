@@ -31,7 +31,7 @@ async def test_edit_service(test_app: AsyncClient, jwt_token_user, seed_service)
     }
 
     response = test_app.patch(
-        f"/api/services/{seed_service['service_id']}/edit",
+        f"/api/services/{seed_service['service_id']}",
         headers=headers,
         json=data
     )
@@ -53,7 +53,7 @@ async def test_view_service(test_app: AsyncClient, jwt_token_user, seed_service)
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.get(
-        f"/api/services/{seed_service['service_id']}/view",
+        f"/api/services/{seed_service['service_id']}",
         headers=headers
     )
 
@@ -70,7 +70,7 @@ async def test_delete_service(test_app: AsyncClient, jwt_token_user, seed_servic
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.delete(
-        f"/api/services/{seed_service['service_id']}/delete",
+        f"/api/services/{seed_service['service_id']}",
         headers=headers
     )
 

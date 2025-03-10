@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query
 from app.utils.validate_helpers import sanitize_input
 
@@ -35,7 +35,7 @@ class UserEditSchema(BaseModel):
 
 
 class UserResponseSchema(BaseModel):
-    user_id: str
+    user_id: UUID4
 
 
 def user_filter_params(

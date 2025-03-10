@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query
 from app.utils.validate_helpers import sanitize_input
 
@@ -15,7 +15,7 @@ class ServiceCreateSchema(BaseModel):
 
 
 class ServiceResponseSchema(BaseModel):
-    service_id: str
+    service_id: UUID4
 
 
 class ServiceEditSchema(BaseModel):

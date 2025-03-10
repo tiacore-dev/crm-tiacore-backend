@@ -35,7 +35,7 @@ async def test_edit_user(test_app: AsyncClient, jwt_token_user, seed_user):
     }
 
     response = test_app.patch(
-        f"/api/users/{seed_user['user_id']}/edit",
+        f"/api/users/{seed_user['user_id']}",
         headers=headers,
         json=data
     )
@@ -58,7 +58,7 @@ async def test_view_user(test_app: AsyncClient, jwt_token_user, seed_user):
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.get(
-        f"/api/users/{seed_user['user_id']}/view",
+        f"/api/users/{seed_user['user_id']}",
         headers=headers
     )
 
@@ -78,7 +78,7 @@ async def test_delete_user(test_app: AsyncClient, jwt_token_user, seed_user):
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.delete(
-        f"/api/users/{seed_user['user_id']}/delete",
+        f"/api/users/{seed_user['user_id']}",
         headers=headers
     )
 

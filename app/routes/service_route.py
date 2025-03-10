@@ -33,7 +33,7 @@ async def add_service(data: ServiceCreateSchema = Body(...), username: str = Dep
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.patch("/{service_id}/edit", response_model=ServiceResponseSchema, summary="Изменение услуги")
+@service_router.patch("/{service_id}", response_model=ServiceResponseSchema, summary="Изменение услуги")
 async def edit_service(
         service_id: UUID = Path(..., title="ID услуги",
                                 description="ID изменяемой услуги"),
@@ -58,7 +58,7 @@ async def edit_service(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.delete("/{service_id}/delete", summary="Удаление услуги")
+@service_router.delete("/{service_id}", summary="Удаление услуги")
 async def delete_service(
         service_id: UUID = Path(..., title="ID услуги",
                                 description="ID удаляемой услуги"),
@@ -74,27 +74,6 @@ async def delete_service(
         return {"detail": "Услуга успешно удалена"}
     except Exception as e:
         logger.exception("Ошибка при удалении услуги")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
-
-
-@service_router.get("/{service_id}/view", response_model=ServiceSchema, summary="Просмотр услуги")
-async def get_service(
-    service_id: UUID = Path(..., title="ID услуги",
-                            description="ID просматриваемой услуги"),
-    username: str = Depends(get_current_user)
-):
-    logger.info(f"Запрос на просмотр услуги: {service_id}")
-    try:
-        service = await Service.get_or_none(service_id=service_id)
-        if service is None:
-            logger.warning(f"Услуга {service_id} не найдена")
-            raise HTTPException(status_code=404, detail="Услуга не найдена")
-
-        service_schema = await ServiceSchema.from_tortoise_orm(service)
-        logger.success(f"Услуга найдена: {service_schema}")
-        return service_schema
-    except Exception as e:
-        logger.exception("Ошибка при просмотре услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -125,4 +104,25 @@ async def get_services(
         return service_list
     except Exception as e:
         logger.exception("Ошибка при получении списка услуг")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+
+@service_router.get("/{service_id}", response_model=ServiceSchema, summary="Просмотр услуги")
+async def get_service(
+    service_id: UUID = Path(..., title="ID услуги",
+                            description="ID просматриваемой услуги"),
+    username: str = Depends(get_current_user)
+):
+    logger.info(f"Запрос на просмотр услуги: {service_id}")
+    try:
+        service = await Service.get_or_none(service_id=service_id)
+        if service is None:
+            logger.warning(f"Услуга {service_id} не найдена")
+            raise HTTPException(status_code=404, detail="Услуга не найдена")
+
+        service_schema = await ServiceSchema.from_tortoise_orm(service)
+        logger.success(f"Услуга найдена: {service_schema}")
+        return service_schema
+    except Exception as e:
+        logger.exception("Ошибка при просмотре услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
