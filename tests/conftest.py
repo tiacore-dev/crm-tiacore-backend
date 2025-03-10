@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
-from app.database.models import create_user, Service
+from app.database.models import create_user, Service, Company
 from app.handlers.auth import create_access_token, create_refresh_token
 from app.config import Settings
 
@@ -116,5 +116,22 @@ async def seed_service():
     return {
         "service_id": str(service.service_id),
         "service_name": service.service_name
+
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_company():
+    """Добавляет тестового пользователя в базу перед тестом."""
+    company = await Company.create(
+        company_name="Test Company",
+        description="Description"
+    )
+    return {
+        "company_id": str(company.company_id),
+        "company_name": company.company_name,
+        "description": company.description
 
     }
