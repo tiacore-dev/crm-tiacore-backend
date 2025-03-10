@@ -6,18 +6,10 @@ services:
       - .:/app
     networks:
       - crm_network
-    env_file:
-      - .env
+
       
   test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache
-      cache_to:
-        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache,mode=max
-
+    build: .
     command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
     depends_on:
       - aerich
@@ -30,20 +22,12 @@ services:
       - PYTHONPATH=/app
     deploy:
       replicas: ${TEST_MODE}
-    env_file:
-      - .env
 
 
   web:
     tty: true
     stdin_open: true
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache
-      cache_to:
-        - type=registry,ref=${{ secrets.DOCKER_REGISTRY }}/crm-backend-dev:cache,mode=max
+    build: .
     dns:
       - 8.8.8.8
       - 1.1.1.1
@@ -57,8 +41,7 @@ services:
        gunicorn -c gunicorn.conf.py run:app
     networks:
       - crm_network
-    env_file:
-      - .env
+
 
 networks:
   crm_network:

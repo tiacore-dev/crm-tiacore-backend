@@ -30,8 +30,6 @@ jobs:
             exit 1
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Pull Latest Code and Run Tests
         id: test
@@ -40,7 +38,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
             git pull origin $GIT_BRANCH &&
-            TEST_MODE=1 COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker compose build test &&
+            TEST_MODE=1 docker compose build test &&
             docker compose up test
           "
         continue-on-error: true
@@ -68,8 +66,6 @@ jobs:
           exit 1
 
 
-
-
       - name: Save Logs on Failure
         if: steps.test.outcome == 'failure'
         run: |
@@ -79,9 +75,6 @@ jobs:
             docker compose logs > failed_tests.log
           "
 
-      - name: Enable Docker BuildKit
-        run: |
-          export DOCKER_BUILDKIT=1
 
       - name: Deploy Application
         if: success()
