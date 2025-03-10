@@ -6,7 +6,9 @@ services:
       - .:/app
     networks:
       - crm_network
-
+    env_file:
+      - .env
+      
   test:
     build: .
     command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
@@ -21,6 +23,9 @@ services:
       - PYTHONPATH=/app
     deploy:
       replicas: ${TEST_MODE}
+    env_file:
+      - .env
+
 
   web:
     tty: true
@@ -39,6 +44,8 @@ services:
        gunicorn -c gunicorn.conf.py run:app
     networks:
       - crm_network
+    env_file:
+      - .env
 
 networks:
   crm_network:
