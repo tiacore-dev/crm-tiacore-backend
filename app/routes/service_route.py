@@ -1,15 +1,17 @@
 from typing import List
-from tortoise.expressions import Q
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException
 from loguru import logger
+from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import Service
 from app.pydantic_models.service_models import (
-    ServiceCreateSchema, ServiceEditSchema, ServiceFilterParams, ServiceResponseSchema
+    ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema
 )
 
+
+ServiceSchema = pydantic_model_creator(Service, name="ServiceSchema")
 
 service_router = APIRouter()
 
@@ -62,9 +64,6 @@ async def delete_service(
         return None
 
 
-ServiceSchema = pydantic_model_creator(Service, name="ServiceSchema")
-
-
 @service_router.get("/{service_id}/view", response_model=ServiceSchema, summary="Просмотр услуги")
 async def get_service(
     service_id: str = Path(..., title="ID услуги",
@@ -102,7 +101,7 @@ async def get_service(
 
 @service_router.get("/all", response_model=List[ServiceSchema], summary="Получение списка услуг с фильтрацией")
 async def get_services(
-    filters: ServiceFilterParams = Depends(),
+    filters: dict = Depends(service_filter_params),
     username: str = Depends(get_current_user)
 ):
     try:

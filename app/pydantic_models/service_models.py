@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import Query
 
 
@@ -9,7 +9,7 @@ class ServiceSchema(BaseModel):
 
 
 class ServiceCreateSchema(BaseModel):
-    service_name: str
+    service_name: str = Field(..., min_length=3, max_length=100)
 
 
 class ServiceResponseSchema(BaseModel):
@@ -17,14 +17,23 @@ class ServiceResponseSchema(BaseModel):
 
 
 class ServiceEditSchema(BaseModel):
-    service_name: str
+    service_name: str = Field(..., min_length=3, max_length=100)
 
 
-class ServiceFilterParams(BaseModel):
-    search: Optional[str] = Query(None, description="Фильтр по названию")
+def service_filter_params(
+    search: Optional[str] = Query(None, description="Фильтр по названию"),
     sort_by: Optional[str] = Query(
-        "service_name", description="Сортировка (по умолчанию name)")
+        "service_name", description="Поле сортировки"),
     order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc")
-    page: Optional[int] = Query(1, description="Номер страницы")
-    page_size: Optional[int] = Query(10, description="Размер страницы")
+        "asc", description="Порядок сортировки: asc/desc"),
+    page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
+    page_size: Optional[int] = Query(
+        10, ge=1, le=100, description="Размер страницы"),
+):
+    return {
+        "search": search,
+        "sort_by": sort_by,
+        "order": order,
+        "page": page,
+        "page_size": page_size,
+    }
