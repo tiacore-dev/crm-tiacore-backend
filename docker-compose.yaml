@@ -8,6 +8,8 @@ services:
       - crm_network
 
   test:
+    profiles:
+      - test  # Контейнер запускается только с profile test
     build: .
     command: bash -c "pytest --maxfail=3 --disable-warnings || exit 1"
     depends_on:
@@ -37,7 +39,6 @@ services:
        gunicorn -c gunicorn.conf.py run:app
     networks:
       - crm_network
-
 
 networks:
   crm_network:

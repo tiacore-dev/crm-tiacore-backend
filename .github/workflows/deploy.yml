@@ -5,7 +5,7 @@ on:
     branches: [master, dev]
 
 jobs:
-  deploy:
+  test_and_deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,11 +17,39 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Run Tests in Docker
+        id: test
+        run: |
+          docker compose up --build --profile test
+
+        continue-on-error: true  # Если тесты упадут, не ломаем процесс, а обработаем вручную
+
+      - name: Rollback on Failure
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "🚨 Тесты провалились! Откатываем изменения..."
+          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd apps/crm-backend &&
+            git revert HEAD -m 1 && git push
+          "
+          exit 1
 
       - name: Deploy to Production
-        if: github.ref_name == 'master'
-        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd apps/crm-backend && git pull origin master && docker compose down && docker compose up --build -d"
+        if: success() && github.ref_name == 'master'
+        run: |
+          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd apps/crm-backend &&
+            git pull origin master &&
+            docker compose down &&
+            docker compose up --build -d
+          "
 
       - name: Deploy to Development
-        if: github.ref_name == 'dev'
-        run: ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "cd apps/crm-backend-dev && git pull origin dev && docker compose down && docker compose up  -d"
+        if: success() && github.ref_name == 'dev'
+        run: |
+          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd apps/crm-backend-dev &&
+            git pull origin dev &&
+            docker compose down &&
+            docker compose up -d
+          "
