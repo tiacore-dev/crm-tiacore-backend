@@ -20,7 +20,7 @@ jobs:
       - name: Run Tests in Docker
         id: test
         run: |
-          TEST_MODE=1 docker-compose up --build
+          TEST_MODE=1 docker compose up --build
 
 
         continue-on-error: true  # Если тесты упадут, не ломаем процесс, а обработаем вручную
@@ -29,11 +29,32 @@ jobs:
         if: steps.test.outcome == 'failure'
         run: |
           echo "🚨 Тесты провалились! Откатываем изменения..."
-          ssh -o StrictHostKeyChecking=no -t ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            cd apps/crm-backend &&
-            git revert HEAD -m 1 && git push
+
+         
+          if [[ "${{ github.ref_name }}" == "master" ]]; then
+            DEPLOY_PATH="apps/crm-backend"
+          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
+            DEPLOY_PATH="apps/crm-backend-dev"
+          else
+            echo "❌ Неизвестная ветка, откат не выполняется"
+            exit 1
+          fi
+
+    
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            if [ -d $DEPLOY_PATH ]; then
+              cd $DEPLOY_PATH &&
+              git revert HEAD -m 1 && git push
+              echo '✅ Откат завершен'
+            else
+              echo '❌ Папка $DEPLOY_PATH не найдена, откат невозможен'
+              exit 1
+            fi
           "
+
           exit 1
+
+
 
       - name: Deploy to Production
         if: success() && github.ref_name == 'master'
