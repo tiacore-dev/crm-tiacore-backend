@@ -41,15 +41,40 @@ jobs:
           "
         continue-on-error: true  # Позволяет обработать ошибку вручную
 
+      - name: Clean up Docker Cache
+        if: always()  # Очистка запускается в любом случае (успех или неудача тестов)
+        run: |
+          echo "🧹 Очищаем кеш и неиспользуемые Docker-ресурсы..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            docker system prune -af &&
+            docker volume prune -f
+          "
+
       - name: Rollback on Failure
         if: steps.test.outcome == 'failure'
         run: |
-          echo "🚨 Тесты провалились! Откатываем изменения..."
+          echo "🚨 Тесты провалились! Откатываемся на предыдущую рабочую версию..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
-            git revert HEAD -m 1 && git push
+            git fetch origin &&
+            git checkout $(git rev-list --max-count=1 HEAD~1 -- $DEPLOY_PATH)
           "
           exit 1
+
+
+
+      - name: Save Logs on Failure
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "💾 Сохраняем логи тестов..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            cd $DEPLOY_PATH &&
+            docker compose logs > failed_tests.log
+          "
+
+      - name: Enable Docker BuildKit
+        run: |
+          export DOCKER_BUILDKIT=1
 
       - name: Deploy Application
         if: success()
