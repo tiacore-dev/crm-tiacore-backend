@@ -4,4 +4,4 @@ from fastapi.security import OAuth2PasswordBearer, HTTPBearer
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # HTTP Bearer схема для авторизации через заголовки
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)

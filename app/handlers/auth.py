@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import HTTPException, Security, status, Depends
+from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
 from app.config import Settings
 from app.database import User
-from app.auth_schemas import oauth2_scheme, bearer_scheme
+from app.auth_schemas import bearer_scheme
 
 # Конфигурация JWT
 settings = Settings()
@@ -33,25 +33,39 @@ def create_refresh_token(data: dict):
     return create_access_token(data, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> str:
     """
-    Проверяет и декодирует токен из заголовка Authorization.
+    Проверяет токен из заголовка Authorization и возвращает имя пользователя.
     """
-    token = credentials.credentials  # Достаём сам токен
-    return verify_token(token)  # Проверяем токен и возвращаем username
+    if credentials is None:
+        logger.warning("❌ Запрос без токена! Отправляем 401")
+        raise HTTPException(status_code=401, detail="Missing token")
+
+    if not credentials.credentials:
+        logger.warning("❌ Пустой токен! Отправляем 401")
+        raise HTTPException(status_code=401, detail="Empty token")
+
+    token = credentials.credentials
+    logger.info(f"🔍 Проверяем токен: {token}")
+
+    return verify_token(token)
 
 
-def verify_token(token: str = Depends(oauth2_scheme)):
+def verify_token(token: str) -> str:
+    logger.info(f"Проверка токена: {token}")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            logger.warning("Некорректный токен: отсутствует sub")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
             )
+        logger.success(f"Токен валиден, username: {username}")
         return username
     except JWTError as exc:
+        logger.error("Ошибка JWT-декодирования")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
