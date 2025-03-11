@@ -25,6 +25,16 @@ class ActCreateSchema(BaseModel):
         from_attributes = True
 
 
+class ActSchema(BaseModel):
+    act_id: UUID4
+    contract: UUID4  # ✅ Передаем UUID вместо объекта
+    act_number: str
+    act_date: int  # ✅ Unix timestamp
+
+    class Config:
+        from_attributes = True
+
+
 class ActResponseSchema(BaseModel):
     act_id: UUID4
 

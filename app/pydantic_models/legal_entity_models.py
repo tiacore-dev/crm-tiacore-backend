@@ -31,6 +31,22 @@ class LegalEntityCreateSchema(BaseModel):
         from_attributes = True
 
 
+class LegalEntitySchema(BaseModel):
+    legal_entity_id: UUID4
+    legal_entity_name: str = Field(..., max_length=255)
+    inn: str = Field(..., min_length=10, max_length=12)
+    kpp: Optional[str] = Field(None, min_length=9, max_length=9)
+    vat_rate: int
+    address: str = Field(..., max_length=255)
+    entity_type: str  # Теперь хранит ID, а не строку
+    signer: Optional[str] = Field(None, max_length=255)
+    company: UUID4
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class LegalEntityResponseSchema(BaseModel):
     legal_entity_id: UUID4
 

@@ -29,6 +29,19 @@ class ContractCreateSchema(BaseModel):
         from_attributes = True
 
 
+class ContractSchema(BaseModel):
+    contract_id: UUID4
+    contract_name: str
+    contract_date: int  # Unix timestamp
+    buyer: UUID4
+    seller: UUID4
+    file: str
+    status: str
+
+    class Config:
+        from_attributes = True
+
+
 class ContractResponseSchema(BaseModel):
     contract_id: UUID4
 

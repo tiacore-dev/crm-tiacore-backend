@@ -2,18 +2,16 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import LegalEntity, LegalEntityType, Company
 from app.pydantic_models.legal_entity_models import (
     LegalEntityCreateSchema,
     LegalEntityResponseSchema,
     LegalEntityEditSchema,
-    legal_entity_filter_params
+    legal_entity_filter_params,
+    LegalEntitySchema
 )
 
-LegalEntitySchema = pydantic_model_creator(
-    LegalEntity, name="LegalEntitySchema")
 
 entity_router = APIRouter()
 
@@ -85,28 +83,49 @@ async def delete_legal_entity(legal_entity_id: UUID):
     # return {"message": "Юридическое лицо удалено"}
 
 
-@entity_router.get("/all", response_model=List[LegalEntitySchema], summary="Получение списка юридических лиц")
+@entity_router.get(
+    "/all",
+    response_model=List[LegalEntitySchema],
+    summary="Получение списка юридических лиц"
+)
 async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)):
     try:
         query = Q()
         if filters.get("company"):
             query &= Q(company_id=filters["company"])
         if filters.get("entity_type"):
-            query &= Q(legal_entity_type_id=filters["entity_type"])
+            query &= Q(entity_type_id=filters["entity_type"])
 
-        entities = await LegalEntity.filter(query) \
-            .prefetch_related("company", "entity_type") \
+        entities = await LegalEntity.filter(query).prefetch_related("company", "entity_type") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [await LegalEntitySchema.from_tortoise_orm(entity) for entity in entities]
+        return [
+            LegalEntitySchema(
+                legal_entity_id=entity.legal_entity_id,
+                legal_entity_name=entity.legal_entity_name,
+                inn=entity.inn,
+                kpp=entity.kpp,
+                vat_rate=entity.vat_rate,
+                address=entity.address,
+                entity_type=entity.entity_type.legal_entity_type_id,  # Теперь ID
+                signer=entity.signer,
+                company=entity.company.company_id,  # Теперь ID
+                description=entity.description
+            )
+            for entity in entities
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@entity_router.get("/{legal_entity_id}", response_model=LegalEntitySchema, summary="Просмотр одного юридического лица")
+@entity_router.get(
+    "/{legal_entity_id}",
+    response_model=LegalEntitySchema,
+    summary="Просмотр одного юридического лица"
+)
 async def get_legal_entity(legal_entity_id: UUID):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id) \
         .prefetch_related("company", "entity_type") \
@@ -116,4 +135,15 @@ async def get_legal_entity(legal_entity_id: UUID):
         raise HTTPException(
             status_code=404, detail="Юридическое лицо не найдено")
 
-    return await LegalEntitySchema.from_tortoise_orm(entity)
+    return LegalEntitySchema(
+        legal_entity_id=entity.legal_entity_id,
+        legal_entity_name=entity.legal_entity_name,
+        inn=entity.inn,
+        kpp=entity.kpp,
+        vat_rate=entity.vat_rate,
+        address=entity.address,
+        entity_type=entity.entity_type.legal_entity_type_id,  # Теперь ID
+        signer=entity.signer,
+        company=entity.company.company_id,  # Теперь ID
+        description=entity.description
+    )

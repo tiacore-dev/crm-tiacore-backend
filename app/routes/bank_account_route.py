@@ -2,18 +2,16 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import BankAccount, LegalEntity
 from app.pydantic_models.bank_account_models import (
     BankAccountCreateSchema,
     BankAccountResponseSchema,
     BankAccountEditSchema,
-    bank_account_filter_params
+    bank_account_filter_params,
+    BankAccountSchema
 )
 
-BankAccountSchema = pydantic_model_creator(
-    BankAccount, name="BankAccountSchema")
 
 bank_account_router = APIRouter()
 
@@ -101,9 +99,20 @@ async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params))
             query &= Q(bank_name__icontains=filters["bank_name"])
 
         bank_accounts = await BankAccount.filter(query).prefetch_related("legal_entity") \
-            .offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
 
-        return [await BankAccountSchema.from_tortoise_orm(bank_account) for bank_account in bank_accounts]
+        return [
+            BankAccountSchema(
+                bank_account_id=bank_account.bank_account_id,
+                legal_entity=bank_account.legal_entity.legal_entity_id,  # ✅ Теперь передаем UUID
+                bank_name=bank_account.bank_name,
+                account_number=bank_account.account_number,
+                bank_bic=bank_account.bank_bic,
+                bank_corr_account=bank_account.bank_corr_account
+            )
+            for bank_account in bank_accounts
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка банковских счетов")
@@ -123,4 +132,11 @@ async def get_bank_account(bank_account_id: UUID):
             status_code=404, detail="Банковский счет не найден"
         )
 
-    return await BankAccountSchema.from_tortoise_orm(bank_account)
+    return BankAccountSchema(
+        bank_account_id=bank_account.bank_account_id,
+        legal_entity=bank_account.legal_entity.legal_entity_id,  # ✅ Теперь передаем UUID
+        bank_name=bank_account.bank_name,
+        account_number=bank_account.account_number,
+        bank_bic=bank_account.bank_bic,
+        bank_corr_account=bank_account.bank_corr_account
+    )

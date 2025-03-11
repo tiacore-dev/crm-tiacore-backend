@@ -2,17 +2,16 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import ActDetails, Acts, Service
 from app.pydantic_models.act_detail_models import (
     ActDetailCreateSchema,
     ActDetailResponseSchema,
     ActDetailEditSchema,
-    act_detail_filter_params
+    act_detail_filter_params,
+    ActDetailSchema
 )
 
-ActDetailSchema = pydantic_model_creator(ActDetails, name="ActDetailSchema")
 
 act_detail_router = APIRouter()
 
@@ -108,7 +107,16 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [await ActDetailSchema.from_tortoise_orm(act_detail) for act_detail in act_details]
+        return [
+            ActDetailSchema(
+                act_detail_id=act_detail.act_detail_id,
+                act=act_detail.act.act_id,  # ✅ Теперь передаем UUID
+                service=act_detail.service.service_id,  # ✅ Теперь передаем UUID
+                quantity=act_detail.quantity,
+                summ=act_detail.summ
+            )
+            for act_detail in act_details
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка деталей акта")
@@ -126,4 +134,10 @@ async def get_act_detail(act_detail_id: UUID):
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
-    return await ActDetailSchema.from_tortoise_orm(act_detail)
+    return ActDetailSchema(
+        act_detail_id=act_detail.act_detail_id,
+        act=act_detail.act.act_id,  # ✅ Теперь передаем UUID
+        service=act_detail.service.service_id,  # ✅ Теперь передаем UUID
+        quantity=act_detail.quantity,
+        summ=act_detail.summ
+    )

@@ -25,6 +25,17 @@ class ActDetailCreateSchema(BaseModel):
         from_attributes = True
 
 
+class ActDetailSchema(BaseModel):
+    act_detail_id: UUID4
+    act: UUID4  # ✅ Передаем UUID вместо объекта
+    service: UUID4  # ✅ Передаем UUID вместо объекта
+    quantity: float
+    summ: float
+
+    class Config:
+        from_attributes = True
+
+
 class ActDetailResponseSchema(BaseModel):
     act_detail_id: UUID4
 

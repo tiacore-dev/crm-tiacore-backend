@@ -2,17 +2,16 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import Acts, Contract
 from app.pydantic_models.act_models import (
     ActCreateSchema,
     ActResponseSchema,
     ActEditSchema,
-    act_filter_params
+    act_filter_params,
+    ActSchema
 )
 
-ActSchema = pydantic_model_creator(Acts, name="ActSchema")
 
 act_router = APIRouter()
 
@@ -96,7 +95,15 @@ async def get_acts(filters: dict = Depends(act_filter_params)):
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [await ActSchema.from_tortoise_orm(act) for act in acts]
+        return [
+            ActSchema(
+                act_id=act.act_id,
+                contract=act.contract.contract_id,  # ✅ Теперь передаем UUID
+                act_number=act.act_number,
+                act_date=act.act_date
+            )
+            for act in acts
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка актов")
@@ -114,4 +121,9 @@ async def get_act(act_id: UUID):
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
 
-    return await ActSchema.from_tortoise_orm(act)
+    return ActSchema(
+        act_id=act.act_id,
+        contract=act.contract.contract_id,  # ✅ Теперь передаем UUID
+        act_number=act.act_number,
+        act_date=act.act_date
+    )

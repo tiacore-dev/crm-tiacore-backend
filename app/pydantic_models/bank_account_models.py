@@ -27,6 +27,18 @@ class BankAccountCreateSchema(BaseModel):
         from_attributes = True
 
 
+class BankAccountSchema(BaseModel):
+    bank_account_id: UUID4
+    legal_entity: UUID4  # ✅ Передаем UUID вместо объекта
+    bank_name: str
+    account_number: str
+    bank_bic: str
+    bank_corr_account: str
+
+    class Config:
+        from_attributes = True
+
+
 class BankAccountResponseSchema(BaseModel):
     bank_account_id: UUID4
 

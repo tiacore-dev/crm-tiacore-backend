@@ -2,17 +2,16 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import Contract, ContractStatus, LegalEntity
 from app.pydantic_models.contract_models import (
     ContractCreateSchema,
     ContractResponseSchema,
     ContractEditSchema,
-    contract_filter_params
+    contract_filter_params,
+    ContractSchema
 )
 
-ContractSchema = pydantic_model_creator(Contract, name="ContractSchema")
 
 contract_router = APIRouter()
 
@@ -115,12 +114,22 @@ async def get_contracts(filters: dict = Depends(contract_filter_params)):
         if filters.get("status"):
             query &= Q(status_id=filters["status"])
 
-        contracts = await Contract.filter(query) \
-            .prefetch_related("buyer", "seller", "status") \
+        contracts = await Contract.filter(query).prefetch_related("buyer", "seller", "status") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [await ContractSchema.from_tortoise_orm(contract) for contract in contracts]
+        return [
+            ContractSchema(
+                contract_id=contract.contract_id,
+                contract_name=contract.contract_name,
+                contract_date=contract.contract_date,
+                buyer=contract.buyer.legal_entity_id,
+                seller=contract.seller.legal_entity_id,
+                status=contract.status.contract_status_id,
+                file=contract.file
+            )
+            for contract in contracts
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка контрактов")
@@ -138,4 +147,12 @@ async def get_contract(contract_id: UUID):
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
 
-    return await ContractSchema.from_tortoise_orm(contract)
+    return ContractSchema(
+        contract_id=contract.contract_id,
+        contract_name=contract.contract_name,
+        contract_date=contract.contract_date,
+        buyer=contract.buyer.legal_entity_id,
+        seller=contract.seller.legal_entity_id,
+        status=contract.status.contract_status_id,
+        file=contract.file
+    )

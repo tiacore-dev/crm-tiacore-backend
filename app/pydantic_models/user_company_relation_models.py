@@ -22,6 +22,16 @@ class UserCompanyRelationCreateSchema(BaseModel):
         from_attributes = True
 
 
+class UserCompanyRelationSchema(BaseModel):
+    user_company_id: UUID4
+    user_id: UUID4
+    company_id: UUID4
+    role_id: str
+
+    class Config:
+        from_attributes = True
+
+
 class UserCompanyRelationResponseSchema(BaseModel):
     user_company_id: UUID4
 

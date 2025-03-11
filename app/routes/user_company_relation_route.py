@@ -2,18 +2,15 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
 from app.database.models import UserCompanyRelation, User, Company, UserRole
 from app.pydantic_models.user_company_relation_models import (
     UserCompanyRelationCreateSchema,
     UserCompanyRelationResponseSchema,
     UserCompanyRelationEditSchema,
-    user_company_filter_params
+    user_company_filter_params,
+    UserCompanyRelationSchema
 )
-
-UserCompanyRelationSchema = pydantic_model_creator(
-    UserCompanyRelation, name="UserCompanyRelationSchema")
 
 relation_router = APIRouter()
 
@@ -82,7 +79,11 @@ async def delete_user_company_relation(user_company_id: UUID):
     # return {"message": "Связь удалена"}
 
 
-@relation_router.get("/all", response_model=List[UserCompanyRelationSchema], summary="Получение списка связей")
+@relation_router.get(
+    "/all",
+    response_model=List[UserCompanyRelationSchema],
+    summary="Получение списка связей"
+)
 async def get_user_company_relations(filters: dict = Depends(user_company_filter_params)):
     try:
         query = Q()
@@ -98,14 +99,26 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [await UserCompanyRelationSchema.from_tortoise_orm(relation) for relation in relations]
+        return [
+            UserCompanyRelationSchema(
+                user_company_id=relation.user_company_id,
+                user_id=relation.user.user_id,
+                company_id=relation.company.company_id,
+                role_id=relation.role.role_id
+            )
+            for relation in relations
+        ]
 
     except Exception as e:
         logger.exception("Ошибка при получении списка связей")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@relation_router.get("/{user_company_id}", response_model=UserCompanyRelationSchema, summary="Просмотр одной связи")
+@relation_router.get(
+    "/{user_company_id}",
+    response_model=UserCompanyRelationSchema,
+    summary="Просмотр одной связи"
+)
 async def get_user_company_relation(user_company_id: UUID):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id) \
         .prefetch_related("user", "company", "role") \
@@ -114,4 +127,9 @@ async def get_user_company_relation(user_company_id: UUID):
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
 
-    return await UserCompanyRelationSchema.from_tortoise_orm(relation)
+    return UserCompanyRelationSchema(
+        user_company_id=relation.user_company_id,
+        user_id=relation.user.user_id,
+        company_id=relation.company.company_id,
+        role_id=relation.role.role_id
+    )
