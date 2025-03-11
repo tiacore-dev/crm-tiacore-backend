@@ -6,6 +6,7 @@ from .company_route import company_router
 from .user_company_relation_route import relation_router
 from .legal_entity_route import entity_router
 from .contract_route import contract_router
+from .bank_account_route import bank_account_router
 
 # Функция для регистрации всех маршрутов
 
@@ -25,3 +26,5 @@ def register_routes(app):
         entity_router, prefix='/api/legal-entities', tags=["LegalEntities"])
     app.include_router(
         contract_router, prefix='/api/contracts', tags=["Contracts"])
+    app.include_router(bank_account_router,
+                       prefix='/api/bank-accounts', tags=["BankAccounts"])
