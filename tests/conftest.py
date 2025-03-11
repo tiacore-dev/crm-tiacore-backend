@@ -2,9 +2,12 @@ import pytest
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
-from app.database.models import create_user, Service, Company, UserCompanyRelation, User, UserRole
+from app.database.models import create_user, Service
 from app.handlers.auth import create_access_token, create_refresh_token
 from app.config import Settings
+# from tests.fixtures.names import seed_contract_status, seed_legal_entity_type, seed_role, seed_role_manager
+# from tests.fixtures.company_relations import seed_company, seed_relation
+# from tests.fixtures.legal_entity import seed_legal_entity
 
 settings = Settings()
 
@@ -39,6 +42,12 @@ async def setup_db():
     await Tortoise.generate_schemas()
     yield
     await Tortoise.close_connections()
+
+pytest_plugins = [
+    "tests.fixtures.names",  # Фикстуры, связанные с именами, статусами, ролями
+    "tests.fixtures.company_relations",  # Фикстуры для компаний и связей
+    "tests.fixtures.legal_entity",  # Фикстуры для юридических лиц
+]
 
 
 @pytest.mark.usefixtures("setup_db")
@@ -117,69 +126,4 @@ async def seed_service():
         "service_id": str(service.service_id),
         "service_name": service.service_name
 
-    }
-
-
-@pytest.mark.usefixtures("setup_db")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_company():
-    """Добавляет тестового пользователя в базу перед тестом."""
-    company = await Company.create(
-        company_name="Test Company",
-        description="Description"
-    )
-    return {
-        "company_id": str(company.company_id),
-        "company_name": company.company_name,
-        "description": company.description
-
-    }
-
-
-@pytest.mark.usefixtures("setup_db")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_role():
-    role = await UserRole.create(
-        role_id="admin",
-        role_name="Администратор"
-    )
-    return {
-        "role_id": role.role_id,
-        "role_name": role.role_name
-    }
-
-
-@pytest.mark.usefixtures("setup_db")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_role_manager():
-    role = await UserRole.create(
-        role_id="manager",
-        role_name="Менеджер"
-    )
-    return {
-        "role_id": role.role_id,
-        "role_name": role.role_name
-    }
-
-
-@pytest.mark.usefixtures("setup_db")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_relation(seed_user, seed_company, seed_role):
-    user = await User.get_or_none(user_id=seed_user['user_id'])
-    company = await Company.get_or_none(company_id=seed_company['company_id'])
-    role = await UserRole.get_or_none(role_id=seed_role['role_id'])
-    relation = await UserCompanyRelation.create(
-        company=company,
-        user=user,
-        role=role
-    )
-    return {
-        "user_company_id": str(relation.user_company_id),
-        "user": relation.user,
-        "company": relation.company,
-        "role": relation.role
     }
