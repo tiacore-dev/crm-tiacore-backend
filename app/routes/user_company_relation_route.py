@@ -93,7 +93,11 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
         if filters.get("role_id"):
             query &= Q(role_id=filters["role_id"])
 
-        relations = await UserCompanyRelation.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        relations = await UserCompanyRelation.filter(query) \
+            .prefetch_related("user", "company", "role") \
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
+
         return [await UserCompanyRelationSchema.from_tortoise_orm(relation) for relation in relations]
 
     except Exception as e:
@@ -103,7 +107,11 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
 
 @relation_router.get("/{user_company_id}", response_model=UserCompanyRelationSchema, summary="Просмотр одной связи")
 async def get_user_company_relation(user_company_id: UUID):
-    relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
+    relation = await UserCompanyRelation.filter(user_company_id=user_company_id) \
+        .prefetch_related("user", "company", "role") \
+        .first()
+
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
+
     return await UserCompanyRelationSchema.from_tortoise_orm(relation)

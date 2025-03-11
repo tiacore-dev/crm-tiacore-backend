@@ -100,7 +100,9 @@ async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params))
         if filters.get("bank_name"):
             query &= Q(bank_name__icontains=filters["bank_name"])
 
-        bank_accounts = await BankAccount.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        bank_accounts = await BankAccount.filter(query).prefetch_related("legal_entity") \
+            .offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+
         return [await BankAccountSchema.from_tortoise_orm(bank_account) for bank_account in bank_accounts]
 
     except Exception as e:
@@ -114,8 +116,11 @@ async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params))
     summary="Просмотр одного банковского счета"
 )
 async def get_bank_account(bank_account_id: UUID):
-    bank_account = await BankAccount.filter(bank_account_id=bank_account_id).first()
+    bank_account = await BankAccount.filter(bank_account_id=bank_account_id).prefetch_related("legal_entity").first()
+
     if not bank_account:
         raise HTTPException(
-            status_code=404, detail="Банковский счет не найден")
+            status_code=404, detail="Банковский счет не найден"
+        )
+
     return await BankAccountSchema.from_tortoise_orm(bank_account)

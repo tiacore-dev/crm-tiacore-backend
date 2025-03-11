@@ -94,7 +94,11 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
         if filters.get("entity_type"):
             query &= Q(legal_entity_type_id=filters["entity_type"])
 
-        entities = await LegalEntity.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        entities = await LegalEntity.filter(query) \
+            .prefetch_related("company", "entity_type") \
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
+
         return [await LegalEntitySchema.from_tortoise_orm(entity) for entity in entities]
 
     except Exception as e:
@@ -104,8 +108,12 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
 
 @entity_router.get("/{legal_entity_id}", response_model=LegalEntitySchema, summary="Просмотр одного юридического лица")
 async def get_legal_entity(legal_entity_id: UUID):
-    entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
+    entity = await LegalEntity.filter(legal_entity_id=legal_entity_id) \
+        .prefetch_related("company", "entity_type") \
+        .first()
+
     if not entity:
         raise HTTPException(
             status_code=404, detail="Юридическое лицо не найдено")
+
     return await LegalEntitySchema.from_tortoise_orm(entity)

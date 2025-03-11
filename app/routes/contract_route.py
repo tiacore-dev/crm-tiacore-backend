@@ -115,7 +115,11 @@ async def get_contracts(filters: dict = Depends(contract_filter_params)):
         if filters.get("status"):
             query &= Q(status_id=filters["status"])
 
-        contracts = await Contract.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        contracts = await Contract.filter(query) \
+            .prefetch_related("buyer", "seller", "status") \
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
+
         return [await ContractSchema.from_tortoise_orm(contract) for contract in contracts]
 
     except Exception as e:
@@ -129,7 +133,9 @@ async def get_contracts(filters: dict = Depends(contract_filter_params)):
     summary="Просмотр одного контракта"
 )
 async def get_contract(contract_id: UUID):
-    contract = await Contract.filter(contract_id=contract_id).first()
+    contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status").first()
+
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
+
     return await ContractSchema.from_tortoise_orm(contract)

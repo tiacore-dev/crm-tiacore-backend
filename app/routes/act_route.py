@@ -91,7 +91,11 @@ async def get_acts(filters: dict = Depends(act_filter_params)):
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
 
-        acts = await Acts.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        acts = await Acts.filter(query) \
+            .prefetch_related("contract") \
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
+
         return [await ActSchema.from_tortoise_orm(act) for act in acts]
 
     except Exception as e:
@@ -105,7 +109,9 @@ async def get_acts(filters: dict = Depends(act_filter_params)):
     summary="Просмотр одного акта"
 )
 async def get_act(act_id: UUID):
-    act = await Acts.filter(act_id=act_id).first()
+    act = await Acts.filter(act_id=act_id).prefetch_related("contract").first()
+
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
+
     return await ActSchema.from_tortoise_orm(act)

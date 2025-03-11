@@ -103,7 +103,11 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
         if filters.get("service"):
             query &= Q(service_id=filters["service"])
 
-        act_details = await ActDetails.filter(query).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        act_details = await ActDetails.filter(query) \
+            .prefetch_related("act", "service") \
+            .offset((filters["page"] - 1) * filters["page_size"]) \
+            .limit(filters["page_size"])
+
         return [await ActDetailSchema.from_tortoise_orm(act_detail) for act_detail in act_details]
 
     except Exception as e:
@@ -117,7 +121,9 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
     summary="Просмотр одной детали акта"
 )
 async def get_act_detail(act_detail_id: UUID):
-    act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
+    act_detail = await ActDetails.filter(act_detail_id=act_detail_id).prefetch_related("act", "service").first()
+
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
+
     return await ActDetailSchema.from_tortoise_orm(act_detail)
