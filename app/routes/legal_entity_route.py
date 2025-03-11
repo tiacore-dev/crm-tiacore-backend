@@ -11,13 +11,14 @@ from app.pydantic_models.legal_entity_models import (
     LegalEntitySchema,
     LegalEntityListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 
 entity_router = APIRouter()
 
 
 @entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо", status_code=status.HTTP_201_CREATED)
-async def add_legal_entity(data: LegalEntityCreateSchema):
+async def add_legal_entity(data: LegalEntityCreateSchema, username: str = Depends(get_current_user)):
     try:
         entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
         company = await Company.get_or_none(company_id=data.company)
@@ -45,7 +46,7 @@ async def add_legal_entity(data: LegalEntityCreateSchema):
 
 
 @entity_router.patch("/{legal_entity_id}", response_model=LegalEntityResponseSchema, summary="Изменить юридическое лицо")
-async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema):
+async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema, username: str = Depends(get_current_user)):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(
@@ -73,7 +74,7 @@ async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema
 
 
 @entity_router.delete("/{legal_entity_id}", summary="Удалить юридическое лицо", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_legal_entity(legal_entity_id: UUID):
+async def delete_legal_entity(legal_entity_id: UUID, username: str = Depends(get_current_user)):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(
@@ -88,7 +89,7 @@ async def delete_legal_entity(legal_entity_id: UUID):
     response_model=LegalEntityListResponseSchema,
     summary="Получение списка юридических лиц"
 )
-async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)):
+async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("company"):
@@ -133,7 +134,7 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
     response_model=LegalEntitySchema,
     summary="Просмотр одного юридического лица"
 )
-async def get_legal_entity(legal_entity_id: UUID):
+async def get_legal_entity(legal_entity_id: UUID, username: str = Depends(get_current_user)):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id) \
         .prefetch_related("company", "entity_type") \
         .first()

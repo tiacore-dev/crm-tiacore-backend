@@ -11,6 +11,7 @@ from app.pydantic_models.act_detail_models import (
     ActDetailSchema,
     ActDetailListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 
 act_detail_router = APIRouter()
@@ -22,7 +23,7 @@ act_detail_router = APIRouter()
     summary="Добавить детали акта",
     status_code=status.HTTP_201_CREATED
 )
-async def add_act_detail(data: ActDetailCreateSchema):
+async def add_act_detail(data: ActDetailCreateSchema, username: str = Depends(get_current_user)):
     try:
         act = await Acts.get_or_none(act_id=data.act)
         service = await Service.get_or_none(service_id=data.service)
@@ -50,7 +51,7 @@ async def add_act_detail(data: ActDetailCreateSchema):
     response_model=ActDetailResponseSchema,
     summary="Изменить детали акта"
 )
-async def update_act_detail(act_detail_id: UUID, data: ActDetailEditSchema):
+async def update_act_detail(act_detail_id: UUID, data: ActDetailEditSchema, username: str = Depends(get_current_user)):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -80,7 +81,7 @@ async def update_act_detail(act_detail_id: UUID, data: ActDetailEditSchema):
     summary="Удалить детали акта",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_act_detail(act_detail_id: UUID):
+async def delete_act_detail(act_detail_id: UUID, username: str = Depends(get_current_user)):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -94,7 +95,7 @@ async def delete_act_detail(act_detail_id: UUID):
     response_model=ActDetailListResponseSchema,
     summary="Получение списка деталей акта"
 )
-async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
+async def get_act_details(filters: dict = Depends(act_detail_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("act"):
@@ -137,7 +138,7 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
     response_model=ActDetailSchema,
     summary="Просмотр одной детали акта"
 )
-async def get_act_detail(act_detail_id: UUID):
+async def get_act_detail(act_detail_id: UUID, username: str = Depends(get_current_user)):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).prefetch_related("act", "service").first()
 
     if not act_detail:

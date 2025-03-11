@@ -11,6 +11,7 @@ from app.pydantic_models.contract_models import (
     ContractSchema,
     ContractListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 
 contract_router = APIRouter()
@@ -22,7 +23,7 @@ contract_router = APIRouter()
     summary="Добавить контракт",
     status_code=status.HTTP_201_CREATED
 )
-async def add_contract(data: ContractCreateSchema):
+async def add_contract(data: ContractCreateSchema, username: str = Depends(get_current_user)):
     try:
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
@@ -54,7 +55,7 @@ async def add_contract(data: ContractCreateSchema):
     response_model=ContractResponseSchema,
     summary="Изменить контракт"
 )
-async def update_contract(contract_id: UUID, data: ContractEditSchema):
+async def update_contract(contract_id: UUID, data: ContractEditSchema, username: str = Depends(get_current_user)):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -90,7 +91,7 @@ async def update_contract(contract_id: UUID, data: ContractEditSchema):
     summary="Удалить контракт",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_contract(contract_id: UUID):
+async def delete_contract(contract_id: UUID, username: str = Depends(get_current_user)):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -104,7 +105,7 @@ async def delete_contract(contract_id: UUID):
     response_model=ContractListResponseSchema,
     summary="Получение списка контрактов"
 )
-async def get_contracts(filters: dict = Depends(contract_filter_params)):
+async def get_contracts(filters: dict = Depends(contract_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("buyer"):
@@ -148,7 +149,7 @@ async def get_contracts(filters: dict = Depends(contract_filter_params)):
     response_model=ContractSchema,
     summary="Просмотр одного контракта"
 )
-async def get_contract(contract_id: UUID):
+async def get_contract(contract_id: UUID, username: str = Depends(get_current_user)):
     contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status").first()
 
     if not contract:

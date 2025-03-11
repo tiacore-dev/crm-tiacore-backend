@@ -11,12 +11,13 @@ from app.pydantic_models.user_company_relation_models import (
     UserCompanyRelationSchema,
     UserCompanyRelationListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 relation_router = APIRouter()
 
 
 @relation_router.post("/add", response_model=UserCompanyRelationResponseSchema, summary="Добавить связь пользователя с компанией", status_code=status.HTTP_201_CREATED)
-async def add_user_company_relation(data: UserCompanyRelationCreateSchema):
+async def add_user_company_relation(data: UserCompanyRelationCreateSchema, username: str = Depends(get_current_user)):
     try:
         user = await User.get_or_none(user_id=data.user)
         company = await Company.get_or_none(company_id=data.company)
@@ -35,7 +36,7 @@ async def add_user_company_relation(data: UserCompanyRelationCreateSchema):
 
 
 @relation_router.patch("/{user_company_id}", response_model=UserCompanyRelationResponseSchema, summary="Изменить связь пользователя с компанией")
-async def update_user_company_relation(user_company_id: UUID, data: UserCompanyRelationEditSchema):
+async def update_user_company_relation(user_company_id: UUID, data: UserCompanyRelationEditSchema, username: str = Depends(get_current_user)):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -70,7 +71,7 @@ async def update_user_company_relation(user_company_id: UUID, data: UserCompanyR
 
 
 @relation_router.delete("/{user_company_id}", summary="Удалить связь пользователя с компанией", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_company_relation(user_company_id: UUID):
+async def delete_user_company_relation(user_company_id: UUID, username: str = Depends(get_current_user)):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -84,7 +85,7 @@ async def delete_user_company_relation(user_company_id: UUID):
     response_model=UserCompanyRelationListResponseSchema,
     summary="Получение списка связей"
 )
-async def get_user_company_relations(filters: dict = Depends(user_company_filter_params)):
+async def get_user_company_relations(filters: dict = Depends(user_company_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("user_id"):
@@ -125,7 +126,7 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
     response_model=UserCompanyRelationSchema,
     summary="Просмотр одной связи"
 )
-async def get_user_company_relation(user_company_id: UUID):
+async def get_user_company_relation(user_company_id: UUID, username: str = Depends(get_current_user)):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id) \
         .prefetch_related("user", "company", "role") \
         .first()

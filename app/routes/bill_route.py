@@ -11,6 +11,7 @@ from app.pydantic_models.bill_models import (
     BillSchema,
     BillListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 
 bill_router = APIRouter()
@@ -22,7 +23,7 @@ bill_router = APIRouter()
     summary="Добавить счет",
     status_code=status.HTTP_201_CREATED
 )
-async def add_bill(data: BillCreateSchema):
+async def add_bill(data: BillCreateSchema, username: str = Depends(get_current_user)):
     try:
         bank_account = await BankAccount.get_or_none(bank_account_id=data.bank_account)
         contract = await Contract.get_or_none(contract_id=data.contract)
@@ -50,7 +51,7 @@ async def add_bill(data: BillCreateSchema):
     response_model=BillResponseSchema,
     summary="Изменить счет"
 )
-async def update_bill(bill_id: UUID, data: BillEditSchema):
+async def update_bill(bill_id: UUID, data: BillEditSchema, username: str = Depends(get_current_user)):
     bill = await Bills.filter(bill_id=bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -81,7 +82,7 @@ async def update_bill(bill_id: UUID, data: BillEditSchema):
     summary="Удалить счет",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_bill(bill_id: UUID):
+async def delete_bill(bill_id: UUID, username: str = Depends(get_current_user)):
     bill = await Bills.filter(bill_id=bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -95,7 +96,7 @@ async def delete_bill(bill_id: UUID):
     response_model=BillListResponseSchema,
     summary="Получение списка счетов"
 )
-async def get_bills(filters: dict = Depends(bill_filter_params)):
+async def get_bills(filters: dict = Depends(bill_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("contract"):
@@ -138,7 +139,7 @@ async def get_bills(filters: dict = Depends(bill_filter_params)):
     response_model=BillSchema,
     summary="Просмотр одного счета"
 )
-async def get_bill(bill_id: UUID):
+async def get_bill(bill_id: UUID, username: str = Depends(get_current_user)):
     bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")

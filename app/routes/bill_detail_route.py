@@ -11,6 +11,7 @@ from app.pydantic_models.bill_detail_models import (
     bill_detail_filter_params,
     BillDetailListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 bill_detail_router = APIRouter()
 
@@ -22,7 +23,7 @@ bill_detail_router = APIRouter()
     summary="Добавить деталь счета",
     status_code=status.HTTP_201_CREATED
 )
-async def add_bill_detail(data: BillDetailCreateSchema):
+async def add_bill_detail(data: BillDetailCreateSchema, username: str = Depends(get_current_user)):
     try:
         bill = await Bills.get_or_none(bill_id=data.bill)
         service = await Service.get_or_none(service_id=data.service)
@@ -51,7 +52,7 @@ async def add_bill_detail(data: BillDetailCreateSchema):
     response_model=BillDetailResponseSchema,
     summary="Изменить деталь счета"
 )
-async def update_bill_detail(bill_detail_id: UUID, data: BillDetailEditSchema):
+async def update_bill_detail(bill_detail_id: UUID, data: BillDetailEditSchema, username: str = Depends(get_current_user)):
     bill_detail = await BillDetails.filter(bill_detail_id=bill_detail_id).first()
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")
@@ -70,7 +71,7 @@ async def update_bill_detail(bill_detail_id: UUID, data: BillDetailEditSchema):
     summary="Удалить деталь счета",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_bill_detail(bill_detail_id: UUID):
+async def delete_bill_detail(bill_detail_id: UUID, username: str = Depends(get_current_user)):
     bill_detail = await BillDetails.filter(bill_detail_id=bill_detail_id).first()
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")
@@ -83,7 +84,7 @@ async def delete_bill_detail(bill_detail_id: UUID):
     response_model=BillDetailListResponseSchema,
     summary="Получение списка деталей счета"
 )
-async def get_bill_details(filters: dict = Depends(bill_detail_filter_params)):
+async def get_bill_details(filters: dict = Depends(bill_detail_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("bill"):
@@ -127,7 +128,7 @@ async def get_bill_details(filters: dict = Depends(bill_detail_filter_params)):
     response_model=BillDetailSchema,
     summary="Просмотр одной детали счета"
 )
-async def get_bill_detail(bill_detail_id: UUID):
+async def get_bill_detail(bill_detail_id: UUID, username: str = Depends(get_current_user)):
     bill_detail = await BillDetails.filter(bill_detail_id=bill_detail_id).prefetch_related("bill", "service").first()
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")

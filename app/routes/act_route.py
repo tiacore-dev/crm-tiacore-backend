@@ -11,6 +11,7 @@ from app.pydantic_models.act_models import (
     ActSchema,
     ActListResponseSchema
 )
+from app.handlers.auth import get_current_user
 
 
 act_router = APIRouter()
@@ -22,7 +23,7 @@ act_router = APIRouter()
     summary="Добавить акт",
     status_code=status.HTTP_201_CREATED
 )
-async def add_act(data: ActCreateSchema):
+async def add_act(data: ActCreateSchema, username: str = Depends(get_current_user)):
     try:
         contract = await Contract.get_or_none(contract_id=data.contract)
 
@@ -46,7 +47,7 @@ async def add_act(data: ActCreateSchema):
     response_model=ActResponseSchema,
     summary="Изменить акт"
 )
-async def update_act(act_id: UUID, data: ActEditSchema):
+async def update_act(act_id: UUID, data: ActEditSchema, username: str = Depends(get_current_user)):
     act = await Acts.filter(act_id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
@@ -70,7 +71,7 @@ async def update_act(act_id: UUID, data: ActEditSchema):
     summary="Удалить акт",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_act(act_id: UUID):
+async def delete_act(act_id: UUID, username: str = Depends(get_current_user)):
     act = await Acts.filter(act_id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
@@ -84,7 +85,7 @@ async def delete_act(act_id: UUID):
     response_model=ActListResponseSchema,
     summary="Получение списка актов"
 )
-async def get_acts(filters: dict = Depends(act_filter_params)):
+async def get_acts(filters: dict = Depends(act_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
         if filters.get("contract"):
@@ -123,7 +124,7 @@ async def get_acts(filters: dict = Depends(act_filter_params)):
     response_model=ActSchema,
     summary="Просмотр одного акта"
 )
-async def get_act(act_id: UUID):
+async def get_act(act_id: UUID, username: str = Depends(get_current_user)):
     act = await Acts.filter(act_id=act_id).prefetch_related("contract").first()
 
     if not act:
