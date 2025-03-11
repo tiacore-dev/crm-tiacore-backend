@@ -46,7 +46,8 @@ pytest_plugins = [
     "tests.fixtures.company_relations",  # Фикстуры для компаний и связей
     "tests.fixtures.legal_entity",  # Фикстуры для юридических лиц
     "tests.fixtures.contract",
-    "tests.fixtures.bank_account"
+    "tests.fixtures.bank_account",
+    "tests.fixtures.acts"
 ]
 
 

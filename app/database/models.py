@@ -138,7 +138,7 @@ class Acts(Model):
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "models.Contract", related_name="acts",  on_delete=fields.CASCADE)
+        "models.Contract", related_name="acts")
 
     class Meta:
         table = "acts"
