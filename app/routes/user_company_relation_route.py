@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
@@ -18,7 +18,7 @@ UserCompanyRelationSchema = pydantic_model_creator(
 relation_router = APIRouter()
 
 
-@relation_router.post("/add", response_model=UserCompanyRelationResponseSchema, summary="Добавить связь пользователя с компанией")
+@relation_router.post("/add", response_model=UserCompanyRelationResponseSchema, summary="Добавить связь пользователя с компанией", status_code=status.HTTP_201_CREATED)
 async def add_user_company_relation(data: UserCompanyRelationCreateSchema):
     try:
         user = await User.get_or_none(user_id=data.user)
@@ -72,14 +72,14 @@ async def update_user_company_relation(user_company_id: UUID, data: UserCompanyR
     return {"user_company_id": str(relation.user_company_id)}
 
 
-@relation_router.delete("/{user_company_id}", summary="Удалить связь пользователя с компанией")
+@relation_router.delete("/{user_company_id}", summary="Удалить связь пользователя с компанией", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_company_relation(user_company_id: UUID):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
 
     await relation.delete()
-    return {"message": "Связь удалена"}
+    # return {"message": "Связь удалена"}
 
 
 @relation_router.get("/all", response_model=List[UserCompanyRelationSchema], summary="Получение списка связей")

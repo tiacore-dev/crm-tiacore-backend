@@ -16,7 +16,7 @@ async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_user, 
 
     response = test_app.post(
         "/api/user-company-relations/add", headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
     assert "user_company_id" in response_data, "Не возвращается user_company_id!"
@@ -65,7 +65,7 @@ async def test_delete_user_company_relation(test_app: AsyncClient, jwt_token_use
 
     response = test_app.delete(
         f"/api/user-company-relations/{seed_relation["user_company_id"]}", headers=headers)
-    assert response.status_code == 200, f"Ошибка удаления: {response.status_code}, {response.text}"
+    assert response.status_code == 204, f"Ошибка удаления: {response.status_code}, {response.text}"
 
     # Проверяем, что связь действительно удалена
     relation = await UserCompanyRelation.filter(user_company_id=seed_relation["user_company_id"]).first()

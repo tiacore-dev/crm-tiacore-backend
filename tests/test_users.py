@@ -15,7 +15,7 @@ async def test_add_user(test_app: AsyncClient, jwt_token_user):
     }
 
     response = test_app.post("/api/users/add", headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что пользователь добавлен в базу
     response_data = response.json()
@@ -82,8 +82,7 @@ async def test_delete_user(test_app: AsyncClient, jwt_token_user, seed_user):
         headers=headers
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
-    assert response.json()["detail"] == "Пользователь успешно удален"
+    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что пользователь больше не существует в базе
     user = await User.filter(user_id=seed_user["user_id"]).first()

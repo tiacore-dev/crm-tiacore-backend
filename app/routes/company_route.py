@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
+from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
@@ -16,7 +16,7 @@ company_router = APIRouter()
 
 
 # ✅ 1. Добавление компании
-@company_router.post("/add", response_model=CompanyResponseSchema, summary="Добавление новой компании")
+@company_router.post("/add", response_model=CompanyResponseSchema, summary="Добавление новой компании", status_code=status.HTTP_201_CREATED)
 async def add_company(data: CompanyCreateSchema = Body(), username: str = Depends(get_current_user)):
     logger.info(f"Создание компании: {data.model_dump()}")
     try:
@@ -58,7 +58,7 @@ async def edit_company(
 
 
 # ✅ 3. Удаление компании
-@company_router.delete("/{company_id}", summary="Удаление компании")
+@company_router.delete("/{company_id}", summary="Удаление компании", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID удаляемой компании"),
@@ -70,7 +70,7 @@ async def delete_company(
             raise HTTPException(status_code=404, detail="Компания не найдена")
 
         logger.success(f"Компания {company_id} успешно удалена")
-        return {"detail": "Компания успешно удалена"}
+        # return {"detail": "Компания успешно удалена"}
 
     except Exception as e:
         logger.exception("Ошибка при удалении компании")

@@ -1,12 +1,22 @@
 from typing import Optional
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query
 
 
 class UserCompanyRelationCreateSchema(BaseModel):
-    user: UUID4
-    company: UUID4
-    role: str
+    user: UUID4 = Field(...,
+                        description="UUID пользователя, связанного с компанией")
+    company: UUID4 = Field(..., description="UUID компании")
+    role: str = Field(..., min_length=3, max_length=50,
+                      description="Роль пользователя в компании")
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: str):
+        """Запрещаем передавать пустые строки в role"""
+        if value.strip() == "":
+            raise ValueError("Поле role не может быть пустым.")
+        return value
 
     class Config:
         from_attributes = True

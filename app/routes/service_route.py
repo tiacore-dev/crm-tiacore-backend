@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
+from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
@@ -15,7 +15,7 @@ ServiceSchema = pydantic_model_creator(Service, name="ServiceSchema")
 service_router = APIRouter()
 
 
-@service_router.post("/add", response_model=ServiceResponseSchema, summary="Добавление новой услуги")
+@service_router.post("/add", response_model=ServiceResponseSchema, summary="Добавление новой услуги", status_code=status.HTTP_201_CREATED)
 async def add_service(data: ServiceCreateSchema = Body(...), username: str = Depends(get_current_user)):
     logger.info(f"Создание услуги: {data.dict()}")
     try:
@@ -58,7 +58,7 @@ async def edit_service(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.delete("/{service_id}", summary="Удаление услуги")
+@service_router.delete("/{service_id}", summary="Удаление услуги", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_service(
         service_id: UUID = Path(..., title="ID услуги",
                                 description="ID удаляемой услуги"),
@@ -71,7 +71,7 @@ async def delete_service(
             raise HTTPException(status_code=404, detail="Услуга не найдена")
 
         logger.success(f"Услуга {service_id} успешно удалена")
-        return {"detail": "Услуга успешно удалена"}
+        # return {"detail": "Услуга успешно удалена"}
     except Exception as e:
         logger.exception("Ошибка при удалении услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

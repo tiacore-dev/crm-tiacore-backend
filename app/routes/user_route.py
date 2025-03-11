@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
+from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
@@ -20,7 +20,7 @@ UserSchema = pydantic_model_creator(
 user_router = APIRouter()
 
 
-@user_router.post("/add", response_model=UserResponseSchema, summary="Добавление нового пользователя")
+@user_router.post("/add", response_model=UserResponseSchema, summary="Добавление нового пользователя", status_code=status.HTTP_201_CREATED)
 async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(get_current_user)):
     # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
@@ -70,7 +70,7 @@ async def edit_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.delete("/{user_id}", summary="Удаление пользователя")
+@user_router.delete("/{user_id}", summary="Удаление пользователя", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
         user_id: UUID = Path(..., title="ID пользователя",
                              description="ID удаляемого пользователя"),
@@ -84,7 +84,7 @@ async def delete_user(
                 status_code=404, detail="Пользователь не найден")
 
         logger.success(f"Пользователь {user_id} успешно удален")
-        return {"detail": "Пользователь успешно удален"}
+        # return {"detail": "Пользователь успешно удален"}
     except Exception as e:
         logger.exception("Ошибка при удалении пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

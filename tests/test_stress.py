@@ -14,7 +14,7 @@ async def test_mass_create_companies(test_app: AsyncClient, jwt_token_user):
         data = {"company_name": f"Company {i}"}
         response = test_app.post("/api/companies/add",
                                  headers=headers, json=data)
-        assert response.status_code == 200
+        assert response.status_code == 201
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,7 @@ async def test_mass_create_companies_async(test_app: AsyncClient, jwt_token_user
         data = {"company_name": f"Company {i}"}
         response = test_app.post("/api/companies/add",
                                  headers=headers, json=data)
-        assert response.status_code == 200, f"Ошибка на компании {i}: {response.text}"
+        assert response.status_code == 201, f"Ошибка на компании {i}: {response.text}"
 
     tasks = [create_company(i) for i in range(100)]
     await asyncio.gather(*tasks)
@@ -54,7 +54,7 @@ async def test_mass_delete_companies(test_app: AsyncClient, jwt_token_user):
         data = {"company_name": f"ToDelete {i}"}
         response = test_app.post("/api/companies/add",
                                  headers=headers, json=data)
-        assert response.status_code == 200
+        assert response.status_code == 201
         created_ids.append(response.json()["company_id"])
     await asyncio.sleep(0.1)
     # Удаляем компании
@@ -65,7 +65,7 @@ async def test_mass_delete_companies(test_app: AsyncClient, jwt_token_user):
 
         response = test_app.delete(
             f"/api/companies/{company_id}", headers=headers)
-        assert response.status_code == 200, f"Ошибка при удалении {company_id}"
+        assert response.status_code == 204, f"Ошибка при удалении {company_id}"
 
 
 @pytest.mark.asyncio

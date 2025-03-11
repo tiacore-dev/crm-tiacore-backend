@@ -1,6 +1,6 @@
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
 from loguru import logger
@@ -18,7 +18,7 @@ LegalEntitySchema = pydantic_model_creator(
 entity_router = APIRouter()
 
 
-@entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо")
+@entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо", status_code=status.HTTP_201_CREATED)
 async def add_legal_entity(data: LegalEntityCreateSchema):
     try:
         entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
@@ -74,7 +74,7 @@ async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema
     return {"legal_entity_id": str(entity.legal_entity_id)}
 
 
-@entity_router.delete("/{legal_entity_id}", summary="Удалить юридическое лицо")
+@entity_router.delete("/{legal_entity_id}", summary="Удалить юридическое лицо", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_legal_entity(legal_entity_id: UUID):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
@@ -82,7 +82,7 @@ async def delete_legal_entity(legal_entity_id: UUID):
             status_code=404, detail="Юридическое лицо не найдено")
 
     await entity.delete()
-    return {"message": "Юридическое лицо удалено"}
+    # return {"message": "Юридическое лицо удалено"}
 
 
 @entity_router.get("/all", response_model=List[LegalEntitySchema], summary="Получение списка юридических лиц")

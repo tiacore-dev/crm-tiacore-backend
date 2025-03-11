@@ -12,7 +12,7 @@ async def test_add_service(test_app: AsyncClient, jwt_token_user):
     }
 
     response = test_app.post("/api/services/add", headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что услуга добавлена в базу
     response_data = response.json()
@@ -74,8 +74,7 @@ async def test_delete_service(test_app: AsyncClient, jwt_token_user, seed_servic
         headers=headers
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
-    assert response.json()["detail"] == "Услуга успешно удалена"
+    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что услуга больше не существует в базе
     service = await Service.filter(service_id=seed_service['service_id']).first()

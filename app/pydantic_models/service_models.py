@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, UUID4
-from fastapi import Query
+from fastapi import Query, HTTPException
 from app.utils.validate_helpers import sanitize_input
 
 
@@ -11,6 +11,9 @@ class ServiceCreateSchema(BaseModel):
     @classmethod
     def validate_service_name(cls, value: str) -> str:
         """Фильтрация входных данных от XSS и других инъекций"""
+        if not value or len(value) < 3:
+            raise HTTPException(
+                status_code=400, detail="Название услуги должно быть не менее 3 символов")
         return sanitize_input(value)
 
 

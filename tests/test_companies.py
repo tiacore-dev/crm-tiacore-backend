@@ -13,7 +13,7 @@ async def test_add_company(test_app: AsyncClient, jwt_token_user):
     }
 
     response = test_app.post("/api/companies/add", headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
     company = await Company.filter(company_name="Test Company").first()
@@ -72,7 +72,7 @@ async def test_delete_company(test_app: AsyncClient, jwt_token_user, seed_compan
         headers=headers
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что компания удалена
     deleted_company = await Company.filter(company_id=seed_company["company_id"]).first()

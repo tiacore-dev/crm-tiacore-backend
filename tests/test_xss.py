@@ -20,7 +20,7 @@ async def test_xss_injection(test_app: AsyncClient, jwt_token_user, endpoint, mo
         data["full_name"] = "Test User"
 
     response = test_app.post(endpoint, headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     # Получаем ID созданной сущности
     response_data = response.json()

@@ -21,7 +21,7 @@ async def test_add_legal_entity(test_app: AsyncClient, jwt_token_user, seed_comp
 
     response = test_app.post("/api/legal-entities/add",
                              headers=headers, json=data)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
     legal_entity = await LegalEntity.filter(legal_entity_name="Test Legal Entity").first()
@@ -84,7 +84,7 @@ async def test_delete_legal_entity(test_app: AsyncClient, jwt_token_user, seed_l
         headers=headers
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что юридическое лицо удалено
     deleted_legal_entity = await LegalEntity.filter(legal_entity_id=seed_legal_entity["legal_entity_id"]).first()

@@ -5,18 +5,25 @@ from app.utils.validate_helpers import sanitize_input
 
 
 class UserCreateSchema(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=6)
-    full_name: str = Field(..., min_length=3, max_length=100)
-    position: Optional[str] = Field(None, max_length=50)
+    username: str = Field(..., min_length=3, max_length=50,
+                          description="Уникальное имя пользователя")
+    password: str = Field(..., min_length=6,
+                          description="Пароль (не менее 6 символов)")
+    full_name: str = Field(..., min_length=3, max_length=100,
+                           description="Полное имя пользователя")
+    position: Optional[str] = Field(
+        None, max_length=50, description="Должность пользователя")
 
     @field_validator("username", "full_name", "position", mode="before")
     @classmethod
     def validate_text_fields(cls, value: str) -> str:
-        """Фильтрация входных данных от XSS и других инъекций"""
+        """Фильтрация входных данных от XSS и других инъекций."""
         if value is None:
             return value
         return sanitize_input(value)
+
+    class Config:
+        from_attributes = True
 
 
 class UserEditSchema(BaseModel):
