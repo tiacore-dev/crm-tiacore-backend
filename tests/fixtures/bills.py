@@ -35,7 +35,7 @@ async def seed_bill(seed_contract, seed_bank_account):
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
 async def seed_bill_detail(seed_bill, seed_service):
-    """Создает тестовое юридическое лицо, передавая объекты вместо ID."""
+    """Создает тестовую деталь счета, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
     bill = await Bills.get_or_none(bill_id=seed_bill["bill_id"])
@@ -43,9 +43,9 @@ async def seed_bill_detail(seed_bill, seed_service):
 
     if not bill or not service:
         raise ValueError(
-            "Ошибка: Не удалось получить объект bills Services")
+            "Ошибка: Не удалось получить объект Bills или Services")
 
-    # Создаем юридическое лицо, передавая объекты
+    # Создаем деталь счета, передавая объекты
     bill_detail = await BillDetails.create(
         bill=bill,
         service=service,
@@ -55,8 +55,8 @@ async def seed_bill_detail(seed_bill, seed_service):
 
     return {
         "bill_detail_id": str(bill_detail.bill_detail_id),
-        "bill": bill_detail.bill,
-        "service": bill_detail.service,
+        "bill": str(bill.bill_id),  # ✅ Теперь передаем строковый UUID
+        "service": str(service.service_id),  # ✅ Теперь передаем строковый UUID
         "quantity": bill_detail.quantity,
         "summ": bill_detail.summ
     }
