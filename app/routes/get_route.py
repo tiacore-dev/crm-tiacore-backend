@@ -1,67 +1,106 @@
-from typing import Type
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from tortoise.expressions import Q
+from loguru import logger
 from app.handlers.auth import get_current_user
 from app.database.models import LegalEntityType, UserRole, ContractStatus
 from app.pydantic_models.get_models import (
-    LegalEntityTypeSchema, UserRoleSchema, ContractStatusSchema, FilterParams, PaginatedResponse
+    LegalEntityTypeListResponse, UserRoleListResponse, ContractStatusListResponse,
+    FilterParams
 )
 
 
 get_router = APIRouter()
 
 
-# 🔍 Универсальная функция для получения данных с фильтрацией, сортировкой и пагинацией
-async def get_filtered_data(model: Type, schema: Type, params: FilterParams) -> PaginatedResponse:
-    query = model.all()
+# 📌 Обновленные эндпоинты с `PaginatedResponse`
+@get_router.get(
+    "/legal-entity-types/all",
+    response_model=LegalEntityTypeListResponse,
+    summary="Получение списка типов юридических лиц"
+)
+async def get_legal_entity_types(filters: FilterParams = Depends(), username: str = Depends(get_current_user)):
+    try:
+        query = LegalEntityType.all()
 
-    # 📌 Определяем правильное поле для имени
-    field_mapping = {
-        "LegalEntityType": "entity_name",
-        "UserRole": "role_name",
-        "ContractStatus": "status_name",
-    }
-    model_name = model.__name__
-    name_field = field_mapping.get(model_name)
+        if filters.search:
+            query = query.filter(Q(entity_name__icontains=filters.search))
+        # 🟢 Добавляем сортировку
+        order_by = f"{'-' if filters.order == 'desc' else ''}entity_name"
+        query = query.order_by(order_by)
+        total_count = await query.count()
+        entities = await query.offset((filters.page - 1) * filters.page_size).limit(filters.page_size)
 
-    if not name_field:
-        raise ValueError(
-            f"Модель {model_name} не содержит корректного текстового поля для поиска")
-
-    # 🔎 Фильтр по названию
-    if params.search:
-        query = query.filter(Q(**{f"{name_field}__icontains": params.search}))
-
-    # 🔄 Сортировка
-    order_by = name_field if params.order == "asc" else f"-{name_field}"
-    query = query.order_by(order_by)
-
-    # 📑 Пагинация
-    total_count = await query.count()
-    items = await query.offset((params.page - 1) * params.page_size).limit(params.page_size)
-
-    return PaginatedResponse(
-        total=total_count,
-        page=params.page,
-        page_size=params.page_size,
-        items=[schema.model_validate(item, from_attributes=True)
-               for item in items]
-    )
+        return {
+            "total": total_count,
+            "legal_entity_types": [
+                {
+                    "legal_entity_type_id": entity.legal_entity_type_id,
+                    "entity_name": entity.entity_name
+                } for entity in entities
+            ]
+        }
+    except Exception as e:
+        logger.exception("Ошибка при получении типов юридических лиц")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-# 📌 Эндпоинты с `PaginatedResponse`
+@get_router.get(
+    "/user-roles/all",
+    response_model=UserRoleListResponse,
+    summary="Получение списка ролей пользователей"
+)
+async def get_user_roles(filters: FilterParams = Depends(), username: str = Depends(get_current_user)):
+    try:
+        query = UserRole.all()
+
+        if filters.search:
+            query = query.filter(Q(role_name__icontains=filters.search))
+
+        order_by = f"{'-' if filters.order == 'desc' else ''}role_name"
+        query = query.order_by(order_by)
+        total_count = await query.count()
+        roles = await query.offset((filters.page - 1) * filters.page_size).limit(filters.page_size)
+
+        return {
+            "total": total_count,
+            "user_roles": [
+                {
+                    "role_id": role.role_id,
+                    "role_name": role.role_name
+                } for role in roles
+            ]
+        }
+    except Exception as e:
+        logger.exception("Ошибка при получении списка ролей пользователей")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@get_router.get("/legal-entity-types/", response_model=PaginatedResponse)
-async def get_legal_entity_types(username: str = Depends(get_current_user), params: FilterParams = Depends()):
-    return await get_filtered_data(LegalEntityType, LegalEntityTypeSchema, params)
+@get_router.get(
+    "/contract-statuses/all",
+    response_model=ContractStatusListResponse,
+    summary="Получение списка статусов контрактов"
+)
+async def get_contract_statuses(filters: FilterParams = Depends(), username: str = Depends(get_current_user)):
+    try:
+        query = ContractStatus.all()
 
+        if filters.search:
+            query = query.filter(Q(status_name__icontains=filters.search))
 
-@get_router.get("/user-roles/", response_model=PaginatedResponse)
-async def get_user_roles(username: str = Depends(get_current_user), params: FilterParams = Depends()):
-    return await get_filtered_data(UserRole, UserRoleSchema, params)
+        order_by = f"{'-' if filters.order == 'desc' else ''}status_name"
+        query = query.order_by(order_by)
+        total_count = await query.count()
+        statuses = await query.offset((filters.page - 1) * filters.page_size).limit(filters.page_size)
 
-
-@get_router.get("/contract-statuses/", response_model=PaginatedResponse)
-async def get_contract_statuses(username: str = Depends(get_current_user), params: FilterParams = Depends()):
-    return await get_filtered_data(ContractStatus, ContractStatusSchema, params)
+        return {
+            "total": total_count,
+            "contract_statuses": [
+                {
+                    "contract_status_id": status.contract_status_id,
+                    "status_name": status.status_name
+                } for status in statuses
+            ]
+        }
+    except Exception as e:
+        logger.exception("Ошибка при получении списка статусов контрактов")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e

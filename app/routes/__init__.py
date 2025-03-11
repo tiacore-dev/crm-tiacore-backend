@@ -16,7 +16,7 @@ from .bill_detail_route import bill_detail_router
 
 def register_routes(app):
     app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
-    app.include_router(get_router, prefix="/api/get-all",
+    app.include_router(get_router, prefix="/api",
                        tags=["Statuses, Types, Roles"])
     app.include_router(
         service_router, prefix="/api/services", tags=["Services"])

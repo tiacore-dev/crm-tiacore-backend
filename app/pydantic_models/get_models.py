@@ -1,56 +1,50 @@
-from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
+from pydantic import BaseModel
 from fastapi import Query
-from app.utils.validate_helpers import sanitize_input
-
-# ✅ Общая схема с валидацией
 
 
-class BaseListSchema(BaseModel):
-    id: str
-    name: str
+class LegalEntityTypeSchema(BaseModel):
+    legal_entity_type_id: str
+    entity_name: str
 
     model_config = {"from_attributes": True}
 
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, value: str) -> str:
-        return sanitize_input(value)
 
-
-class LegalEntityTypeSchema(BaseListSchema):
-    id: str = Field(alias="legal_entity_type_id")
-    name: str = Field(alias="entity_name")
-
-
-class UserRoleSchema(BaseListSchema):
-    id: str = Field(alias="role_id")
-    name: str = Field(alias="role_name")
-
-
-class ContractStatusSchema(BaseListSchema):
-    id: str = Field(alias="contract_status_id")
-    name: str = Field(alias="status_name")
-
-
-# ✅ Схема для ответа с пагинацией
-class PaginatedResponse(BaseModel):
+class LegalEntityTypeListResponse(BaseModel):
     total: int
-    page: int
-    page_size: int
-    items: List[BaseListSchema]  # Возвращаем список объектов
+    legal_entity_types: List[LegalEntityTypeSchema]
+
+
+class UserRoleSchema(BaseModel):
+    role_id: str
+    role_name: str
 
     model_config = {"from_attributes": True}
 
 
-# ✅ Схема для фильтрации и поиска
+class UserRoleListResponse(BaseModel):
+    total: int
+    user_roles: List[UserRoleSchema]
+
+
+class ContractStatusSchema(BaseModel):
+    contract_status_id: str
+    status_name: str
+
+    model_config = {"from_attributes": True}
+
+
+class ContractStatusListResponse(BaseModel):
+    total: int
+    contract_statuses: List[ContractStatusSchema]
+
+
+# ✅ Фильтры и параметры поиска
 class FilterParams(BaseModel):
     search: Optional[str] = Query(None, description="Фильтр по названию")
     sort_by: Optional[str] = Query(
-        "name", description="Сортировка (по умолчанию name)"
-    )
+        "name", description="Сортировка (по умолчанию name)")
     order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc"
-    )
+        "asc", description="Порядок сортировки: asc/desc")
     page: Optional[int] = Query(1, description="Номер страницы")
     page_size: Optional[int] = Query(10, description="Размер страницы")
