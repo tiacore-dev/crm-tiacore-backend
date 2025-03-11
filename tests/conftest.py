@@ -5,9 +5,6 @@ from app import create_app
 from app.database.models import create_user, Service
 from app.handlers.auth import create_access_token, create_refresh_token
 from app.config import Settings
-# from tests.fixtures.names import seed_contract_status, seed_legal_entity_type, seed_role, seed_role_manager
-# from tests.fixtures.company_relations import seed_company, seed_relation
-# from tests.fixtures.legal_entity import seed_legal_entity
 
 settings = Settings()
 
@@ -16,6 +13,7 @@ settings = Settings()
 def test_app():
     """Фикстура для тестового приложения."""
     app = create_app(config_name="Test")
+
     client = TestClient(app)
 
     yield client  # Отдаём клиент тестам
@@ -47,6 +45,7 @@ pytest_plugins = [
     "tests.fixtures.names",  # Фикстуры, связанные с именами, статусами, ролями
     "tests.fixtures.company_relations",  # Фикстуры для компаний и связей
     "tests.fixtures.legal_entity",  # Фикстуры для юридических лиц
+    "tests.fixtures.contract"
 ]
 
 

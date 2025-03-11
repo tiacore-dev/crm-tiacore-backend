@@ -41,3 +41,44 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
         "entity_type": str(legal_entity.entity_type.legal_entity_type_id),
         "description": legal_entity.description
     }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
+    """Создает тестовое юридическое лицо, передавая объекты вместо ID."""
+
+    # Получаем объекты из базы
+    company = await Company.get_or_none(company_id=seed_company["company_id"])
+    entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=seed_legal_entity_type["legal_entity_type_id"])
+
+    if not company or not entity_type:
+        raise ValueError(
+            "Ошибка: Не удалось получить объекты Company или LegalEntityType")
+
+    # Создаем юридическое лицо, передавая объекты
+    legal_entity = await LegalEntity.create(
+        legal_entity_name="Test Legal Entity Buyer",
+        inn="123456789013",
+        kpp="123456789",
+        vat_rate=20,
+        address="Test Address",
+        entity_type=entity_type,  # Передаем объект, а не ID
+        signer="Test Signer",
+        company=company,  # Передаем объект, а не ID
+        description="Описание тестового юр. лица"
+    )
+
+    return {
+        "legal_entity_id": str(legal_entity.legal_entity_id),
+        "legal_entity_name": legal_entity.legal_entity_name,
+        "inn": legal_entity.inn,
+        "kpp": legal_entity.kpp,
+        "vat_rate": legal_entity.vat_rate,
+        "address": legal_entity.address,
+        "signer": legal_entity.signer,
+        "company": str(legal_entity.company.company_id),  # ID для проверки
+        "entity_type": str(legal_entity.entity_type.legal_entity_type_id),
+        "description": legal_entity.description
+    }

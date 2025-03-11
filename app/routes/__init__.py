@@ -5,6 +5,7 @@ from .user_route import user_router
 from .company_route import company_router
 from .user_company_relation_route import relation_router
 from .legal_entity_route import entity_router
+from .contract_route import contract_router
 
 # Функция для регистрации всех маршрутов
 
@@ -22,3 +23,5 @@ def register_routes(app):
         relation_router, prefix='/api/user-company-relations', tags=["UserCompanyRelations"])
     app.include_router(
         entity_router, prefix='/api/legal-entities', tags=["LegalEntities"])
+    app.include_router(
+        contract_router, prefix='/api/contracts', tags=["Contracts"])

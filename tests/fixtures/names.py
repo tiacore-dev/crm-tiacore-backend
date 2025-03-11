@@ -48,9 +48,25 @@ async def seed_legal_entity_type():
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
 async def seed_contract_status():
-    """Создает тестовый тип юридического лица."""
+    """Создает тестовый статус контракта."""
     contract_status = await ContractStatus.create(
-        status_name="ООО"
+        contract_status_id="active",
+        status_name="Active"
+    )
+    return {
+        "contract_status_id": str(contract_status.contract_status_id),
+        "status_name": contract_status.status_name
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+@pytest.mark.asyncio
+async def seed_contract_status_updated():
+    """Создает тестовый статус контракта."""
+    contract_status = await ContractStatus.create(
+        contract_status_id="waiting",
+        status_name="Waiting"
     )
     return {
         "contract_status_id": str(contract_status.contract_status_id),
