@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
@@ -7,10 +6,11 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import Service
 from app.pydantic_models.service_models import (
-    ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema
+    ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema, ServiceListResponseSchema
 )
 
 ServiceSchema = pydantic_model_creator(Service, name="ServiceSchema")
+
 
 service_router = APIRouter()
 
@@ -77,7 +77,11 @@ async def delete_service(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.get("/all", response_model=List[ServiceSchema], summary="Получение списка услуг с фильтрацией")
+@service_router.get(
+    "/all",
+    response_model=ServiceListResponseSchema,
+    summary="Получение списка услуг с фильтрацией"
+)
 async def get_services(
     filters: dict = Depends(service_filter_params),
     username: str = Depends(get_current_user)
@@ -86,22 +90,32 @@ async def get_services(
 
     try:
         query = Q()
-        # ✅ Теперь получаем данные из dict
         search_value = filters.get("search")
         if search_value:
             query &= Q(service_name__icontains=search_value)
 
-        order_by = f"{'-' if filters['order'] == 'desc' else ''}{filters['sort_by']}"
+        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'service_name')}"
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
+
+        # ✅ Общее число записей
+        total_count = await Service.filter(query).count()
 
         services = await Service.filter(query).order_by(order_by).offset(
-            (filters["page"] - 1) * filters["page_size"]
-        ).limit(filters["page_size"])
+            (page - 1) * page_size
+        ).limit(page_size)
 
-        service_list = [await ServiceSchema.from_tortoise_orm(service) for service in services]
+        return ServiceListResponseSchema(
+            total=total_count,
+            services=[
+                ServiceSchema(
+                    service_id=service.service_id,
+                    service_name=service.service_name,
+                )
+                for service in services
+            ]
+        )
 
-        logger.success(
-            f"Найдено {len(service_list)} услуг (страница {filters['page']})")
-        return service_list
     except Exception as e:
         logger.exception("Ошибка при получении списка услуг")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

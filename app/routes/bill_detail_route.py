@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.bill_detail_models import (
     BillDetailResponseSchema,
     BillDetailEditSchema,
     BillDetailSchema,
-    bill_detail_filter_params
+    bill_detail_filter_params,
+    BillDetailListResponseSchema
 )
 
 bill_detail_router = APIRouter()
@@ -78,8 +78,11 @@ async def delete_bill_detail(bill_detail_id: UUID):
     await bill_detail.delete()
 
 
-# --- Получение списка деталей счета с фильтрами ---
-@bill_detail_router.get("/all", response_model=List[BillDetailSchema], summary="Получение списка деталей счета")
+@bill_detail_router.get(
+    "/all",
+    response_model=BillDetailListResponseSchema,
+    summary="Получение списка деталей счета"
+)
 async def get_bill_details(filters: dict = Depends(bill_detail_filter_params)):
     try:
         query = Q()
@@ -88,19 +91,30 @@ async def get_bill_details(filters: dict = Depends(bill_detail_filter_params)):
         if filters.get("service"):
             query &= Q(service_id=filters["service"])
 
-        bill_details = await BillDetails.filter(query).prefetch_related("bill", "service") \
-            .offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        # ✅ Общее число записей
+        total_count = await BillDetails.filter(query).count()
 
-        return [
-            BillDetailSchema(
-                bill_detail_id=bill_detail.bill_detail_id,
-                bill=bill_detail.bill.bill_id,  # ✅ Передаем UUID счета
-                service=bill_detail.service.service_id,  # ✅ Передаем UUID услуги
-                quantity=bill_detail.quantity,
-                summ=bill_detail.summ
-            )
-            for bill_detail in bill_details
-        ]
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
+
+        bill_details = await BillDetails.filter(query) \
+            .prefetch_related("bill", "service") \
+            .offset((page - 1) * page_size) \
+            .limit(page_size)
+
+        return BillDetailListResponseSchema(
+            total=total_count,
+            bill_details=[
+                BillDetailSchema(
+                    bill_detail_id=bill_detail.bill_detail_id,
+                    bill=bill_detail.bill.bill_id,  # ✅ Теперь передаем ID счета
+                    service=bill_detail.service.service_id,  # ✅ Теперь передаем ID услуги
+                    quantity=bill_detail.quantity,
+                    summ=bill_detail.summ
+                )
+                for bill_detail in bill_details
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка деталей счета")

@@ -42,6 +42,15 @@ class ActResponseSchema(BaseModel):
         from_attributes = True
 
 
+class ActListResponseSchema(BaseModel):
+    total: int  # 🔥 Общее количество актов по фильтру
+    acts: list  # ✅ Используем `list`, а не `List[ActSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class ActEditSchema(BaseModel):
     act_number: Optional[str] = None
     act_date: Optional[int] = None

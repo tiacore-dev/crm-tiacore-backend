@@ -32,6 +32,16 @@ class UserCompanyRelationSchema(BaseModel):
         from_attributes = True
 
 
+class UserCompanyRelationListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество связей по фильтру
+    # ✅ Используем `list`, а не `List[UserCompanyRelationSchema]`
+    relations: list
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class UserCompanyRelationResponseSchema(BaseModel):
     user_company_id: UUID4
 

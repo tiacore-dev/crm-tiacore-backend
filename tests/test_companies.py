@@ -92,6 +92,8 @@ async def test_get_companies(test_app: AsyncClient, jwt_token_user, seed_company
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list)
+    companies = response_data.get('companies')
+    assert response_data.get('total') >= 1
+    assert isinstance(companies, list)
     assert any(company["company_id"] == seed_company["company_id"]
-               for company in response_data)
+               for company in companies)

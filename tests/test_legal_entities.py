@@ -104,6 +104,8 @@ async def test_get_legal_entities(test_app: AsyncClient, jwt_token_user, seed_le
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list)
+    assert response_data.get('total') >= 1
+    entities = response_data.get('entities')
+    assert isinstance(entities, list)
     assert any(entity["legal_entity_id"] == seed_legal_entity["legal_entity_id"]
-               for entity in response_data)
+               for entity in entities)

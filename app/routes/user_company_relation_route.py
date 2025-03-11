@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.user_company_relation_models import (
     UserCompanyRelationResponseSchema,
     UserCompanyRelationEditSchema,
     user_company_filter_params,
-    UserCompanyRelationSchema
+    UserCompanyRelationSchema,
+    UserCompanyRelationListResponseSchema
 )
 
 relation_router = APIRouter()
@@ -81,7 +81,7 @@ async def delete_user_company_relation(user_company_id: UUID):
 
 @relation_router.get(
     "/all",
-    response_model=List[UserCompanyRelationSchema],
+    response_model=UserCompanyRelationListResponseSchema,
     summary="Получение списка связей"
 )
 async def get_user_company_relations(filters: dict = Depends(user_company_filter_params)):
@@ -94,20 +94,26 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
         if filters.get("role_id"):
             query &= Q(role_id=filters["role_id"])
 
+        # ✅ Общее число записей
+        total_count = await UserCompanyRelation.filter(query).count()
+
         relations = await UserCompanyRelation.filter(query) \
             .prefetch_related("user", "company", "role") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [
-            UserCompanyRelationSchema(
-                user_company_id=relation.user_company_id,
-                user_id=relation.user.user_id,
-                company_id=relation.company.company_id,
-                role_id=relation.role.role_id
-            )
-            for relation in relations
-        ]
+        return UserCompanyRelationListResponseSchema(
+            total=total_count,
+            relations=[
+                UserCompanyRelationSchema(
+                    user_company_id=relation.user_company_id,
+                    user_id=relation.user.user_id,
+                    company_id=relation.company.company_id,
+                    role_id=relation.role.role_id
+                )
+                for relation in relations
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка связей")

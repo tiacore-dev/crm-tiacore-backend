@@ -43,6 +43,15 @@ class ActDetailResponseSchema(BaseModel):
         from_attributes = True
 
 
+class ActDetailListResponseSchema(BaseModel):
+    total: int  # 🔥 Общее количество деталей акта по фильтру
+    act_details: list  # ✅ Используем `list`, а не `List[ActDetailSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class ActDetailEditSchema(BaseModel):
     act: Optional[UUID4] = None
     service: Optional[UUID4] = None

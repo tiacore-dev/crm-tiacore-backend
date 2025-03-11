@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
@@ -7,7 +6,7 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import Company
 from app.pydantic_models.company_models import (
-    CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema
+    CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema
 )
 
 CompanySchema = pydantic_model_creator(Company, name="CompanySchema")
@@ -77,24 +76,45 @@ async def delete_company(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@company_router.get("/all", response_model=List[CompanySchema], summary="Получение списка компаний с фильтрацией")
+@company_router.get(
+    "/all",
+    response_model=CompanyListResponseSchema,
+    summary="Получение списка компаний с фильтрацией"
+)
 async def get_companies(
-        filters: dict = Depends(company_filter_params),
-        username: str = Depends(get_current_user)):
+    filters: dict = Depends(company_filter_params),
+    username: str = Depends(get_current_user)
+):
     logger.info(f"Запрос списка компаний: {filters}")
+
     try:
         query = Q()
         if filters.get("search"):
             query &= Q(company_name__icontains=filters["search"])
 
-        order_by = f"{'-' if filters['order'] == 'desc' else ''}{filters['sort_by']}"
-        companies = await Company.filter(query).order_by(order_by).offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        # ✅ Общее число записей
+        total_count = await Company.filter(query).count()
 
-        company_list = [await CompanySchema.from_tortoise_orm(company) for company in companies]
+        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'company_name')}"
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
 
-        logger.success(
-            f"Найдено {len(company_list)} компаний (страница {filters['page']})")
-        return company_list
+        companies = await Company.filter(query) \
+            .order_by(order_by) \
+            .offset((page - 1) * page_size) \
+            .limit(page_size)
+
+        return CompanyListResponseSchema(
+            total=total_count,
+            companies=[
+                CompanySchema(
+                    company_id=company.company_id,
+                    company_name=company.company_name,
+                    description=company.description
+                )
+                for company in companies
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка компаний")

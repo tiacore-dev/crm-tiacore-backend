@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.contract_models import (
     ContractResponseSchema,
     ContractEditSchema,
     contract_filter_params,
-    ContractSchema
+    ContractSchema,
+    ContractListResponseSchema
 )
 
 
@@ -101,7 +101,7 @@ async def delete_contract(contract_id: UUID):
 
 @contract_router.get(
     "/all",
-    response_model=List[ContractSchema],
+    response_model=ContractListResponseSchema,
     summary="Получение списка контрактов"
 )
 async def get_contracts(filters: dict = Depends(contract_filter_params)):
@@ -114,22 +114,29 @@ async def get_contracts(filters: dict = Depends(contract_filter_params)):
         if filters.get("status"):
             query &= Q(status_id=filters["status"])
 
-        contracts = await Contract.filter(query).prefetch_related("buyer", "seller", "status") \
+        # ✅ Общее число записей
+        total_count = await Contract.filter(query).count()
+
+        contracts = await Contract.filter(query) \
+            .prefetch_related("buyer", "seller", "status") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [
-            ContractSchema(
-                contract_id=contract.contract_id,
-                contract_name=contract.contract_name,
-                contract_date=contract.contract_date,
-                buyer=contract.buyer.legal_entity_id,
-                seller=contract.seller.legal_entity_id,
-                status=contract.status.contract_status_id,
-                file=contract.file
-            )
-            for contract in contracts
-        ]
+        return ContractListResponseSchema(
+            total=total_count,
+            contracts=[
+                ContractSchema(
+                    contract_id=contract.contract_id,
+                    contract_name=contract.contract_name,
+                    contract_date=contract.contract_date,
+                    buyer=contract.buyer.legal_entity_id,  # Теперь ID
+                    seller=contract.seller.legal_entity_id,  # Теперь ID
+                    status=contract.status.contract_status_id,  # Теперь ID
+                    file=contract.file
+                )
+                for contract in contracts
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка контрактов")

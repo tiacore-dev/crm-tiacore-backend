@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.act_models import (
     ActResponseSchema,
     ActEditSchema,
     act_filter_params,
-    ActSchema
+    ActSchema,
+    ActListResponseSchema
 )
 
 
@@ -81,7 +81,7 @@ async def delete_act(act_id: UUID):
 
 @act_router.get(
     "/all",
-    response_model=List[ActSchema],
+    response_model=ActListResponseSchema,
     summary="Получение списка актов"
 )
 async def get_acts(filters: dict = Depends(act_filter_params)):
@@ -90,20 +90,28 @@ async def get_acts(filters: dict = Depends(act_filter_params)):
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
 
+        total_count = await Acts.filter(query).count()  # ✅ Общее число записей
+
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
+
         acts = await Acts.filter(query) \
             .prefetch_related("contract") \
-            .offset((filters["page"] - 1) * filters["page_size"]) \
-            .limit(filters["page_size"])
+            .offset((page - 1) * page_size) \
+            .limit(page_size)
 
-        return [
-            ActSchema(
-                act_id=act.act_id,
-                contract=act.contract.contract_id,  # ✅ Теперь передаем UUID
-                act_number=act.act_number,
-                act_date=act.act_date
-            )
-            for act in acts
-        ]
+        return ActListResponseSchema(
+            total=total_count,
+            acts=[
+                ActSchema(
+                    act_id=act.act_id,
+                    contract=act.contract.contract_id,  # ✅ Теперь передаем UUID контракта
+                    act_number=act.act_number,
+                    act_date=act.act_date
+                )
+                for act in acts
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка актов")

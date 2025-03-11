@@ -51,6 +51,15 @@ class BillDetailSchema(BaseModel):
         from_attributes = True
 
 
+class BillDetailListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    bill_details: list  # ✅ Используем `list`, а не `List[BillDetailSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 def bill_detail_filter_params(
     bill: Optional[UUID4] = Query(None, description="Фильтр по счету"),
     service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),

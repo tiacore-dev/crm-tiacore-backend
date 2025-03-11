@@ -46,6 +46,15 @@ class BankAccountResponseSchema(BaseModel):
         from_attributes = True
 
 
+class BankAccountListResponseSchema(BaseModel):
+    total: int  # 🔥 Общее количество банковских счетов по фильтру
+    bank_accounts: list  # ✅ Используем `list`, а не `List[BankAccountSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class BankAccountEditSchema(BaseModel):
     account_number: Optional[str] = Field(None, min_length=20, max_length=20)
     bank_name: Optional[str] = Field(None, min_length=3, max_length=255)

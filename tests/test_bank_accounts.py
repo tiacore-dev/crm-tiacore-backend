@@ -98,6 +98,8 @@ async def test_get_bank_accounts(test_app: AsyncClient, jwt_token_user, seed_ban
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list)
+    bank_accounts = response_data.get('bank_accounts')
+    assert response_data.get('total') >= 1
+    assert isinstance(bank_accounts, list)
     assert any(account["bank_account_id"] == seed_bank_account["bank_account_id"]
-               for account in response_data)
+               for account in bank_accounts)

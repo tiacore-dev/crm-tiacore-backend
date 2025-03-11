@@ -21,6 +21,15 @@ class ServiceResponseSchema(BaseModel):
     service_id: UUID4
 
 
+class ServiceListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество услуг по фильтру
+    services: list  # ✅ Используем `list`, а не `List[ServiceSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class ServiceEditSchema(BaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
 

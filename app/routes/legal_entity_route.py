@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.legal_entity_models import (
     LegalEntityResponseSchema,
     LegalEntityEditSchema,
     legal_entity_filter_params,
-    LegalEntitySchema
+    LegalEntitySchema,
+    LegalEntityListResponseSchema
 )
 
 
@@ -85,7 +85,7 @@ async def delete_legal_entity(legal_entity_id: UUID):
 
 @entity_router.get(
     "/all",
-    response_model=List[LegalEntitySchema],
+    response_model=LegalEntityListResponseSchema,
     summary="Получение списка юридических лиц"
 )
 async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)):
@@ -96,25 +96,32 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
         if filters.get("entity_type"):
             query &= Q(entity_type_id=filters["entity_type"])
 
-        entities = await LegalEntity.filter(query).prefetch_related("company", "entity_type") \
+        # ✅ Общее число записей
+        total_count = await LegalEntity.filter(query).count()
+
+        entities = await LegalEntity.filter(query) \
+            .prefetch_related("company", "entity_type") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
-        return [
-            LegalEntitySchema(
-                legal_entity_id=entity.legal_entity_id,
-                legal_entity_name=entity.legal_entity_name,
-                inn=entity.inn,
-                kpp=entity.kpp,
-                vat_rate=entity.vat_rate,
-                address=entity.address,
-                entity_type=entity.entity_type.legal_entity_type_id,  # Теперь ID
-                signer=entity.signer,
-                company=entity.company.company_id,  # Теперь ID
-                description=entity.description
-            )
-            for entity in entities
-        ]
+        return LegalEntityListResponseSchema(
+            total=total_count,
+            entities=[
+                LegalEntitySchema(
+                    legal_entity_id=entity.legal_entity_id,
+                    legal_entity_name=entity.legal_entity_name,
+                    inn=entity.inn,
+                    kpp=entity.kpp,
+                    vat_rate=entity.vat_rate,
+                    address=entity.address,
+                    entity_type=entity.entity_type.legal_entity_type_id,  # Теперь ID
+                    signer=entity.signer,
+                    company=entity.company.company_id,  # Теперь ID
+                    description=entity.description
+                )
+                for entity in entities
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")

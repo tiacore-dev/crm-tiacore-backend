@@ -94,9 +94,11 @@ async def test_get_services(test_app: AsyncClient, jwt_token_user, seed_service)
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list), "Ответ должен быть списком"
+    services = response_data.get('services')
+    assert isinstance(services, list), "Ответ должен быть списком"
+    assert response_data.get('total') > 0
 
     # Проверяем, что в списке есть наша тестовая услуга
-    service_ids = [service["service_id"] for service in response_data]
+    service_ids = [service["service_id"] for service in services]
     assert str(seed_service["service_id"]
                ) in service_ids, "Тестовая услуга отсутствует в списке"

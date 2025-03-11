@@ -1,7 +1,7 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
+from pydantic import BaseModel
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
@@ -15,6 +15,15 @@ UserSchema = pydantic_model_creator(
     name="UserSchema",
     exclude=("password_hash",)  # Убираем хеш пароля из ответа
 )
+
+
+class UserListResponseSchema(BaseModel):
+    total: int  # Общее количество пользователей по фильтру
+    users: list  # Используем `list`, а не `List[UserSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # 🔥 Это разрешает "нестандартные" типы
 
 
 user_router = APIRouter()
@@ -90,16 +99,15 @@ async def delete_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.get("/all", response_model=List[UserSchema], summary="Получение списка пользователей с фильтрацией")
-async def get_users(
-    filters: dict = Depends(user_filter_params),
-    username: str = Depends(get_current_user)
-):
-    logger.info(f"Запрос списка пользователей: {filters}")
-
+@user_router.get(
+    "/all",
+    response_model=UserListResponseSchema,
+    summary="Получение списка пользователей"
+)
+async def get_users(filters: dict = Depends(user_filter_params)):
     try:
         query = Q()
-        search_value = filters.get("search")  # ✅ Получаем search безопасно
+        search_value = filters.get("search")
         if search_value:
             query &= Q(username__icontains=search_value)
 
@@ -107,13 +115,16 @@ async def get_users(
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
+        # ✅ Получаем общее количество записей
+        total_count = await User.filter(query).count()
         users = await User.filter(query).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
 
-        user_list = [await UserSchema.from_tortoise_orm(user) for user in users]
+        return UserListResponseSchema(
+            total=total_count,
+            # ✅ Преобразуем в Pydantic-модель
+            users=[await UserSchema.from_tortoise_orm(user) for user in users]
+        )
 
-        logger.success(
-            f"Найдено {len(user_list)} пользователей (страница {page})")
-        return user_list
     except Exception as e:
         logger.exception("Ошибка при получении списка пользователей")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

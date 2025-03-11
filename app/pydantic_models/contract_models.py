@@ -42,6 +42,15 @@ class ContractSchema(BaseModel):
         from_attributes = True
 
 
+class ContractListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    contracts: list  # ✅ Используем `list`, а не `List[ContractSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class ContractResponseSchema(BaseModel):
     contract_id: UUID4
 

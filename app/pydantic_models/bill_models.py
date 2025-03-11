@@ -31,6 +31,15 @@ class BillResponseSchema(BaseModel):
         from_attributes = True
 
 
+class BillListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    bills: list  # ✅ Используем `list`, а не `List[BillSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class BillEditSchema(BaseModel):
     bank_account: Optional[UUID4] = None
     bill_number: Optional[str] = None

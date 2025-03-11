@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.act_detail_models import (
     ActDetailResponseSchema,
     ActDetailEditSchema,
     act_detail_filter_params,
-    ActDetailSchema
+    ActDetailSchema,
+    ActDetailListResponseSchema
 )
 
 
@@ -91,7 +91,7 @@ async def delete_act_detail(act_detail_id: UUID):
 
 @act_detail_router.get(
     "/all",
-    response_model=List[ActDetailSchema],
+    response_model=ActDetailListResponseSchema,
     summary="Получение списка деталей акта"
 )
 async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
@@ -102,21 +102,30 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params)):
         if filters.get("service"):
             query &= Q(service_id=filters["service"])
 
+        # ✅ Общее число записей
+        total_count = await ActDetails.filter(query).count()
+
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
+
         act_details = await ActDetails.filter(query) \
             .prefetch_related("act", "service") \
-            .offset((filters["page"] - 1) * filters["page_size"]) \
-            .limit(filters["page_size"])
+            .offset((page - 1) * page_size) \
+            .limit(page_size)
 
-        return [
-            ActDetailSchema(
-                act_detail_id=act_detail.act_detail_id,
-                act=act_detail.act.act_id,  # ✅ Теперь передаем UUID
-                service=act_detail.service.service_id,  # ✅ Теперь передаем UUID
-                quantity=act_detail.quantity,
-                summ=act_detail.summ
-            )
-            for act_detail in act_details
-        ]
+        return ActDetailListResponseSchema(
+            total=total_count,
+            act_details=[
+                ActDetailSchema(
+                    act_detail_id=act_detail.act_detail_id,
+                    act=act_detail.act.act_id,  # ✅ Теперь передаем UUID акта
+                    service=act_detail.service.service_id,  # ✅ Теперь передаем UUID услуги
+                    quantity=act_detail.quantity,
+                    summ=act_detail.summ
+                )
+                for act_detail in act_details
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка деталей акта")

@@ -102,9 +102,10 @@ async def test_get_users(test_app: AsyncClient, jwt_token_user, seed_user):
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list), "Ответ должен быть списком"
+    users = response_data.get('users')
+    assert isinstance(users, list), "Ответ должен быть списком"
 
     # Проверяем, что в списке есть наш тестовый пользователь
-    user_ids = [user["user_id"] for user in response_data]
+    user_ids = [user["user_id"] for user in users]
     assert str(
         seed_user["user_id"]) in user_ids, "Тестовый пользователь отсутствует в списке"

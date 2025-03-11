@@ -99,8 +99,10 @@ async def test_get_all_act_details(test_app: AsyncClient, jwt_token_user, seed_a
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list), "Ответ должен быть списком!"
+    act_details = response_data.get('act_details')
+    assert response_data.get('total') >= 1
+    assert isinstance(act_details, list), "Ответ должен быть списком!"
     assert any(
         detail["act_detail_id"] == seed_act_detail["act_detail_id"]
-        for detail in response_data
+        for detail in act_details
     ), "Тестовая деталь акта не найдена в списке!"

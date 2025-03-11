@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
@@ -9,7 +8,8 @@ from app.pydantic_models.bill_models import (
     BillResponseSchema,
     BillEditSchema,
     bill_filter_params,
-    BillSchema
+    BillSchema,
+    BillListResponseSchema
 )
 
 
@@ -90,7 +90,11 @@ async def delete_bill(bill_id: UUID):
     # return {"message": "Счет удалён"}
 
 
-@bill_router.get("/all", response_model=List[BillSchema], summary="Получение списка счетов")
+@bill_router.get(
+    "/all",
+    response_model=BillListResponseSchema,
+    summary="Получение списка счетов"
+)
 async def get_bills(filters: dict = Depends(bill_filter_params)):
     try:
         query = Q()
@@ -99,19 +103,30 @@ async def get_bills(filters: dict = Depends(bill_filter_params)):
         if filters.get("bank_account"):
             query &= Q(bank_account_id=filters["bank_account"])
 
-        bills = await Bills.filter(query).prefetch_related("contract", "bank_account") \
-            .offset((filters["page"] - 1) * filters["page_size"]).limit(filters["page_size"])
+        # ✅ Общее число записей
+        total_count = await Bills.filter(query).count()
 
-        return [
-            BillSchema(
-                bill_id=bill.bill_id,
-                bill_number=bill.bill_number,
-                bill_date=bill.bill_date,
-                contract=bill.contract.contract_id,  # 👈 Теперь UUID передается явно
-                bank_account=bill.bank_account.bank_account_id  # 👈 Теперь UUID передается явно
-            )
-            for bill in bills
-        ]
+        page = filters.get("page", 1)
+        page_size = filters.get("page_size", 10)
+
+        bills = await Bills.filter(query) \
+            .prefetch_related("contract", "bank_account") \
+            .offset((page - 1) * page_size) \
+            .limit(page_size)
+
+        return BillListResponseSchema(
+            total=total_count,
+            bills=[
+                BillSchema(
+                    bill_id=bill.bill_id,
+                    bill_number=bill.bill_number,
+                    bill_date=bill.bill_date,
+                    contract=bill.contract.contract_id,  # ✅ Теперь передаем ID контракта
+                    bank_account=bill.bank_account.bank_account_id  # ✅ Теперь передаем ID счета
+                )
+                for bill in bills
+            ]
+        )
 
     except Exception as e:
         logger.exception("Ошибка при получении списка счетов")

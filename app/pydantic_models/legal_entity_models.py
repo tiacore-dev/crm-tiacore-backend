@@ -54,6 +54,15 @@ class LegalEntityResponseSchema(BaseModel):
         from_attributes = True
 
 
+class LegalEntityListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    entities: list  # ✅ Используем `list`, а не `List[LegalEntitySchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class LegalEntityEditSchema(BaseModel):
     legal_entity_name: Optional[str] = None
     inn: Optional[str] = None

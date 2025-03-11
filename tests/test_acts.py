@@ -94,5 +94,7 @@ async def test_get_acts(test_app: AsyncClient, jwt_token_user, seed_act):
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list)
-    assert any(act["act_id"] == seed_act["act_id"] for act in response_data)
+    acts = response_data.get('acts')
+    assert response_data.get('total') >= 1
+    assert isinstance(acts, list)
+    assert any(act["act_id"] == seed_act["act_id"] for act in acts)

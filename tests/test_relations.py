@@ -81,5 +81,6 @@ async def test_get_all_user_company_relations(test_app: AsyncClient, jwt_token_u
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert isinstance(response_data, list), "Ответ должен быть списком!"
-    assert len(response_data) >= 1
+    relations = response_data.get('relations')
+    assert isinstance(relations, list), "Ответ должен быть списком!"
+    assert response_data.get('total') >= 1

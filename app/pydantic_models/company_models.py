@@ -21,6 +21,15 @@ class CompanyResponseSchema(BaseModel):
     company_id: UUID4
 
 
+class CompanyListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    companies: list  # ✅ Используем `list`, а не `List[CompanySchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+
+
 class CompanyEditSchema(BaseModel):
     company_name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = Field(None, description="Описание компании")

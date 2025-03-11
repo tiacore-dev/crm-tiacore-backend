@@ -99,5 +99,7 @@ async def test_get_all_bill_details(test_app: AsyncClient, jwt_token_user, seed_
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
+    bill_details = response_data.get('bill_details')
+    assert response_data.get('total') >= 1
     assert any(detail["bill_detail_id"] == seed_bill_detail["bill_detail_id"]
-               for detail in response_data)
+               for detail in bill_details)
