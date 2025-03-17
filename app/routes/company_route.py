@@ -2,14 +2,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import Company
 from app.pydantic_models.company_models import (
-    CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema
+    CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
 )
 
-CompanySchema = pydantic_model_creator(Company, name="CompanySchema")
 
 company_router = APIRouter()
 

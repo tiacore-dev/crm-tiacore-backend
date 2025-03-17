@@ -1,15 +1,13 @@
 from uuid import UUID
+import json
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import Service
 from app.pydantic_models.service_models import (
-    ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema, ServiceListResponseSchema
+    ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema, ServiceListResponseSchema, ServiceSchema
 )
-
-ServiceSchema = pydantic_model_creator(Service, name="ServiceSchema")
 
 
 service_router = APIRouter()
@@ -105,7 +103,8 @@ async def get_services(
             (page - 1) * page_size
             # ✅ Достаём сразу в виде словарей
         ).limit(page_size).values("service_id", "service_name")
-
+        logger.info(
+            f"Данные для ServiceListResponseSchema: {json.dumps([s.dict() for s in services], default=str, indent=2)}")
         return ServiceListResponseSchema(
             total=total_count,
             # ✅ Создаём Pydantic-модели
