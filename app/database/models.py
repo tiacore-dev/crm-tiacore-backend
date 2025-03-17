@@ -52,7 +52,7 @@ class User(Model):
     class Meta:
         table = "users"
 
-    async def check_password(self, password: str):
+    def check_password(self, password: str):
         if not self.password_hash:
             return False  # Если пароль отсутствует в БД, всегда возвращаем False
 

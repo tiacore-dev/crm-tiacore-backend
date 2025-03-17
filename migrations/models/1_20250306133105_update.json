@@ -1,8 +1,0 @@
-{
-  "upgrade": [
-    "ALTER TABLE \"users\" RENAME COLUMN \"user_name\" TO \"username\""
-  ],
-  "downgrade": [
-    "ALTER TABLE \"users\" RENAME COLUMN \"username\" TO \"user_name\""
-  ]
-}
