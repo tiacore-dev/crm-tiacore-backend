@@ -103,8 +103,8 @@ async def get_services(
             (page - 1) * page_size
             # ✅ Достаём сразу в виде словарей
         ).limit(page_size).values("service_id", "service_name")
-        logger.info(
-            f"Данные для ServiceListResponseSchema: {json.dumps([s.dict() for s in services], default=str, indent=2)}")
+        # logger.info(
+        #    f"Данные для ServiceListResponseSchema: {json.dumps([s.dict() for s in services], default=str, indent=2)}")
         return ServiceListResponseSchema(
             total=total_count,
             # ✅ Создаём Pydantic-модели
