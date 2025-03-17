@@ -103,12 +103,13 @@ async def get_services(
 
         services = await Service.filter(query).order_by(order_by).offset(
             (page - 1) * page_size
-        ).limit(page_size)
+            # ✅ Достаём сразу в виде словарей
+        ).limit(page_size).values("service_id", "service_name")
 
         return ServiceListResponseSchema(
             total=total_count,
-            # ✅ Преобразуем ORM-модель в словарь
-            services=[service.model_dump() for service in services]
+            # ✅ Создаём Pydantic-модели
+            services=[ServiceSchema(**service) for service in services]
         )
 
     except Exception as e:
