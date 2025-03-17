@@ -107,13 +107,8 @@ async def get_services(
 
         return ServiceListResponseSchema(
             total=total_count,
-            services=[
-                ServiceSchema(
-                    service_id=service.service_id,
-                    service_name=service.service_name,
-                )
-                for service in services
-            ]
+            # ✅ Преобразуем ORM-модель в словарь
+            services=[service.model_dump() for service in services]
         )
 
     except Exception as e:
