@@ -132,7 +132,13 @@ async def get_company(
             logger.warning(f"Компания {company_id} не найдена")
             raise HTTPException(status_code=404, detail="Компания не найдена")
 
-        company_schema = await CompanySchema.from_tortoise_orm(company)
+        # ✅ Создаём Pydantic-модель вручную
+        company_schema = CompanySchema(
+            company_id=company.company_id,
+            company_name=company.company_name,
+            description=company.description
+        )
+
         logger.success(f"Найдена компания: {company_schema}")
         return company_schema
 

@@ -2,17 +2,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import User, create_user
 from app.pydantic_models.user_models import (
-    UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema
-)
-
-UserSchema = pydantic_model_creator(
-    User,
-    name="UserSchema",
-    exclude=("password_hash",)  # Убираем хеш пароля из ответа
+    UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema, UserSchema
 )
 
 
@@ -107,12 +100,16 @@ async def get_users(filters: dict = Depends(user_filter_params)):
 
         # ✅ Получаем общее количество записей
         total_count = await User.filter(query).count()
-        users = await User.filter(query).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
+
+        # ✅ Достаём сразу в виде словарей (ускоряет работу)
+        users = await User.filter(query).order_by(order_by).offset(
+            (page - 1) * page_size
+        ).limit(page_size).values("user_id", "username", "email", "role")
 
         return UserListResponseSchema(
             total=total_count,
-            # ✅ Преобразуем в Pydantic-модель
-            users=[await UserSchema.from_tortoise_orm(user) for user in users]
+            # ✅ Преобразуем словари в Pydantic
+            users=[UserSchema(**user) for user in users]
         )
 
     except Exception as e:
@@ -120,7 +117,7 @@ async def get_users(filters: dict = Depends(user_filter_params)):
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.get("/{user_id}", response_model=UserSchema, summary="Просмотр пользователя", response_model_exclude_none=False)
+@user_router.get("/{user_id}", response_model=UserSchema, summary="Просмотр пользователя")
 async def get_user(
     user_id: UUID = Path(..., title="ID пользователя",
                          description="ID просматриваемого пользователя"),
@@ -134,10 +131,17 @@ async def get_user(
             raise HTTPException(
                 status_code=404, detail="Пользователь не найден")
 
-        user_schema = await UserSchema.from_tortoise_orm(user)
+        # ✅ Создаём Pydantic-модель вручную
+        user_schema = UserSchema(
+            user_id=user.user_id,
+            username=user.username,
+            email=user.email,
+            role=user.role
+        )
+
         logger.success(f"Найден пользователь: {user_schema}")
-        logger.info(f"Реальные данные: {user_schema.model_dump()}")
         return user_schema
+
     except Exception as e:
         logger.exception("Ошибка при просмотре пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

@@ -1,5 +1,4 @@
 from uuid import UUID
-import json
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
@@ -103,8 +102,6 @@ async def get_services(
             (page - 1) * page_size
             # ✅ Достаём сразу в виде словарей
         ).limit(page_size).values("service_id", "service_name")
-        # logger.info(
-        #    f"Данные для ServiceListResponseSchema: {json.dumps([s.dict() for s in services], default=str, indent=2)}")
         return ServiceListResponseSchema(
             total=total_count,
             # ✅ Создаём Pydantic-модели
@@ -129,7 +126,11 @@ async def get_service(
             logger.warning(f"Услуга {service_id} не найдена")
             raise HTTPException(status_code=404, detail="Услуга не найдена")
 
-        service_schema = await ServiceSchema.from_tortoise_orm(service)
+        # ✅ Создаём Pydantic-схему из ORM-модели
+        service_schema = ServiceSchema(
+            service_id=service.service_id,
+            service_name=service.service_name
+        )
         logger.success(f"Услуга найдена: {service_schema}")
         return service_schema
     except Exception as e:
