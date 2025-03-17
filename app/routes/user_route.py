@@ -133,10 +133,7 @@ async def get_user(
 
         # ✅ Создаём Pydantic-модель вручную
         user_schema = UserSchema(
-            user_id=user.user_id,
-            username=user.username,
-            email=user.email,
-            role=user.role
+            **user
         )
 
         logger.success(f"Найден пользователь: {user_schema}")
