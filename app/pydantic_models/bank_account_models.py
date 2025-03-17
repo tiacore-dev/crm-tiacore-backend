@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -48,7 +48,8 @@ class BankAccountResponseSchema(BaseModel):
 
 class BankAccountListResponseSchema(BaseModel):
     total: int  # 🔥 Общее количество банковских счетов по фильтру
-    bank_accounts: list  # ✅ Используем `list`, а не `List[BankAccountSchema]`
+    # ✅ Используем `list`, а не `List[BankAccountSchema]`
+    bank_accounts: List[BankAccountSchema]
 
     class Config:
         from_attributes = True

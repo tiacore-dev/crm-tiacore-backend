@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -44,7 +44,7 @@ class ActResponseSchema(BaseModel):
 
 class ActListResponseSchema(BaseModel):
     total: int  # 🔥 Общее количество актов по фильтру
-    acts: list  # ✅ Используем `list`, а не `List[ActSchema]`
+    acts: List[ActSchema]  # ✅ Используем `list`, а не `List[ActSchema]`
 
     class Config:
         from_attributes = True

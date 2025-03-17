@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, Field, field_validator
 from fastapi import Query, HTTPException
 
@@ -53,7 +53,8 @@ class BillDetailSchema(BaseModel):
 
 class BillDetailListResponseSchema(BaseModel):
     total: int  # 🔥 Количество записей по фильтру
-    bill_details: list  # ✅ Используем `list`, а не `List[BillDetailSchema]`
+    # ✅ Используем `list`, а не `List[BillDetailSchema]`
+    bill_details: List[BillDetailSchema]
 
     class Config:
         from_attributes = True

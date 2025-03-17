@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -31,15 +31,6 @@ class BillResponseSchema(BaseModel):
         from_attributes = True
 
 
-class BillListResponseSchema(BaseModel):
-    total: int  # 🔥 Количество записей по фильтру
-    bills: list  # ✅ Используем `list`, а не `List[BillSchema]`
-
-    class Config:
-        from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
-
-
 class BillEditSchema(BaseModel):
     bank_account: Optional[UUID4] = None
     bill_number: Optional[str] = None
@@ -59,6 +50,15 @@ class BillSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BillListResponseSchema(BaseModel):
+    total: int  # 🔥 Количество записей по фильтру
+    bills: List[BillSchema]  # ✅ Используем `list`, а не `List[BillSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
 def bill_filter_params(

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query
 from app.utils.validate_helpers import sanitize_input
@@ -39,6 +39,22 @@ class UserEditSchema(BaseModel):
         if value is None:
             return value
         return sanitize_input(value)
+
+
+class UserSchema(BaseModel):
+    user_id: UUID4
+    username: str
+    full_name: str
+    position: str
+
+
+class UserListResponseSchema(BaseModel):
+    total: int  # Общее количество пользователей по фильтру
+    users: List[UserSchema]  # Используем `list`, а не `List[UserSchema]`
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True  # 🔥 Это разрешает "нестандартные" типы
 
 
 class UserResponseSchema(BaseModel):

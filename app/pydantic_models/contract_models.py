@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -44,7 +44,8 @@ class ContractSchema(BaseModel):
 
 class ContractListResponseSchema(BaseModel):
     total: int  # 🔥 Количество записей по фильтру
-    contracts: list  # ✅ Используем `list`, а не `List[ContractSchema]`
+    # ✅ Используем `list`, а не `List[ContractSchema]`
+    contracts: List[ContractSchema]
 
     class Config:
         from_attributes = True

@@ -1,13 +1,12 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
-from pydantic import BaseModel
 from tortoise.expressions import Q
 from tortoise.contrib.pydantic import pydantic_model_creator
 from app.handlers.auth import get_current_user
 from app.database.models import User, create_user
 from app.pydantic_models.user_models import (
-    UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema
+    UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema
 )
 
 UserSchema = pydantic_model_creator(
@@ -15,15 +14,6 @@ UserSchema = pydantic_model_creator(
     name="UserSchema",
     exclude=("password_hash",)  # Убираем хеш пароля из ответа
 )
-
-
-class UserListResponseSchema(BaseModel):
-    total: int  # Общее количество пользователей по фильтру
-    users: list  # Используем `list`, а не `List[UserSchema]`
-
-    class Config:
-        from_attributes = True
-        arbitrary_types_allowed = True  # 🔥 Это разрешает "нестандартные" типы
 
 
 user_router = APIRouter()

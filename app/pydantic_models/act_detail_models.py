@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -45,7 +45,8 @@ class ActDetailResponseSchema(BaseModel):
 
 class ActDetailListResponseSchema(BaseModel):
     total: int  # 🔥 Общее количество деталей акта по фильтру
-    act_details: list  # ✅ Используем `list`, а не `List[ActDetailSchema]`
+    # ✅ Используем `list`, а не `List[ActDetailSchema]`
+    act_details: List[ActDetailSchema]
 
     class Config:
         from_attributes = True

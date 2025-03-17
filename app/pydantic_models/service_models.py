@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query, HTTPException
 from app.utils.validate_helpers import sanitize_input
@@ -21,9 +21,15 @@ class ServiceResponseSchema(BaseModel):
     service_id: UUID4
 
 
+class ServiceSchema(BaseModel):
+    service_id: UUID4
+    service_name: str
+
+
 class ServiceListResponseSchema(BaseModel):
     total: int  # 🔥 Количество услуг по фильтру
-    services: list  # ✅ Используем `list`, а не `List[ServiceSchema]`
+    # ✅ Используем `list`, а не `List[ServiceSchema]`
+    services: List[ServiceSchema]
 
     class Config:
         from_attributes = True

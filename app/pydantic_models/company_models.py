@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, UUID4
 from fastapi import Query, HTTPException
 from app.utils.validate_helpers import sanitize_input
@@ -21,9 +21,16 @@ class CompanyResponseSchema(BaseModel):
     company_id: UUID4
 
 
+class CompanySchema(BaseModel):
+    company_id: UUID4
+    company_name: str
+    description: str
+
+
 class CompanyListResponseSchema(BaseModel):
     total: int  # 🔥 Количество записей по фильтру
-    companies: list  # ✅ Используем `list`, а не `List[CompanySchema]`
+    # ✅ Используем `list`, а не `List[CompanySchema]`
+    companies: List[CompanySchema]
 
     class Config:
         from_attributes = True

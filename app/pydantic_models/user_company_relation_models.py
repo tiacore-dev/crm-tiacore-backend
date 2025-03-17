@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query
 
@@ -35,7 +35,7 @@ class UserCompanyRelationSchema(BaseModel):
 class UserCompanyRelationListResponseSchema(BaseModel):
     total: int  # 🔥 Количество связей по фильтру
     # ✅ Используем `list`, а не `List[UserCompanyRelationSchema]`
-    relations: list
+    relations: List[UserCompanyRelationSchema]
 
     class Config:
         from_attributes = True

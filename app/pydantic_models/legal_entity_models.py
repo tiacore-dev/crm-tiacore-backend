@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 
@@ -56,7 +56,8 @@ class LegalEntityResponseSchema(BaseModel):
 
 class LegalEntityListResponseSchema(BaseModel):
     total: int  # 🔥 Количество записей по фильтру
-    entities: list  # ✅ Используем `list`, а не `List[LegalEntitySchema]`
+    # ✅ Используем `list`, а не `List[LegalEntitySchema]`
+    entities: List[LegalEntitySchema]
 
     class Config:
         from_attributes = True
