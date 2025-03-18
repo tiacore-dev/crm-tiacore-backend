@@ -104,7 +104,7 @@ async def get_users(filters: dict = Depends(user_filter_params)):
         # ✅ Достаём сразу в виде словарей (ускоряет работу)
         users = await User.filter(query).order_by(order_by).offset(
             (page - 1) * page_size
-        ).limit(page_size).values("user_id", "username", "email", "role")
+        ).limit(page_size).values("user_id", "username", "full_name", "position")
 
         return UserListResponseSchema(
             total=total_count,
