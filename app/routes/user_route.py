@@ -24,12 +24,14 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
                 f"Пользователь с логином {data.username} уже существует")
             raise HTTPException(
                 status_code=400, detail="Имя пользователя занято")
+        logger.debug(f"Попытка создать пользователя {data.username}")
         user = await create_user(
             username=data.username,
             full_name=data.full_name,
             position=data.position,
             password=data.password
         )
+        logger.debug(f"Результат создания пользователя: {user}")
         if not user:
             logger.error("Не удалось создать пользователя")
             raise HTTPException(
@@ -38,8 +40,10 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
         logger.success(
             f"Пользователь {user.username} ({user.user_id}) успешно создан")
         return {"user_id": str(user.user_id)}
+    except HTTPException as e:
+        raise e  # Если это уже HTTPException, пробрасываем его без изменений
     except Exception as e:
-        logger.exception("Ошибка при создании пользователя")
+        logger.exception(f"Ошибка при создании пользователя: {e}")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -74,7 +78,7 @@ async def edit_user(
         logger.success(f"Пользователь {user_id} успешно обновлён")
         return {"user_id": str(user_id)}
     except Exception as e:
-        logger.exception("Ошибка при обновлении пользователя")
+        logger.exception(f"Ошибка при обновлении пользователя: {e}")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
