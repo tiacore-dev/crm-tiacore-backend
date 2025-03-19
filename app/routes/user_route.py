@@ -1,4 +1,5 @@
 from uuid import UUID
+import bcrypt
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
@@ -48,7 +49,16 @@ async def edit_user(
     logger.info(
         f"Обновление пользователя {user_id}: {data.dict(exclude_unset=True)}")
     try:
-        updated_rows = await User.filter(user_id=user_id).update(**data.dict(exclude_unset=True))
+        # Исключаем поля, которые не были переданы
+        # Исключаем поля, которые не были переданы
+        update_data = data.dict(exclude_unset=True)
+
+        if 'password' in update_data:  # Если передан пароль, хешируем его
+            update_data['password_hash'] = bcrypt.hashpw(
+                update_data.pop('password').encode(), bcrypt.gensalt()).decode()
+
+        if update_data:  # Обновляем только если есть данные для обновления
+            updated_rows = await User.filter(user_id=user_id).update(**update_data)
 
         if not updated_rows:
             logger.warning(f"Пользователь {user_id} не найден")

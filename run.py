@@ -31,8 +31,6 @@ async def create_test_data():
 
 app = create_app()
 
-ORIGIN = os.getenv('ORIGIN')
-
 
 @app.on_event("startup")
 async def startup_event():
