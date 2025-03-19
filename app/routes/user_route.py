@@ -18,6 +18,12 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
     # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
+        existing_user = await User.get_or_none(username=data.username)
+        if existing_user:
+            logger.warning(
+                f"Пользователь с логином {data.username} уже существует")
+            raise HTTPException(
+                status_code=400, detail="Имя пользователя занято")
         user = await create_user(
             username=data.username,
             full_name=data.full_name,
