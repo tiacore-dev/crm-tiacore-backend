@@ -125,7 +125,7 @@ async def get_user(
 ):
     logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
     try:
-        user = await User.get_or_none(user_id=user_id)
+        user = await User.get_or_none(user_id=user_id).values()
         if user is None:
             logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
