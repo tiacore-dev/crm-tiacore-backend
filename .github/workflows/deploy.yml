@@ -45,6 +45,7 @@ jobs:
       - name: Run Tests inside Docker Image
         run: |
           docker run --rm \
+            --env-file .env.test \
             -e TEST_DATABASE_URL=${{ env.TEST_DATABASE_URL }} \
             ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }} \
             pytest --maxfail=3 --disable-warnings
