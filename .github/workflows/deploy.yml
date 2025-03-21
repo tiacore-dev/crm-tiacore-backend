@@ -37,6 +37,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install docker-compose -y
 
       - name: Run docker-compose test
+        working-directory: ./
         run: |
           docker compose -f docker-compose.yml up --build --abort-on-container-exit test
 
