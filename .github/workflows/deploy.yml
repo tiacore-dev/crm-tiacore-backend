@@ -92,8 +92,6 @@ jobs:
               /bin/sh -c 'aerich init -t app.database.config.TORTOISE_ORM && aerich upgrade'
           "
 
-          "
-
       - name: Deploy Application
         run: |
           echo "🚀 Деплой на сервер..."
