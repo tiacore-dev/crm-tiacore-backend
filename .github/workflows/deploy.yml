@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-and-test:
+    if: github.ref_name == 'dev' || github.ref_name == 'master'
     runs-on: ubuntu-latest
 
     services:
