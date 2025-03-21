@@ -7,7 +7,7 @@ load_dotenv()
 
 class Settings:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite://db.sqlite3")
-    TEST_DATABASE_URL = os.getenv('TEST_DB')
+    TEST_DATABASE_URL = os.getenv('TEST_DATABASE_URL', "sqlite://db.sqlite3")
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret")
     ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv(
         "ACCESS_TOKEN_EXPIRE_MINUTES")
@@ -17,3 +17,4 @@ class Settings:
     ALGORITHM = "HS256"
     PORT = os.getenv('PORT')
     ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "").split(",")
+    ORIGIN = os.getenv("ORIGIN")
