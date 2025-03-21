@@ -86,10 +86,12 @@ jobs:
             cd $DEPLOY_PATH &&
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG &&
             docker run --rm \
-              -v $(pwd):/app \
+              -v \$(pwd):/app \
               --network crm_network \
               ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG \
-              aerich upgrade
+              /bin/sh -c 'aerich init -t app.database.config.TORTOISE_ORM && aerich upgrade'
+          "
+
           "
 
       - name: Deploy Application
