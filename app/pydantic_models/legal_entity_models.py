@@ -9,9 +9,11 @@ class LegalEntityCreateSchema(BaseModel):
     kpp: Optional[str] = Field(None, min_length=9, max_length=9)
     vat_rate: int = Field(..., ge=0, le=100)
     address: str = Field(..., min_length=5, max_length=255)
-    entity_type: str = Field(...)
+    entity_type: str = Field(...,
+                             description="ID типа юр. лица (внешний ключ)")
     signer: Optional[str] = Field(None, min_length=3, max_length=255)
-    company: UUID4 = Field(...)
+    company: UUID4 = Field(...,
+                           description="ID компании (внешний ключ), UUID4")
     description: Optional[str] = Field(None, max_length=500)
 
     @field_validator(
@@ -29,6 +31,19 @@ class LegalEntityCreateSchema(BaseModel):
 
     class Config:
         from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "legal_entity_name": "ООО Ромашка",
+                "inn": "1234567890",
+                "kpp": "123456789",
+                "vat_rate": 20,
+                "address": "г. Москва, ул. Пушкина, д. 1",
+                "entity_type": "string-id-type",
+                "signer": "Иванов И.И.",
+                "company": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "description": "Юр. лицо для контрактов"
+            }
+        }
 
 
 class LegalEntitySchema(BaseModel):
