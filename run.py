@@ -5,7 +5,7 @@ from app import create_app
 load_dotenv()
 
 # Порт и биндинг
-PORT = os.getenv('PORT', "5020")
+PORT = 8000
 PASSWORD = os.getenv('PASSWORD')
 
 

@@ -1,15 +1,13 @@
 services:
   web:
-    image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
+    build: .
     tty: true
     stdin_open: true
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
     ports:
-      - "${PORT}:${PORT}"
+      - "${PORT}:8000"
     volumes:
       - .:/app
+      - ./logs:/app/logs  
     command: >
        gunicorn -c gunicorn.conf.py run:app
     networks:

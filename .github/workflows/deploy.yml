@@ -79,24 +79,20 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Pull Image and Run Migrations
+      - name: Pull Code and Run Migrations
         run: |
-          echo "🗂️ Подтягиваем образ и проводим миграции..."
+          echo "🗂️ Обновляем код и запускаем миграции..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG &&
-            docker run --rm \
-              -v \$(pwd):/app \
-              --network crm_network \
-              ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG \
-              /bin/sh -c 'aerich init -t app.database.config.TORTOISE_ORM && aerich upgrade'
+            git pull origin ${GITHUB_REF##*/} &&
+            docker compose run --rm web aerich upgrade || echo 'No migrations run'
           "
 
-      - name: Deploy Application
+      - name: Build and Deploy Application
         run: |
           echo "🚀 Деплой на сервер..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG &&
-            TAG=$DEPLOY_TAG docker compose up -d
+            docker compose build web &&
+            docker compose up -d --remove-orphans web
           "
