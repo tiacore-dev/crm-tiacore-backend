@@ -13,7 +13,7 @@ async def handle_bills(bill_id: str, template_bytes: bytes):
         "details_in_bill__service"
     )
 
-    context = build_bill_context(bill)
+    context = await build_bill_context(bill)
 
     docx_bytes = generate_docx_from_bytes(template_bytes, context)
 
@@ -27,7 +27,7 @@ async def handle_acts(act_id: str, template_bytes: bytes):
         "details_in_act__service"
     )
 
-    context = build_act_context(act)
+    context = await build_act_context(act)
     docx_bytes = generate_docx_from_bytes(template_bytes, context)
     return docx_bytes, act.act_number
 
