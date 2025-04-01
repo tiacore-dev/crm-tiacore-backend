@@ -93,6 +93,6 @@ jobs:
           echo "🚀 Деплой на сервер..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
             cd $DEPLOY_PATH &&
-            docker compose build web &&
-            docker compose up -d --remove-orphans web
+            docker compose down  &&
+            docker compose up --build -d 
           "
