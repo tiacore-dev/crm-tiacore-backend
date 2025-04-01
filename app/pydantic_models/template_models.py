@@ -1,30 +1,16 @@
 from typing import Optional, List
 from pydantic import BaseModel, UUID4
-from fastapi import Query
+from fastapi import Query, Form
 
 
-# class TemplateCreateSchema(BaseModel):
-#     template_name: str = Field(..., min_length=3, max_length=255)
-#     company: UUID4 = Field(...)
-#     description: str = Field(...)
-#     entity: str = Field(...)
-
-#     class Config:
-#         from_attributes = True
+class GenerateFileSchema(BaseModel):
+    template_id: UUID4 = Form(...)
+    entity_id: UUID4 = Form(...)
+    extention: str = Form(...)
 
 
 class TemplateResponseSchema(BaseModel):
     template_id: UUID4
-
-    class Config:
-        from_attributes = True
-
-
-class TemplateEditSchema(BaseModel):
-    template_name: Optional[str] = None
-    description: Optional[str] = None
-    entity: Optional[int] = None
-    company: Optional[UUID4] = None
 
     class Config:
         from_attributes = True

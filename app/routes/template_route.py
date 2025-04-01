@@ -1,6 +1,8 @@
 from uuid import UUID
+from io import BytesIO
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi.responses import FileResponse
 from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import Templates, Company
@@ -8,10 +10,13 @@ from app.pydantic_models.template_models import (
     TemplateResponseSchema,
     template_filter_params,
     TemplateSchema,
-    TemplateListResponseSchema
+    TemplateListResponseSchema,
+    GenerateFileSchema
 )
 from app.handlers.auth import get_current_user
+from app.handlers.template_handler import handle_acts, handle_bills
 from app.s3.s3_manager import AsyncS3Manager
+
 
 template_router = APIRouter()
 
@@ -55,7 +60,8 @@ async def add_template(template_name: str = Form(...),
             entity=entity,
             s3_key=s3_key)
         return {"template_id": str(template.template_id)}
-
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при создании счета")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -211,3 +217,20 @@ async def get_template(template_id: UUID, username: str = Depends(get_current_us
         entity=template.entity,
         s3_key=template.s3_key
     )
+
+
+@template_router.post("/generate")
+async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
+    template = await Templates.get_or_none(template_id=data.template_id)
+    manager = AsyncS3Manager()
+    template_bytes = manager.download_bytes(template.s3_key)
+    docx_bytes = None
+    entity_number = None
+    if template.entity == "Act":
+        docx_bytes, entity_number = await handle_acts(data.entity_id, template_bytes)
+    elif template.entity == "Bill":
+        docx_bytes, entity_number = await handle_bills(data.entity_id, template_bytes)
+    else:
+        raise HTTPException(status_code=400, detail="Неверная сущность")
+
+    return FileResponse(BytesIO(docx_bytes), media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', filename=f"{template.entity}_{entity_number}.{data.extention}")
