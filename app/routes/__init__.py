@@ -11,6 +11,7 @@ from .act_route import act_router
 from .act_detail_route import act_detail_router
 from .bill_route import bill_router
 from .bill_detail_route import bill_detail_router
+from .template_route import template_router
 # Функция для регистрации всех маршрутов
 
 
@@ -37,3 +38,5 @@ def register_routes(app):
     app.include_router(bill_router, prefix='/api/bills', tags=["Bills"])
     app.include_router(bill_detail_router,
                        prefix='/api/bill-details', tags=["BillDetails"])
+    app.include_router(
+        template_router, prefix='/api/templates', tags=["Templates"])

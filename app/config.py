@@ -18,3 +18,8 @@ class Settings:
     PORT = os.getenv('PORT')
     ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "").split(",")
     ORIGIN = os.getenv("ORIGIN")
+    ENDPOINT_URL = os.getenv('ENDPOINT_URL')
+    REGION_NAME = os.getenv('REGION_NAME')
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    BUCKET_NAME = os.getenv('BUCKET_NAME')

@@ -96,7 +96,7 @@ class LegalEntity(Model):
     signer = fields.CharField(max_length=255, null=True)
     company = fields.ForeignKeyField(
         "models.Company", related_name="entities"
-    )  # Добавил `on_delete`
+    )
     description = fields.TextField(null=True)
 
     class Meta:
@@ -187,3 +187,17 @@ class ActDetails(Model):
 
     class Meta:
         table = "act_details"
+
+
+class Templates(Model):
+    template_id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    template_name = fields.CharField(max_length=255)
+    company = fields.ForeignKeyField(
+        "models.Company", related_name="templates"
+    )
+    description = fields.TextField(null=True)
+    entity = fields.CharField(max_length=50)
+    s3_key = fields.CharField(max_length=255)
+
+    class Meta:
+        table = "templates"

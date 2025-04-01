@@ -1,0 +1,8 @@
+{
+  "upgrade": [
+    "CREATE TABLE IF NOT EXISTS \"templates\" (\n    \"template_id\" UUID NOT NULL PRIMARY KEY,\n    \"template_name\" VARCHAR(255) NOT NULL,\n    \"description\" TEXT NOT NULL,\n    \"entity\" VARCHAR(50) NOT NULL,\n    \"s3_key\" VARCHAR(255) NOT NULL,\n    \"company_id\" UUID NOT NULL REFERENCES \"companies\" (\"company_id\") ON DELETE CASCADE\n);"
+  ],
+  "downgrade": [
+    "DROP TABLE IF EXISTS \"templates\""
+  ]
+}

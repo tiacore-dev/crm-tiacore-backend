@@ -1,5 +1,4 @@
 import uuid
-from fastapi import BackgroundTasks
 import bcrypt
 from tortoise.models import Model
 from tortoise import fields
@@ -53,10 +52,11 @@ class User(Model):
     class Meta:
         table = "users"
 
-    async def check_password(self, password: str):
-        return await BackgroundTasks().add_task(
-            bcrypt.checkpw, password.encode(), self.password_hash.encode()
-        )
+    def check_password(self, password: str):
+        if not self.password_hash:
+            return False  # Если пароль отсутствует в БД, всегда возвращаем False
+
+        return bcrypt.checkpw(password.encode(), self.password_hash.encode())
 
 
 class Company(Model):
@@ -96,7 +96,7 @@ class LegalEntity(Model):
     signer = fields.CharField(max_length=255, null=True)
     company = fields.ForeignKeyField(
         "diff_models.Company", related_name="entities"
-    )  # Добавил `on_delete`
+    )
     description = fields.TextField(null=True)
 
     class Meta:
@@ -138,7 +138,7 @@ class Acts(Model):
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "diff_models.Contract", related_name="acts",  on_delete=fields.CASCADE)
+        "diff_models.Contract", related_name="acts")
 
     class Meta:
         table = "acts"
@@ -187,6 +187,20 @@ class ActDetails(Model):
 
     class Meta:
         table = "act_details"
+
+
+class Templates(Model):
+    template_id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    template_name = fields.CharField(max_length=255)
+    company = fields.ForeignKeyField(
+        "diff_models.Company", related_name="templates"
+    )
+    description = fields.TextField(null=True)
+    entity = fields.CharField(max_length=50)
+    s3_key = fields.CharField(max_length=255)
+
+    class Meta:
+        table = "templates"
 
 from tortoise import Model, fields
 
