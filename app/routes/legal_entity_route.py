@@ -40,6 +40,9 @@ async def add_legal_entity(data: LegalEntityCreateSchema, username: str = Depend
         )
         return {"legal_entity_id": str(entity.legal_entity_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании юридического лица")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -123,6 +126,9 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
                 for entity in entities
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")

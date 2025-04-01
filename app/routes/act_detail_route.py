@@ -41,6 +41,9 @@ async def add_act_detail(data: ActDetailCreateSchema, username: str = Depends(ge
         )
         return {"act_detail_id": str(act_detail.act_detail_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании детали акта")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -127,6 +130,9 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params), use
                 for act_detail in act_details
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка деталей акта")

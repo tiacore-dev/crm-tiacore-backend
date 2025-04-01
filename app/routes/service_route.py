@@ -25,6 +25,8 @@ async def add_service(data: ServiceCreateSchema = Body(...), username: str = Dep
         logger.success(
             f"Услуга {service.service_name} ({service.service_id}) успешно создана")
         return {"service_id": str(service.service_id)}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при создании услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -50,6 +52,8 @@ async def edit_service(
 
         logger.success(f"Услуга {service_id} успешно обновлена")
         return {"service_id": str(service_id)}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при обновлении услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -69,6 +73,8 @@ async def delete_service(
 
         logger.success(f"Услуга {service_id} успешно удалена")
         # return {"detail": "Услуга успешно удалена"}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при удалении услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -108,6 +114,9 @@ async def get_services(
             services=[ServiceSchema(**service) for service in services]
         )
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при получении списка услуг")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -133,6 +142,9 @@ async def get_service(
         )
         logger.success(f"Услуга найдена: {service_schema}")
         return service_schema
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при просмотре услуги")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

@@ -29,7 +29,8 @@ async def add_user_company_relation(data: UserCompanyRelationCreateSchema, usern
 
         relation = await UserCompanyRelation.create(user=user, company=company, role=role)
         return {"user_company_id": str(relation.user_company_id)}
-
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при создании связи")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -115,6 +116,8 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
                 for relation in relations
             ]
         )
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка связей")

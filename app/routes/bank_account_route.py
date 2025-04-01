@@ -40,6 +40,9 @@ async def add_bank_account(data: BankAccountCreateSchema, username: str = Depend
         )
         return {"bank_account_id": str(bank_account.bank_account_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании банковского счета")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -125,6 +128,9 @@ async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params),
                 for bank_account in bank_accounts
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка банковских счетов")

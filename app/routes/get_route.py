@@ -39,6 +39,9 @@ async def get_legal_entity_types(filters: FilterParams = Depends(), username: st
                 } for entity in entities
             ]
         }
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при получении типов юридических лиц")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -70,6 +73,9 @@ async def get_user_roles(filters: FilterParams = Depends(), username: str = Depe
                 } for role in roles
             ]
         }
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при получении списка ролей пользователей")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -101,6 +107,9 @@ async def get_contract_statuses(filters: FilterParams = Depends(), username: str
                 } for status in statuses
             ]
         }
+
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при получении списка статусов контрактов")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e

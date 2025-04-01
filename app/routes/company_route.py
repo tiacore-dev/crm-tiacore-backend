@@ -26,6 +26,9 @@ async def add_company(data: CompanyCreateSchema = Body(), username: str = Depend
         logger.success(f"Компания создана: {company}")
         return {"company_id": str(company.company_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании компании")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -49,6 +52,9 @@ async def edit_company(
         logger.success(f"Компания {company_id} успешно обновлена")
         return {"company_id": str(company_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при обновлении компании")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -68,6 +74,9 @@ async def delete_company(
 
         logger.success(f"Компания {company_id} успешно удалена")
         # return {"detail": "Компания успешно удалена"}
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при удалении компании")
@@ -114,6 +123,9 @@ async def get_companies(
             ]
         )
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при получении списка компаний")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -141,6 +153,9 @@ async def get_company(
 
         logger.success(f"Найдена компания: {company_schema}")
         return company_schema
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при просмотре компании")

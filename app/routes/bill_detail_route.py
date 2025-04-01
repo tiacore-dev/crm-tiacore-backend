@@ -41,6 +41,9 @@ async def add_bill_detail(data: BillDetailCreateSchema, username: str = Depends(
         )
         return {"bill_detail_id": str(bill_detail.bill_detail_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании детали счета")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -116,6 +119,9 @@ async def get_bill_details(filters: dict = Depends(bill_detail_filter_params), u
                 for bill_detail in bill_details
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка деталей счета")

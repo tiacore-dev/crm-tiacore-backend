@@ -37,6 +37,9 @@ async def add_act(data: ActCreateSchema, username: str = Depends(get_current_use
         )
         return {"act_id": str(act.act_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании акта")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -113,6 +116,9 @@ async def get_acts(filters: dict = Depends(act_filter_params), username: str = D
                 for act in acts
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка актов")

@@ -45,6 +45,9 @@ async def add_contract(data: ContractCreateSchema, username: str = Depends(get_c
         )
         return {"contract_id": str(contract.contract_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании контракта")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -138,6 +141,9 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
                 for contract in contracts
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка контрактов")

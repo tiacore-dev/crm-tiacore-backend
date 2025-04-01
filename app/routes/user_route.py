@@ -41,7 +41,7 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
             f"Пользователь {user.username} ({user.user_id}) успешно создан")
         return {"user_id": str(user.user_id)}
     except HTTPException as e:
-        raise e  # Если это уже HTTPException, пробрасываем его без изменений
+        raise e
     except Exception as e:
         logger.exception(f"Ошибка при создании пользователя: {e}")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -77,6 +77,8 @@ async def edit_user(
 
         logger.success(f"Пользователь {user_id} успешно обновлён")
         return {"user_id": str(user_id)}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception(f"Ошибка при обновлении пользователя: {e}")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -97,6 +99,8 @@ async def delete_user(
 
         logger.success(f"Пользователь {user_id} успешно удален")
         # return {"detail": "Пользователь успешно удален"}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         logger.exception("Ошибка при удалении пользователя")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -131,6 +135,8 @@ async def get_users(filters: dict = Depends(user_filter_params)):
             # ✅ Преобразуем словари в Pydantic
             users=[UserSchema(**user) for user in users]
         )
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка пользователей")
@@ -158,6 +164,9 @@ async def get_user(
 
         logger.success(f"Найден пользователь: {user_schema}")
         return user_schema
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при просмотре пользователя")

@@ -41,6 +41,9 @@ async def add_bill(data: BillCreateSchema, username: str = Depends(get_current_u
         )
         return {"bill_id": str(bill.bill_id)}
 
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         logger.exception("Ошибка при создании счета")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -128,6 +131,9 @@ async def get_bills(filters: dict = Depends(bill_filter_params), username: str =
                 for bill in bills
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка счетов")
