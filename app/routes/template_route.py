@@ -5,9 +5,7 @@ from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import Templates, Company
 from app.pydantic_models.template_models import (
-    # TemplateCreateSchema,
     TemplateResponseSchema,
-    # TemplateEditSchema,
     template_filter_params,
     TemplateSchema,
     TemplateListResponseSchema
@@ -38,6 +36,11 @@ async def add_template(template_name: str = Form(...),
             )
 
         file_bytes = await file.read()
+        if not file_bytes:
+            raise HTTPException(
+                status_code=400, detail="Не удалось загрузить данные файла"
+            )
+
         logger.info(
             f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт")
 
@@ -58,35 +61,62 @@ async def add_template(template_name: str = Form(...),
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-# @template_router.patch(
-#     "/{template_id}",
-#     response_model=TemplateResponseSchema,
-#     summary="Изменить счет"
-# )
-# async def update_template(template_id: UUID, data: TemplateEditSchema, username: str = Depends(get_current_user)):
-#     template = await Templates.filter(template_id=template_id).first()
-#     if not template:
-#         raise HTTPException(status_code=404, detail="Счет не найден")
+@template_router.patch(
+    "/{template_id}",
+    response_model=TemplateResponseSchema,
+    summary="Изменить шаблон"
+)
+async def update_template(
+    template_id: UUID,
+    template_name: Optional[str] = Form(None),
+    company: Optional[UUID] = Form(None),
+    description: Optional[str] = Form(None),
+    entity: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    username: str = Depends(get_current_user)
+):
+    template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
 
-#     update_data = data.dict(exclude_unset=True)
+    update_data = {}
+    company_id = template.company.company_id
 
-#     if "bank_account" in update_data:
-#         bank_account = await BankAccount.get_or_none(bank_account_id=update_data["bank_account"])
-#         if not bank_account:
-#             raise HTTPException(
-#                 status_code=400, detail="Банковский счет не найден")
-#         update_data["bank_account"] = bank_account
+    # Обновление компании, если нужно
+    if company and company != template.company.company_id:
+        company_obj = await Company.get_or_none(company_id=company)
+        if not company_obj:
+            raise HTTPException(status_code=400, detail="Компания не найдена")
+        update_data["company"] = company_obj
+        company_id = company
 
-#     if "contract" in update_data:
-#         contract = await Contract.get_or_none(contract_id=update_data["contract"])
-#         if not contract:
-#             raise HTTPException(status_code=400, detail="Контракт не найден")
-#         update_data["contract"] = contract
+    # Обновление файла
+    if file:
+        manager = AsyncS3Manager()
+        file_bytes = await file.read()
+        if not file_bytes:
+            raise HTTPException(
+                status_code=400, detail="Не удалось загрузить файл")
 
-#     await template.update_from_dict(update_data)
-#     await template.save()
+        # Удаляем старый файл
+        await manager.delete_file(template.s3_key)
 
-#     return {"template_id": str(template.template_id)}
+        # Загружаем новый
+        new_s3_key = await manager.upload_bytes(file_bytes, company_id, file.filename)
+        update_data["s3_key"] = new_s3_key
+
+    # Обновление прочих полей
+    if template_name:
+        update_data["template_name"] = template_name
+    if description:
+        update_data["description"] = description
+    if entity:
+        update_data["entity"] = entity
+
+    await template.update_from_dict(update_data)
+    await template.save()
+
+    return {"template_id": str(template.template_id)}
 
 
 @template_router.delete(
