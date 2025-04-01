@@ -19,7 +19,7 @@ class TemplateResponseSchema(BaseModel):
 class TemplateSchema(BaseModel):
     template_id: UUID4
     template_name: str
-    description: str
+    description: Optional[str] = None
     company: UUID4
     entity: str
     s3_key: str

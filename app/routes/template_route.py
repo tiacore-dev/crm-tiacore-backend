@@ -172,7 +172,7 @@ async def get_templates(filters: dict = Depends(template_filter_params), usernam
                 TemplateSchema(
                     template_id=template.template_id,
                     template_name=template.template_name,
-                    description=template.description,
+                    description=template.description or "",
                     company=template.company.company_id,
                     entity=template.entity,
                     s3_key=template.s3_key
@@ -180,6 +180,9 @@ async def get_templates(filters: dict = Depends(template_filter_params), usernam
                 for template in templates
             ]
         )
+
+    except HTTPException as http_exc:
+        raise http_exc
 
     except Exception as e:
         logger.exception("Ошибка при получении списка счетов")
@@ -212,7 +215,7 @@ async def get_template(template_id: UUID, username: str = Depends(get_current_us
     return TemplateSchema(
         template_id=template.template_id,
         template_name=template.template_name,
-        description=template.description,
+        description=template.description or "",
         company=template.company.company_id,
         entity=template.entity,
         s3_key=template.s3_key
