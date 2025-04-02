@@ -38,9 +38,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker Image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }} .
+          docker buildx create --use
+          docker buildx build \
+            --cache-from=type=local,src=/tmp/.buildx-cache \
+            --cache-to=type=local,dest=/tmp/.buildx-cache \
+            --tag gloomylime/crm-backend:${{ github.sha }} \
+            --push . 
+
 
       - name: Run Tests inside Docker Image
         run: |
@@ -50,9 +70,6 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }} \
             pytest --maxfail=3 --disable-warnings
 
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -91,21 +108,22 @@ jobs:
       - name: Deploy Backend
         run: |
           echo "🚀 Деплой..."
-          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            set -e
+
             cd $DEPLOY_PATH
             git pull origin ${GITHUB_REF##*/}
 
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }}
+            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+            docker pull ${DOCKERHUB_USERNAME}/crm-backend:${DEPLOY_TAG}
 
             if [ ! -f .env ]; then touch .env; fi
-            grep -q "^TAG=" .env && \
-              sed -i "s/^TAG=.*/TAG=${{ github.sha }}/" .env || \
-              echo "TAG=${{ github.sha }}" >> .env
-
+            grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=${DEPLOY_TAG}/" .env || echo "TAG=${DEPLOY_TAG}" >> .env
 
             docker compose -f docker-compose.app.yml stop web
             docker compose -f docker-compose.app.yml rm -f web
-            docker compose -f docker-compose.app.yml up -d web > /dev/null || true
+            docker compose -f docker-compose.app.yml up -d web
+
+            exit 0
           EOF
 
