@@ -1,6 +1,6 @@
 services:
   web:
-    image: gloomylime/crm-backend:${TAG}
+    image: ${DOCHERHUB_USERNAME}/crm-backend:${TAG}
     env_file:
       - .env
     tty: true

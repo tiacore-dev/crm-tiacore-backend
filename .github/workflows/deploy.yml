@@ -88,15 +88,18 @@ jobs:
             docker compose run --rm web aerich upgrade || echo 'No migrations run'
           "
 
-      - name: Deploy Updated Backend Only
+      - name: Deploy Updated Backend
         run: |
           echo "🚀 Деплой бэкенда..."
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} &&
+            export DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }} &&
+            export TAG=${{ github.sha }} &&
             cd $DEPLOY_PATH &&
             git pull origin ${GITHUB_REF##*/} &&
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }} &&
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:$DEPLOY_TAG &&
+            echo \$DOCKERHUB_TOKEN | docker login -u \$DOCKERHUB_USERNAME --password-stdin &&
+            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$TAG &&
             docker compose -f docker-compose.app.yml stop web &&
             docker compose -f docker-compose.app.yml rm -f web &&
-            TAG=${DEPLOY_TAG} docker compose -f docker-compose.app.yml up -d web
+            docker compose -f docker-compose.app.yml up -d web
           "
