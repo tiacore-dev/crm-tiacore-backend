@@ -91,7 +91,7 @@ jobs:
       - name: Deploy Backend
         run: |
           echo "🚀 Деплой..."
-          ssh -tt -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
+          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
             cd $DEPLOY_PATH
             git pull origin ${GITHUB_REF##*/}
 
@@ -106,6 +106,6 @@ jobs:
 
             docker compose -f docker-compose.app.yml stop web
             docker compose -f docker-compose.app.yml rm -f web
-            docker compose -f docker-compose.app.yml up -d web
+            docker compose -f docker-compose.app.yml up -d web > /dev/null || true
           EOF
 
