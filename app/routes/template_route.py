@@ -226,7 +226,7 @@ async def get_template(template_id: UUID, username: str = Depends(get_current_us
 async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
     template = await Templates.get_or_none(template_id=data.template_id)
     manager = AsyncS3Manager()
-    template_bytes = manager.download_bytes(template.s3_key)
+    template_bytes = await manager.download_bytes(template.s3_key)
     docx_bytes = None
     entity_number = None
     if template.entity == "Act":
