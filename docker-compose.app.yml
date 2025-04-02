@@ -8,6 +8,7 @@ services:
       - "${PORT}:8000"
     volumes:
       - ./logs:/app/logs  
+      - .env:/app/.env 
     command: >
        gunicorn -c gunicorn.conf.py run:app
     networks:
