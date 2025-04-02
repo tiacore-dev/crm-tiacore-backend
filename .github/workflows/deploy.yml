@@ -96,15 +96,6 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Pull Code and Run Migrations
-        run: |
-          echo "🗂️ Обновляем код и запускаем миграции..."
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "
-            cd $DEPLOY_PATH &&
-            git pull origin ${GITHUB_REF##*/} &&
-            docker compose run --rm web aerich upgrade || echo 'No migrations run'
-          "
-
       - name: Deploy Backend
         run: |
           echo "🚀 Деплой..."
@@ -112,7 +103,6 @@ jobs:
             set -e
 
             cd $DEPLOY_PATH
-            git pull origin ${GITHUB_REF##*/}
 
             echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
             docker pull ${DOCKERHUB_USERNAME}/crm-backend:${DEPLOY_TAG}
@@ -120,10 +110,17 @@ jobs:
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=${DEPLOY_TAG}/" .env || echo "TAG=${DEPLOY_TAG}" >> .env
 
+            echo "⚙️ Запускаем миграции..."
+            docker run --rm \
+              --env-file .env \
+              -v "\$PWD/.env:/app/.env" \
+              ${DOCKERHUB_USERNAME}/crm-backend:${DEPLOY_TAG} \
+              aerich upgrade || echo '⚠️ No migrations run'
+
+            echo "♻️ Перезапускаем контейнер..."
             docker compose -f docker-compose.app.yml stop web
             docker compose -f docker-compose.app.yml rm -f web
             docker compose -f docker-compose.app.yml up -d web
-
-            exit 0
           EOF
+
 
