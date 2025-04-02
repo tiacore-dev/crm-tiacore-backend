@@ -3,7 +3,10 @@ from app.database.models import Bills, Acts
 
 
 def format_date(timestamp: int) -> str:
-    return datetime.datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y")
+    try:
+        return datetime.datetime.fromtimestamp(int(timestamp)).strftime("%d.%m.%Y")
+    except (ValueError, TypeError):
+        return "–"
 
 
 async def build_bill_context(bill: Bills) -> dict:
