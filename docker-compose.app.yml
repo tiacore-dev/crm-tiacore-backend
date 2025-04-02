@@ -1,8 +1,6 @@
 services:
   web:
-    image: ${DOCHERHUB_USERNAME}/crm-backend:${TAG}
-    env_file:
-      - .env
+    image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
     tty: true
     stdin_open: true
     restart: always
