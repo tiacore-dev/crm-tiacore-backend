@@ -32,7 +32,7 @@ async def handle_acts(act_id: str, template_bytes: bytes):
     return docx_bytes, act.act_number
 
 
-async def generate_docx_from_bytes(template_bytes: bytes, context: dict) -> bytes:
+def generate_docx_from_bytes(template_bytes: bytes, context: dict) -> bytes:
     doc_stream = BytesIO(template_bytes)
     doc = DocxTemplate(doc_stream)
     doc.render(context)
