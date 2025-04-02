@@ -2,7 +2,7 @@ from uuid import UUID
 from io import BytesIO
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import Templates, Company
@@ -236,4 +236,9 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
 
-    return FileResponse(BytesIO(docx_bytes), media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', filename=f"{template.entity}_{entity_number}.{data.extention}")
+    return StreamingResponse(
+        BytesIO(docx_bytes),
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={
+            "Content-Disposition": f"attachment; filename={template.entity}_{entity_number}.{data.extention}"}
+    )
