@@ -6,7 +6,7 @@ from fastapi import Query, Form
 class GenerateFileSchema(BaseModel):
     template_id: UUID4 = Form(...)
     entity_id: UUID4 = Form(...)
-    extention: str = Form(...)
+    is_pdf: Optional[bool] = Form(False)
 
 
 class TemplateResponseSchema(BaseModel):

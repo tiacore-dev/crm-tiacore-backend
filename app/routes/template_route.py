@@ -243,10 +243,10 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
         document_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
-    media_type = MEDIA_TYPES.get(data.extention)
+    media_type = MEDIA_TYPES.get(extension)
     return StreamingResponse(
         BytesIO(document_bytes),
         media_type=media_type,
         headers={
-            "Content-Disposition": f"attachment; filename={template.entity}_{entity_number}.{data.extention}"}
+            "Content-Disposition": f"attachment; filename={template.entity}_{entity_number}.{extension}"}
     )
