@@ -1,7 +1,8 @@
 from io import BytesIO
+from jinja2 import Environment
 from docxtpl import DocxTemplate
 from app.database.models import Acts, Bills
-from app.utils.context_builders import build_act_context, build_bill_context
+from app.utils.context_builders import build_act_context, build_bill_context, format_date
 
 
 async def handle_bills(bill_id: str, template_bytes: bytes):
@@ -35,7 +36,13 @@ async def handle_acts(act_id: str, template_bytes: bytes):
 def generate_docx_from_bytes(template_bytes: bytes, context: dict) -> bytes:
     doc_stream = BytesIO(template_bytes)
     doc = DocxTemplate(doc_stream)
-    doc.render(context)
+
+    # Настроим Jinja-среду
+    jinja_env = Environment()
+    jinja_env.filters["format_date"] = format_date  # 👈 добавляем фильтр
+
+    # Рендер с кастомной Jinja2-средой
+    doc.render(context, jinja_env=jinja_env)
 
     output_stream = BytesIO()
     doc.save(output_stream)
