@@ -222,25 +222,31 @@ async def get_template(template_id: UUID, username: str = Depends(get_current_us
         s3_key=template.s3_key
     )
 
+MEDIA_TYPES = {
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    # "pdf": "application/pdf",  # На будущее
+}
+
 
 @template_router.post("/generate")
 async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
     template = await Templates.get_or_none(template_id=data.template_id)
     manager = AsyncS3Manager()
     template_bytes = await manager.download_bytes(template.s3_key)
-    docx_bytes = None
+    document_bytes = None
     entity_number = None
     extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
     if template.entity == "Act":
-        docx_bytes, entity_number = await handle_acts(data.entity_id, template_bytes, extension)
+        document_bytes, entity_number = await handle_acts(data.entity_id, template_bytes, extension)
     elif template.entity == "Bill":
-        docx_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
+        document_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
-
+    media_type = MEDIA_TYPES.get(data.extention)
     return StreamingResponse(
-        BytesIO(docx_bytes),
-        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        BytesIO(document_bytes),
+        media_type=media_type,
         headers={
             "Content-Disposition": f"attachment; filename={template.entity}_{entity_number}.{data.extention}"}
     )
