@@ -37,6 +37,7 @@ class ContractSchema(BaseModel):
     seller: UUID4
     file: str
     status: str
+    comment: Optional[str] = None
 
     class Config:
         from_attributes = True

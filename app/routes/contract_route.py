@@ -136,7 +136,8 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
                     buyer=contract.buyer.legal_entity_id,  # Теперь ID
                     seller=contract.seller.legal_entity_id,  # Теперь ID
                     status=contract.status.contract_status_id,  # Теперь ID
-                    file=contract.file
+                    file=contract.file,
+                    comment=contract.comment
                 )
                 for contract in contracts
             ]
@@ -168,5 +169,6 @@ async def get_contract(contract_id: UUID, username: str = Depends(get_current_us
         buyer=contract.buyer.legal_entity_id,
         seller=contract.seller.legal_entity_id,
         status=contract.status.contract_status_id,
-        file=contract.file
+        file=contract.file,
+        comment=contract.comment
     )
