@@ -10,7 +10,7 @@ auth_router = APIRouter()
 
 @auth_router.get("/health", summary="Проверка работоспособности")
 async def health_check():
-    return {"message": "Hello, world!"}, 200
+    return {"message": "Hello, world! I'm here"}, 200
 
 
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
