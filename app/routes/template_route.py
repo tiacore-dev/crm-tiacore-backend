@@ -1,5 +1,6 @@
 from uuid import UUID
 from io import BytesIO
+import os
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
@@ -229,10 +230,11 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
     template_bytes = await manager.download_bytes(template.s3_key)
     docx_bytes = None
     entity_number = None
+    extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
     if template.entity == "Act":
-        docx_bytes, entity_number = await handle_acts(data.entity_id, template_bytes)
+        docx_bytes, entity_number = await handle_acts(data.entity_id, template_bytes, extension)
     elif template.entity == "Bill":
-        docx_bytes, entity_number = await handle_bills(data.entity_id, template_bytes)
+        docx_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
 
