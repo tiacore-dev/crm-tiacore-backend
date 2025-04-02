@@ -16,6 +16,7 @@ from app.pydantic_models.template_models import (
 )
 from app.handlers.auth import get_current_user
 from app.handlers.template_handler import handle_acts, handle_bills
+from app.utils.converter import convert_to_pdf
 from app.s3.s3_manager import AsyncS3Manager
 
 
@@ -225,7 +226,7 @@ async def get_template(template_id: UUID, username: str = Depends(get_current_us
 MEDIA_TYPES = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    # "pdf": "application/pdf",  # На будущее
+    "pdf": "application/pdf"
 }
 
 
@@ -243,7 +244,13 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
         document_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
+
+    if data.is_pdf:
+        document_bytes = convert_to_pdf(document_bytes, extension)
+        extension = "pdf"
+
     media_type = MEDIA_TYPES.get(extension)
+
     return StreamingResponse(
         BytesIO(document_bytes),
         media_type=media_type,
