@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Body, HTTPException, Depends
+from fastapi import APIRouter, Body, HTTPException
 from jose import JWTError, jwt
 from loguru import logger
 from app.handlers import login_handler, create_refresh_token, create_access_token
-from app.handlers.auth import SECRET_KEY, ALGORITHM, get_current_user
+from app.handlers.auth import SECRET_KEY, ALGORITHM
 from app.pydantic_models.auth_models import TokenResponse, LoginRequest
 
 auth_router = APIRouter()
 
 
-@auth_router.get("/protected", summary="Пример защищённого эндпоинта")
-async def protected_route(username: str = Depends(get_current_user)):
-    return {"message": "Доступ разрешён", "user": username}
+@auth_router.get("/health", summary="Проверка работоспособности")
+async def health_check():
+    return {"message": "Hello, world!"}, 200
 
 
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
