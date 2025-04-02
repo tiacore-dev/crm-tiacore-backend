@@ -17,14 +17,14 @@ async def handle_bills(bill_id: str, template_bytes: bytes, extention: str):
     )
 
     context = await build_bill_context(bill)
-    docx_bytes = None
+    document_bytes = None
 
     if extention == "docx":
-        docx_bytes = generate_docx_from_bytes(template_bytes, context)
+        document_bytes = generate_docx_from_bytes(template_bytes, context)
     elif extention == "xlsx":
-        docx_bytes = generate_excel_from_template(template_bytes, context)
+        document_bytes = generate_excel_from_template(template_bytes, context)
 
-    return docx_bytes, bill.bill_number
+    return document_bytes, bill.bill_number
 
 
 async def handle_acts(act_id: str, template_bytes: bytes, extention: str):
@@ -35,14 +35,14 @@ async def handle_acts(act_id: str, template_bytes: bytes, extention: str):
     )
 
     context = await build_act_context(act)
-    docx_bytes = None
+    document_bytes = None
 
     if extention == "docx":
-        docx_bytes = generate_docx_from_bytes(template_bytes, context)
+        document_bytes = generate_docx_from_bytes(template_bytes, context)
     elif extention == "xlsx":
-        docx_bytes = generate_excel_from_template(template_bytes, context)
+        document_bytes = generate_excel_from_template(template_bytes, context)
 
-    return docx_bytes, act.act_number
+    return document_bytes, act.act_number
 
 
 def generate_docx_from_bytes(template_bytes: bytes, context: dict) -> bytes:
