@@ -1,10 +1,9 @@
 from io import BytesIO
-import re
 from jinja2 import Environment
 from docxtpl import DocxTemplate
 from openpyxl import load_workbook
 from app.database.models import Acts, Bills
-from app.utils.context_builders import build_act_context, build_bill_context, format_date
+from app.utils.context_builders import build_act_context, build_bill_context, format_date, flatten_context
 
 
 async def handle_bills(bill_id: str, template_bytes: bytes, extention: str):
@@ -63,31 +62,20 @@ def generate_docx_from_bytes(template_bytes: bytes, context: dict) -> bytes:
 
 
 def generate_excel_from_template(template_bytes: bytes, context: dict) -> bytes:
-    placeholder_pattern = re.compile(r"\{\{ *([a-zA-Z0-9_.]+) *\}\}")
+    flat_ctx = flatten_context(context)
+
     input_stream = BytesIO(template_bytes)
     workbook = load_workbook(input_stream)
+    sheet = workbook.active
 
-    def resolve_path(path: str, data: dict):
-        parts = path.split(".")
-        current = data
-        for part in parts:
-            if isinstance(current, dict) and part in current:
-                current = current[part]
-            else:
-                return f"[{path}]"  # Если путь не найден
-        return current
-
-    for sheet in workbook.worksheets:
-        for row in sheet.iter_rows():
-            for cell in row:
-                if isinstance(cell.value, str):
-                    matches = placeholder_pattern.findall(cell.value)
-                    new_value = cell.value
-                    for match in matches:
-                        value = resolve_path(match, context)
-                        new_value = new_value.replace(
-                            f"{{{{ {match} }}}}", str(value))
-                    cell.value = new_value
+    for row in sheet.iter_rows():
+        for cell in row:
+            if isinstance(cell.value, str):
+                for key, value in flat_ctx.items():
+                    placeholder = f"{{{{ {key} }}}}"
+                    if placeholder in cell.value:
+                        cell.value = cell.value.replace(
+                            placeholder, str(value))
 
     output_stream = BytesIO()
     workbook.save(output_stream)

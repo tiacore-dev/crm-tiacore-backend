@@ -9,6 +9,28 @@ def format_date(timestamp: int) -> str:
         return "–"
 
 
+def flatten_context(obj, parent_key='', sep='.') -> dict:
+    """
+    Рекурсивно разворачивает вложенные dict и списки в плоский словарь:
+    {
+        "act.details.0.service.service_name": "Имя услуги",
+        ...
+    }
+    """
+    items = {}
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            items.update(flatten_context(v, new_key, sep=sep))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            new_key = f"{parent_key}{sep}{i}" if parent_key else str(i)
+            items.update(flatten_context(v, new_key, sep=sep))
+    else:
+        items[parent_key] = obj
+    return items
+
+
 async def build_bill_context(bill: Bills) -> dict:
 
     def legal_entity_to_dict(entity):
