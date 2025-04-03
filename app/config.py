@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
 
+ENV_FILE = ".env.test" if os.getenv("CI") == "true" else ".env"
+load_dotenv(dotenv_path=ENV_FILE)
 # Загрузка переменных из .env
-load_dotenv()
 
 
 class Settings:
