@@ -32,6 +32,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          ./venv/bin/pip install -r requirements.txt
+          ./venv/bin/pip install pytest
+
+      - name: Run Pytest
+        run: |
+          ./venv/bin/pytest --maxfail=3 --disable-warnings
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -43,32 +53,15 @@ jobs:
         with:
           install: true
 
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          context: .
+          push: true
+          tags: gloomylime/crm-backend:${{ github.sha }}
+          cache-from: type=registry,ref=gloomylime/crm-backend:buildcache
+          cache-to: type=registry,ref=gloomylime/crm-backend:buildcache,mode=max
 
-      - name: Build Docker image
-        run: |
-          docker buildx create --use
-          docker buildx build \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache \
-            --tag gloomylime/crm-backend:${{ github.sha }} \
-            --push . 
-
-
-      - name: Run Tests inside Docker Image
-        run: |
-          docker run --rm \
-            --env-file .env.test \
-            -e TEST_DATABASE_URL=${{ env.TEST_DATABASE_URL }} \
-            ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }} \
-            pytest --maxfail=3 --disable-warnings
 
 
   deploy:
@@ -115,10 +108,9 @@ jobs:
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=\$DEPLOY_TAG/" .env || echo "TAG=\$DEPLOY_TAG" >> .env
 
-            docker compose -f docker-compose.app.yml stop web
-            docker compose -f docker-compose.app.yml rm -f web
-            docker compose -f docker-compose.app.yml up -d web
+            docker compose up -d --force-recreate web
 
+            docker image prune -f
             exit 0
           EOF
 
