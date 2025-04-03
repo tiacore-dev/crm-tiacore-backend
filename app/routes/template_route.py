@@ -7,8 +7,8 @@ from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import Templates, Company
 from app.pydantic_models.template_models import (
-    CreateTemplateSchema,
-    EditTemplateSchema,
+    TemplateCreateSchema,
+    TemplateEditSchema,
     TemplateResponseSchema,
     template_filter_params,
     TemplateSchema,
@@ -30,7 +30,7 @@ template_router = APIRouter()
     summary="Добавить шаблон",
     status_code=status.HTTP_201_CREATED
 )
-async def add_template(data: CreateTemplateSchema = Depends(CreateTemplateSchema.as_form),
+async def add_template(data: TemplateCreateSchema = Depends(TemplateCreateSchema.as_form),
                        username: str = Depends(get_current_user)):
     try:
         company_obj = await Company.get_or_none(company_id=data.company)
@@ -73,7 +73,7 @@ async def add_template(data: CreateTemplateSchema = Depends(CreateTemplateSchema
 )
 async def update_template(
     template_id: UUID,
-    data: EditTemplateSchema = Depends(EditTemplateSchema.as_form),
+    data: TemplateEditSchema = Depends(TemplateEditSchema.as_form),
     username: str = Depends(get_current_user)
 ):
     template = await Templates.filter(template_id=template_id).prefetch_related("company").first()

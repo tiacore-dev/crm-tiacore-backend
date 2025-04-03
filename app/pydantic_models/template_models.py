@@ -52,7 +52,7 @@ def template_filter_params(
     }
 
 
-class CreateTemplateSchema(BaseModel):
+class TemplateCreateSchema(BaseModel):
     template_name: str
     description: Optional[str] = None
     company: UUID4
@@ -77,7 +77,7 @@ class CreateTemplateSchema(BaseModel):
         )
 
 
-class EditTemplateSchema(BaseModel):
+class TemplateEditSchema(BaseModel):
     template_name: Optional[str] = None
     description: Optional[str] = None
     company: Optional[UUID4] = None
