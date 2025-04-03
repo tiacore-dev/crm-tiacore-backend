@@ -109,17 +109,8 @@ jobs:
 
             git pull origin \$DEPLOY_BRANCH
 
-            echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin
-            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$DEPLOY_TAG
-
-            if [ ! -f .env ]; then touch .env; fi
-            grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=\$DEPLOY_TAG/" .env || echo "TAG=\$DEPLOY_TAG" >> .env
-
-            docker compose -f docker-compose.app.yml stop web
-            docker compose -f docker-compose.app.yml rm -f web
-            docker compose -f docker-compose.app.yml up -d web
+            docker compose -f docker-compose.app.yml up -d --build
 
             exit 0
           EOF
-
 
