@@ -12,6 +12,7 @@ from .act_detail_route import act_detail_router
 from .bill_route import bill_router
 from .bill_detail_route import bill_detail_router
 from .template_route import template_router
+from .easter_route import easter_router
 # Функция для регистрации всех маршрутов
 
 
@@ -40,3 +41,4 @@ def register_routes(app):
                        prefix='/api/bill-details', tags=["BillDetails"])
     app.include_router(
         template_router, prefix='/api/templates', tags=["Templates"])
+    app.include_router(easter_router)

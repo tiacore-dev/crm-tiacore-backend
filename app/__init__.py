@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
@@ -38,7 +39,7 @@ def create_app(config_name='Development') -> FastAPI:
         # Генерация схем только в тестах
         generate_schemas=(config_name == 'Test')
     )
-
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
     setup_logger()
     register_routes(app)
 
