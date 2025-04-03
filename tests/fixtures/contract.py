@@ -23,7 +23,6 @@ async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contrac
         contract_date="123456789012",
         buyer=buyer,
         seller=seller,
-        file="http://example.com/updated_contract.pdf",
         status=status
     )
 
@@ -33,6 +32,5 @@ async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contrac
         "contract_date": contract.contract_date,
         "buyer": contract.buyer,
         "seller": contract.seller,
-        "file": contract.file,
         "status": contract.status
     }

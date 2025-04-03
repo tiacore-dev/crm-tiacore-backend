@@ -112,7 +112,7 @@ class Contract(Model):
     seller = fields.ForeignKeyField(
         "models.LegalEntity", related_name="contract_seller")
     comment = fields.TextField(null=True)
-    file = fields.CharField(max_length=2083, null=True)
+    s3_key = fields.CharField(max_length=255, null=True)
     status = fields.ForeignKeyField(
         "models.ContractStatus", related_name="contracts")
 

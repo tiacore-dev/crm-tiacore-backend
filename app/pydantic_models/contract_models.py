@@ -1,16 +1,16 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
-from fastapi import Query, HTTPException
+from pydantic import BaseModel, UUID4, field_validator
+from fastapi import Query, HTTPException, UploadFile, File, Form
 
 
 class ContractCreateSchema(BaseModel):
-    contract_name: str = Field(..., min_length=3, max_length=255)
-    contract_date: int = Field(..., ge=0)  # Unix timestamp
-    buyer: UUID4 = Field(...)
-    seller: UUID4 = Field(...)
-    comment: Optional[str] = Field(None, max_length=500)
-    file: Optional[str] = Field(None, max_length=2083)
-    status: str = Field(...)
+    contract_name: str
+    contract_date: int
+    buyer: UUID4
+    seller: UUID4
+    comment: Optional[str] = None
+    file: Optional[UploadFile] = None
+    status: str
 
     @field_validator(
         "contract_name", "contract_date", "buyer", "seller", "status"
@@ -25,6 +25,27 @@ class ContractCreateSchema(BaseModel):
             )
         return value
 
+    @classmethod
+    def as_form(
+        cls,
+        contract_name=Form(...),
+        contract_date=Form(...),
+        buyer=Form(...),
+        seller=Form(...),
+        comment=Form(None),
+        file=File(None),
+        status=Form(...)
+    ):
+        return cls(
+            contract_name=contract_name,
+            contract_date=contract_date,
+            buyer=buyer,
+            seller=seller,
+            comment=comment,
+            file=file,
+            status=status
+        )
+
     class Config:
         from_attributes = True
 
@@ -35,7 +56,7 @@ class ContractSchema(BaseModel):
     contract_date: int  # Unix timestamp
     buyer: UUID4
     seller: UUID4
-    file: str
+    s3_key: Optional[str] = None
     status: str
     comment: Optional[str] = None
 
@@ -66,8 +87,29 @@ class ContractEditSchema(BaseModel):
     buyer: Optional[UUID4] = None
     seller: Optional[UUID4] = None
     comment: Optional[str] = None
-    file: Optional[str] = None
+    file: Optional[UploadFile] = None
     status: Optional[str] = None
+
+    @classmethod
+    def as_form(
+        cls,
+        contract_name=Form(None),
+        contract_date=Form(None),
+        buyer=Form(None),
+        seller=Form(None),
+        comment=Form(None),
+        file=File(None),
+        status=Form(None)
+    ):
+        return cls(
+            contract_name=contract_name,
+            contract_date=contract_date,
+            buyer=buyer,
+            seller=seller,
+            comment=comment,
+            file=file,
+            status=status
+        )
 
     class Config:
         from_attributes = True

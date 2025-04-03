@@ -4,20 +4,32 @@ from app.database.models import Contract
 
 
 @pytest.mark.asyncio
-async def test_add_contract(test_app: AsyncClient, jwt_token_user, seed_legal_entity, seed_legal_entity_buyer, seed_contract_status):
-    """Тест добавления нового контракта."""
+async def test_add_contract(
+    test_app: AsyncClient,
+    jwt_token_user,
+    seed_legal_entity,
+    seed_legal_entity_buyer,
+    seed_contract_status
+):
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
-    data = {
+    form_data = {
         "contract_name": "Test Contract",
-        "contract_date": 1710000000,  # UNIX timestamp
-        "buyer": seed_legal_entity["legal_entity_id"],
-        "seller": seed_legal_entity_buyer["legal_entity_id"],
+        "contract_date": "1710000000",
+        "buyer": str(seed_legal_entity["legal_entity_id"]),
+        "seller": str(seed_legal_entity_buyer["legal_entity_id"]),
         "comment": "Test contract comment",
-        "file": "http://example.com/contract.pdf",
-        "status": seed_contract_status["contract_status_id"]
+        "status": str(seed_contract_status["contract_status_id"]),
     }
 
-    response = test_app.post("/api/contracts/add", headers=headers, json=data)
+    response = test_app.post(
+        "/api/contracts/add",
+        data=form_data,
+        headers={
+            **headers,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+    )
+
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
@@ -26,34 +38,36 @@ async def test_add_contract(test_app: AsyncClient, jwt_token_user, seed_legal_en
 
 
 @pytest.mark.asyncio
-async def test_edit_contract(test_app: AsyncClient, jwt_token_user, seed_contract, seed_contract_status_updated):
-    """Тест редактирования контракта."""
+async def test_edit_contract(
+    test_app: AsyncClient,
+    jwt_token_user,
+    seed_contract,
+    seed_contract_status_updated
+):
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
-    data = {
+    form_data = {
         "contract_name": "Updated Contract Name",
         "comment": "Updated comment",
-        "file": "http://example.com/updated_contract.pdf",
-        "status": seed_contract_status_updated["contract_status_id"]
+        "status": str(seed_contract_status_updated["contract_status_id"]),
     }
 
     response = test_app.patch(
         f"/api/contracts/{seed_contract['contract_id']}",
-        headers=headers,
-        json=data
+        data=form_data,
+        headers={
+            **headers,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
     )
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
-    # Загружаем контракт вместе с его статусом (fetch_related)
     updated_contract = await Contract.filter(contract_id=seed_contract["contract_id"]).first().prefetch_related("status")
 
-    assert updated_contract is not None
     assert updated_contract.contract_name == "Updated Contract Name"
     assert updated_contract.comment == "Updated comment"
-    assert updated_contract.file == "http://example.com/updated_contract.pdf"
-    assert updated_contract.status is not None, "Статус контракта не загружен!"
-    assert updated_contract.status.contract_status_id == seed_contract_status_updated["contract_status_id"], \
-        f"Ожидали {seed_contract_status_updated['contract_status_id']}, а получили {updated_contract.status.contract_status_id}"
+    assert updated_contract.status.contract_status_id == seed_contract_status_updated[
+        "contract_status_id"]
 
 
 @pytest.mark.asyncio
@@ -71,7 +85,6 @@ async def test_view_contract(test_app: AsyncClient, jwt_token_user, seed_contrac
     response_data = response.json()
     assert response_data["contract_id"] == str(seed_contract["contract_id"])
     assert response_data["contract_name"] == seed_contract["contract_name"]
-    assert response_data["file"] == seed_contract["file"]
 
 
 @pytest.mark.asyncio

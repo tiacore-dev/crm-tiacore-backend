@@ -12,7 +12,7 @@ from app.pydantic_models.contract_models import (
     ContractListResponseSchema
 )
 from app.handlers.auth import get_current_user
-
+from app.s3.s3_manager import AsyncS3Manager
 
 contract_router = APIRouter()
 
@@ -23,7 +23,7 @@ contract_router = APIRouter()
     summary="Добавить контракт",
     status_code=status.HTTP_201_CREATED
 )
-async def add_contract(data: ContractCreateSchema, username: str = Depends(get_current_user)):
+async def add_contract(data: ContractCreateSchema = Depends(ContractCreateSchema.as_form), username: str = Depends(get_current_user)):
     try:
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
@@ -33,6 +33,21 @@ async def add_contract(data: ContractCreateSchema, username: str = Depends(get_c
             raise HTTPException(
                 status_code=400, detail="Покупатель, продавец или статус не найдены"
             )
+        s3_key = None
+        if data.file:
+
+            file_bytes = await data.file.read()
+            if not file_bytes:
+                raise HTTPException(
+                    status_code=400, detail="Не удалось загрузить данные файла"
+                )
+
+            logger.info(
+                f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт")
+
+            filename = data.file.filename
+            manager = AsyncS3Manager()
+            s3_key = await manager.upload_bytes(file_bytes, f"{data.buyer}+{data.seller}", filename, entity="contract")
 
         contract = await Contract.create(
             contract_name=data.contract_name,
@@ -40,7 +55,7 @@ async def add_contract(data: ContractCreateSchema, username: str = Depends(get_c
             buyer=buyer,
             seller=seller,
             comment=data.comment,
-            file=data.file,
+            s3_key=s3_key,
             status=status_obj,
         )
         return {"contract_id": str(contract.contract_id)}
@@ -58,30 +73,51 @@ async def add_contract(data: ContractCreateSchema, username: str = Depends(get_c
     response_model=ContractResponseSchema,
     summary="Изменить контракт"
 )
-async def update_contract(contract_id: UUID, data: ContractEditSchema, username: str = Depends(get_current_user)):
+async def update_contract(contract_id: UUID, data: ContractEditSchema = Depends(ContractEditSchema.as_form), username: str = Depends(get_current_user)):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
 
-    update_data = data.dict(exclude_unset=True)
+    update_data = {}
 
-    if "buyer" in update_data:
-        buyer = await LegalEntity.get_or_none(legal_entity_id=update_data["buyer"])
+    if data.buyer:
+        buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         if not buyer:
             raise HTTPException(status_code=400, detail="Покупатель не найден")
         update_data["buyer"] = buyer
 
-    if "seller" in update_data:
-        seller = await LegalEntity.get_or_none(legal_entity_id=update_data["seller"])
+    if data.seller:
+        seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
         if not seller:
             raise HTTPException(status_code=400, detail="Продавец не найден")
         update_data["seller"] = seller
 
-    if "status" in update_data:
-        status_obj = await ContractStatus.get_or_none(contract_status_id=update_data["status"])
+    if data.status:
+        status_obj = await ContractStatus.get_or_none(contract_status_id=data.status)
         if not status_obj:
             raise HTTPException(status_code=400, detail="Статус не найден")
         update_data["status"] = status_obj
+
+    if data.file:
+        manager = AsyncS3Manager()
+        file_bytes = await data.file.read()
+        if not file_bytes:
+            raise HTTPException(
+                status_code=400, detail="Не удалось загрузить файл")
+
+        # Удаляем старый файл
+        await manager.delete_file(contract.s3_key)
+
+        # Загружаем новый
+        new_s3_key = await manager.upload_bytes(file_bytes, f"{data.buyer}+{data.seller}", data.file.filename, entity="contract")
+        update_data["s3_key"] = new_s3_key
+
+    if data.contract_name:
+        update_data['contract_name'] = data.contract_name
+    if data.contract_date:
+        update_data['contract_date'] = data.contract_date
+    if data.comment:
+        update_data['comment'] = data.comment
 
     await contract.update_from_dict(update_data)
     await contract.save()
@@ -136,7 +172,7 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
                     buyer=contract.buyer.legal_entity_id,  # Теперь ID
                     seller=contract.seller.legal_entity_id,  # Теперь ID
                     status=contract.status.contract_status_id,  # Теперь ID
-                    file=contract.file,
+                    s3_key=contract.s3_key,
                     comment=contract.comment
                 )
                 for contract in contracts
@@ -169,6 +205,6 @@ async def get_contract(contract_id: UUID, username: str = Depends(get_current_us
         buyer=contract.buyer.legal_entity_id,
         seller=contract.seller.legal_entity_id,
         status=contract.status.contract_status_id,
-        file=contract.file,
+        s3_key=contract.s3_key,
         comment=contract.comment
     )
