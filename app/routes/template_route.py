@@ -1,13 +1,14 @@
 from uuid import UUID
 from io import BytesIO
 import os
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import Templates, Company
 from app.pydantic_models.template_models import (
+    CreateTemplateSchema,
+    EditTemplateSchema,
     TemplateResponseSchema,
     template_filter_params,
     TemplateSchema,
@@ -29,20 +30,16 @@ template_router = APIRouter()
     summary="Добавить шаблон",
     status_code=status.HTTP_201_CREATED
 )
-async def add_template(template_name: str = Form(...),
-                       company: UUID = Form(...),
-                       description: Optional[str] = Form(None),
-                       entity: str = Form(...),
-                       file: UploadFile = File(...),
+async def add_template(data: CreateTemplateSchema = Depends(CreateTemplateSchema.as_form),
                        username: str = Depends(get_current_user)):
     try:
-        company_obj = await Company.get_or_none(company_id=company)
+        company_obj = await Company.get_or_none(company_id=data.company)
         if not company_obj:
             raise HTTPException(
                 status_code=400, detail="Компания не найдена"
             )
 
-        file_bytes = await file.read()
+        file_bytes = await data.file.read()
         if not file_bytes:
             raise HTTPException(
                 status_code=400, detail="Не удалось загрузить данные файла"
@@ -51,15 +48,15 @@ async def add_template(template_name: str = Form(...),
         logger.info(
             f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт")
 
-        filename = file.filename
+        filename = data.file.filename
         manager = AsyncS3Manager()
-        s3_key = await manager.upload_bytes(file_bytes, company, filename)
+        s3_key = await manager.upload_bytes(file_bytes, data.company, filename, entity="template")
 
         template = await Templates.create(
-            template_name=template_name,
+            template_name=data.template_name,
             company=company_obj,
-            description=description,
-            entity=entity,
+            description=data.description,
+            entity=data.entity,
             s3_key=s3_key)
         return {"template_id": str(template.template_id)}
     except HTTPException as http_exc:
@@ -76,11 +73,7 @@ async def add_template(template_name: str = Form(...),
 )
 async def update_template(
     template_id: UUID,
-    template_name: Optional[str] = Form(None),
-    company: Optional[UUID] = Form(None),
-    description: Optional[str] = Form(None),
-    entity: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
+    data: EditTemplateSchema = Depends(EditTemplateSchema.as_form),
     username: str = Depends(get_current_user)
 ):
     template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
@@ -91,17 +84,17 @@ async def update_template(
     company_id = template.company.company_id
 
     # Обновление компании, если нужно
-    if company and company != template.company.company_id:
-        company_obj = await Company.get_or_none(company_id=company)
+    if data.company and data.company != template.company.company_id:
+        company_obj = await Company.get_or_none(company_id=data.company)
         if not company_obj:
             raise HTTPException(status_code=400, detail="Компания не найдена")
         update_data["company"] = company_obj
-        company_id = company
+        company_id = data.company
 
     # Обновление файла
-    if file:
+    if data.file:
         manager = AsyncS3Manager()
-        file_bytes = await file.read()
+        file_bytes = await data.file.read()
         if not file_bytes:
             raise HTTPException(
                 status_code=400, detail="Не удалось загрузить файл")
@@ -110,16 +103,16 @@ async def update_template(
         await manager.delete_file(template.s3_key)
 
         # Загружаем новый
-        new_s3_key = await manager.upload_bytes(file_bytes, company_id, file.filename)
+        new_s3_key = await manager.upload_bytes(file_bytes, company_id, data.file.filename, entity="template")
         update_data["s3_key"] = new_s3_key
 
     # Обновление прочих полей
-    if template_name:
-        update_data["template_name"] = template_name
-    if description:
-        update_data["description"] = description
-    if entity:
-        update_data["entity"] = entity
+    if data.template_name:
+        update_data["template_name"] = data.template_name
+    if data.description:
+        update_data["description"] = data.description
+    if data.entity:
+        update_data["entity"] = data.entity
 
     await template.update_from_dict(update_data)
     await template.save()
@@ -193,7 +186,6 @@ async def get_templates(filters: dict = Depends(template_filter_params), usernam
 
 @template_router.get(
     "/{template_id}/download",
-    # response_model=TemplateSchema,
     summary="Скачивание шаблона"
 )
 async def download_template(template_id: UUID, username: str = Depends(get_current_user)):
