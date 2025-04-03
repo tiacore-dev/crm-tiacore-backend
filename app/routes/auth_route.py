@@ -13,6 +13,11 @@ async def health_check():
     return {"message": "Hello, world!"}, 200
 
 
+@auth_router.get("/teapot", summary="Чайник")
+async def teapot_check():
+    return {"message": "I'm a teapot"}, 418
+
+
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
 async def login(data: LoginRequest):
     user = await login_handler(data.username, data.password)
