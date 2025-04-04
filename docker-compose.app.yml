@@ -1,4 +1,11 @@
 services:
+  aerich:
+    build: .
+    command: ["aerich", "upgrade"]
+    volumes:
+      - .:/app
+    networks:
+      - crm_network
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
     tty: true
