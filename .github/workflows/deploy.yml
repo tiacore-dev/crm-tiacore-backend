@@ -89,32 +89,52 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Deploy Backend
+      - name: 🛠 Deploy Backend
         run: |
           echo "🚀 Деплой..."
-          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             export DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}
             export DEPLOY_TAG=${{ github.sha }}
             export DEPLOY_BRANCH=${GITHUB_REF##*/}
 
-            cd $DEPLOY_PATH
+            cd $DEPLOY_PATH || { echo "❌ Не удалось перейти в $DEPLOY_PATH"; exit 1; }
 
-            git pull origin \$DEPLOY_BRANCH
+            git pull origin \$DEPLOY_BRANCH || { echo "❌ git pull не удался"; exit 1; }
 
-            echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin
-            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$DEPLOY_TAG
+            echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin \
+              || { echo "❌ Docker login failed"; exit 1; }
+
+            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$DEPLOY_TAG \
+              || { echo "❌ Docker pull failed"; exit 1; }
 
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=\$DEPLOY_TAG/" .env || echo "TAG=\$DEPLOY_TAG" >> .env
-
-            echo "📦 Применяем миграции..."
-            docker compose -f docker-compose.app.yml run --rm aerich > /dev/null 2>&1 && echo "✅ Миграции применены" || echo "⚠️ No migrations run"
-
-
-            docker compose -f docker-compose.app.yml up -d --force-recreate web
-
-            docker image prune -f
-            exit 0
           EOF
 
+
+      - name: 🧬 Run Aerich Migrations
+        run: |
+          echo "📦 Применяем миграции..."
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
+            cd $DEPLOY_PATH || exit 1
+            export TAG=\$(grep ^TAG .env | cut -d '=' -f2)
+
+            docker compose -f docker-compose.app.yml run --rm aerich > /dev/null 2>&1 \
+              && echo "✅ Миграции применены" \
+              || { echo "❌ Ошибка миграции"; exit 1; }
+          EOF
+
+
+      - name: 🚀 Start Backend
+        run: |
+          echo "🚀 Перезапускаем backend..."
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
+            cd $DEPLOY_PATH || exit 1
+
+            docker compose -f docker-compose.app.yml up -d --force-recreate web > /dev/null \
+              && echo "✅ Контейнер перезапущен" \
+              || { echo "❌ Контейнер не запустился"; exit 1; }
+
+            docker image prune -f > /dev/null
+          EOF
