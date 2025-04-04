@@ -108,6 +108,9 @@ jobs:
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=\$DEPLOY_TAG/" .env || echo "TAG=\$DEPLOY_TAG" >> .env
 
+            echo "📦 Применяем миграции..."
+            docker compose run --rm web aerich upgrade || echo '⚠️ No migrations run'
+
             docker compose up -d --force-recreate web
 
             docker image prune -f
