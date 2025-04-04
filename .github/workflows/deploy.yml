@@ -89,10 +89,10 @@ jobs:
           fi
           echo "DEPLOY_TAG=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: 🛠️ Deploy Code & Pull Image
+      - name: Deploy Backend
         run: |
-          echo "📦 Подключаемся к серверу и загружаем свежий образ..."
-          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          echo "🚀 Деплой..."
+          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
             export DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}
             export DEPLOY_TAG=${{ github.sha }}
@@ -100,34 +100,21 @@ jobs:
 
             cd $DEPLOY_PATH
 
-            echo "🔄 Обновляем код из ветки \$DEPLOY_BRANCH"
-            git pull origin \$DEPLOY_BRANCH > /dev/null
+            git pull origin \$DEPLOY_BRANCH
 
-            echo "🔐 Логинимся в DockerHub..."
-            echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin > /dev/null
-
-            echo "⬇️ Загружаем образ..."
-            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$DEPLOY_TAG > /dev/null
+            echo "\$DOCKERHUB_TOKEN" | docker login -u "\$DOCKERHUB_USERNAME" --password-stdin
+            docker pull \$DOCKERHUB_USERNAME/crm-backend:\$DEPLOY_TAG
 
             if [ ! -f .env ]; then touch .env; fi
             grep -q "^TAG=" .env && sed -i "s/^TAG=.*/TAG=\$DEPLOY_TAG/" .env || echo "TAG=\$DEPLOY_TAG" >> .env
-          EOF
 
-
-      - name: 🧬 Run Aerich Migrations
-        run: |
-          echo "📦 Применяем миграции..."
-          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd $DEPLOY_PATH
-            export TAG=\$(grep ^TAG .env | cut -d '=' -f2)
+            echo "📦 Применяем миграции..."
             docker compose -f docker-compose.app.yml run --rm aerich > /dev/null 2>&1 && echo "✅ Миграции применены" || echo "⚠️ No migrations run"
+
+
+            docker compose -f docker-compose.app.yml up -d --force-recreate web
+
+            docker image prune -f
+            exit 0
           EOF
 
-      - name: 🚀 Start Backend
-        run: |
-          echo "🚀 Перезапускаем backend..."
-          ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd $DEPLOY_PATH
-            docker compose -f docker-compose.app.yml up -d --force-recreate web > /dev/null && echo "✅ Контейнер перезапущен"
-            docker image prune -f > /dev/null
-          EOF
