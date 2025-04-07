@@ -93,14 +93,16 @@ class ContractEditSchema(BaseModel):
     @classmethod
     def as_form(
         cls,
-        contract_name=Form(None),
-        contract_date=Form(None),
-        buyer=Form(None),
-        seller=Form(None),
-        comment=Form(None),
-        file=File(None),
-        status=Form(None)
+        contract_name: Optional[str] = Form(None),
+        contract_date: Optional[int] = Form(None),
+        buyer: Optional[UUID4] = Form(None),
+        seller: Optional[UUID4] = Form(None),
+        comment: Optional[str] = Form(None),
+        file: Optional[UploadFile] = File(None),
+        status: Optional[str] = Form(None),
     ):
+        if isinstance(file, str) and file == "":
+            file = None
         return cls(
             contract_name=contract_name,
             contract_date=contract_date,
@@ -108,7 +110,7 @@ class ContractEditSchema(BaseModel):
             seller=seller,
             comment=comment,
             file=file,
-            status=status
+            status=status,
         )
 
     class Config:
