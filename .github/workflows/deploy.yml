@@ -47,7 +47,8 @@ jobs:
       - name: Run Tests in Docker
         run: |
           docker buildx build --load -t crm-backend-test --target test .
-          docker run --rm crm-backend-test pytest --maxfail=3 --disable-warnings
+          docker run --rm --env-file .env.test crm-backend-test pytest --maxfail=3 --disable-warnings
+
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
