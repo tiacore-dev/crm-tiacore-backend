@@ -8,9 +8,9 @@ from app.pydantic_models.auth_models import TokenResponse, LoginRequest
 auth_router = APIRouter()
 
 
-@auth_router.get("/health", summary="Проверка работоспособности")
-async def health_check():
-    return {"message": "Hello, world!"}, 200
+# @auth_router.get("/health", summary="Проверка работоспособности")
+# async def health_check():
+#     return {"message": "Hello, world!"}, 200
 
 
 @auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
