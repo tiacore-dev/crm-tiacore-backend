@@ -1,23 +1,21 @@
-# Используем официальный образ Python
-FROM python:3.12-slim
-
-# Устанавливаем рабочую директорию
+# ===== BASE =====
+FROM python:3.12-slim AS base
 WORKDIR /app
 
-# Копируем только requirements.txt для использования кеша pip
 COPY requirements.txt .
-
-# Устанавливаем зависимости (этап, который хорошо кешируется)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем остальной код проекта
+# ===== TESTING =====
+FROM base AS test
+RUN pip install --no-cache-dir pytest
 COPY . .
 
-# Установка LibreOffice (если можно — лучше вынести это в отдельный слой до requirements)
+# ===== FINAL =====
+FROM base AS prod
+COPY . .
 RUN apt update && \
     apt install -y libreoffice libreoffice-writer libreoffice-calc && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Запуск
 CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8000"]

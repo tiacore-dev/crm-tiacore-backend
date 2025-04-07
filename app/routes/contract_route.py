@@ -188,6 +188,19 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
 
 
 @contract_router.get(
+    "/{contract_id}/download",
+    summary="Скачивание файла контракта"
+)
+async def download_contract(contract_id: UUID, username: str = Depends(get_current_user)):
+    contract = await Contract.filter(contract_id=contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Контракт не найден")
+    manager = AsyncS3Manager()
+    url = await manager.generate_presigned_url(contract.s3_key)
+    return url
+
+
+@contract_router.get(
     "/{contract_id}",
     response_model=ContractSchema,
     summary="Просмотр одного контракта"
