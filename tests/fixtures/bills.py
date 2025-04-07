@@ -1,33 +1,39 @@
 import pytest
-from app.database.models import Bills, BillDetails, Contract,  Service, BankAccount
+from app.database.models import Bills, BillDetails, Contract,  Service, BankAccount, LegalEntity
 
 
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_bill(seed_contract, seed_bank_account):
+async def seed_bill(seed_legal_entity, seed_legal_entity_buyer, seed_contract, seed_bank_account):
     """Создает тестовый счет, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
     contract = await Contract.get(contract_id=seed_contract["contract_id"])
     bank_account = await BankAccount.get(bank_account_id=seed_bank_account["bank_account_id"])
-
+    buyer = await LegalEntity.get_or_none(legal_entity_id=seed_legal_entity_buyer['legal_entity_id'])
+    seller = await LegalEntity.get_or_none(legal_entity_id=seed_legal_entity['legal_entity_id'])
+    if not buyer and seller:
+        raise ValueError(
+            "Ошибка: Не удалось получить объект Contract")
     # Создаем счет, передавая объекты
     bill = await Bills.create(
         bill_number="bill-001",
         bill_date=1700000000,
-        contract=contract,  # 👈 Передаем объект, а не ID
-        bank_account=bank_account  # 👈 Передаем объект, а не ID
+        contract=contract,
+        bank_account=bank_account,
+        buyer=buyer,
+        seller=seller
     )
 
     return {
         "bill_id": str(bill.bill_id),
         "bill_number": bill.bill_number,
         "bill_date": bill.bill_date,
-        # 👈 Теперь это UUID, а не объект
         "contract": str(bill.contract.contract_id),
-        # 👈 Теперь это UUID, а не объект
-        "bank_account": str(bill.bank_account.bank_account_id)
+        "bank_account": str(bill.bank_account.bank_account_id),
+        "buyer": str(bill.buyer.legal_entity_id),
+        "seller": str(bill.seller.legal_entity_id)
     }
 
 

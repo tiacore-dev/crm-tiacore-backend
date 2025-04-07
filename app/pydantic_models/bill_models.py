@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
+from pydantic import BaseModel, UUID4, field_validator, Field, model_validator
 from fastapi import Query, HTTPException
 
 
@@ -7,7 +7,9 @@ class BillCreateSchema(BaseModel):
     bank_account: UUID4 = Field(...)
     bill_number: str = Field(..., min_length=3, max_length=255)
     bill_date: int = Field(..., ge=0)  # Unix timestamp
-    contract: UUID4 = Field(...)
+    contract: Optional[UUID4] = Field(None)
+    buyer: Optional[UUID4] = Field(None)
+    seller: Optional[UUID4] = Field(None)
 
     @field_validator("bank_account", "bill_number", "bill_date", "contract")
     @classmethod
@@ -19,6 +21,16 @@ class BillCreateSchema(BaseModel):
                 detail=f"Поле {info.field_name} обязательно для заполнения.",
             )
         return value
+
+    @model_validator(mode="after")
+    def check_contract_or_parties(self) -> 'BillCreateSchema':
+        if not self.contract:
+            if not self.buyer or not self.seller:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Either 'contract' must be provided, or both 'buyer' and 'seller' must be specified."
+                )
+        return self
 
     class Config:
         from_attributes = True
@@ -36,6 +48,8 @@ class BillEditSchema(BaseModel):
     bill_number: Optional[str] = None
     bill_date: Optional[int] = None
     contract: Optional[UUID4] = None
+    buyer: Optional[UUID4] = None
+    seller: Optional[UUID4] = None
 
     class Config:
         from_attributes = True
@@ -45,8 +59,10 @@ class BillSchema(BaseModel):
     bill_id: UUID4
     bill_number: str
     bill_date: int
-    contract: UUID4  # ✅ Теперь это просто UUID
-    bank_account: UUID4  # ✅ Теперь это просто UUID
+    bank_account: UUID4
+    contract: Optional[UUID4] = None
+    buyer: UUID4
+    seller: UUID4
 
     class Config:
         from_attributes = True

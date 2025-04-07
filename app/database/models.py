@@ -138,7 +138,11 @@ class Acts(Model):
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "models.Contract", related_name="acts")
+        "models.Contract", related_name="acts", null=True)
+    buyer = fields.ForeignKeyField(
+        "models.LegalEntity", related_name="act_buyer")
+    seller = fields.ForeignKeyField(
+        "models.LegalEntity", related_name="act_seller")
 
     class Meta:
         table = "acts"
@@ -150,7 +154,12 @@ class Bills(Model):
         "models.BankAccount", related_name="bills")
     bill_number = fields.CharField(max_length=255)
     bill_date = fields.BigIntField()
-    contract = fields.ForeignKeyField("models.Contract", related_name="bills")
+    contract = fields.ForeignKeyField(
+        "models.Contract", related_name="bills", null=True)
+    buyer = fields.ForeignKeyField(
+        "models.LegalEntity", related_name="bill_buyer")
+    seller = fields.ForeignKeyField(
+        "models.LegalEntity", related_name="bill_seller")
 
     class Meta:
         table = "bills"

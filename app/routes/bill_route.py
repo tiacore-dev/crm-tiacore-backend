@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Bills, BankAccount, Contract
+from app.database.models import Bills, BankAccount, Contract, LegalEntity
 from app.pydantic_models.bill_models import (
     BillCreateSchema,
     BillResponseSchema,
@@ -26,18 +26,32 @@ bill_router = APIRouter()
 async def add_bill(data: BillCreateSchema, username: str = Depends(get_current_user)):
     try:
         bank_account = await BankAccount.get_or_none(bank_account_id=data.bank_account)
-        contract = await Contract.get_or_none(contract_id=data.contract)
-
-        if not bank_account or not contract:
+        if not bank_account:
             raise HTTPException(
-                status_code=400, detail="Банковский счет или контракт не найдены"
+                status_code=400, detail="Банковский счет  не найден"
             )
+        if data.contract:
+            contract = await Contract.get_or_none(contract_id=data.contract).prefetch_related("buyer", "seller")
+
+            if not contract:
+                raise HTTPException(
+                    status_code=400, detail="Контракт не найден")
+
+            data.buyer = contract.buyer.legal_entity_id
+            data.seller = contract.seller.legal_entity_id
+        buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
+        seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
+        if not buyer or not seller:
+            raise HTTPException(
+                status_code=400, detail="Юр. лица не найдены")
 
         bill = await Bills.create(
             bank_account=bank_account,
             bill_number=data.bill_number,
             bill_date=data.bill_date,
             contract=contract,
+            buyer=buyer,
+            seller=seller
         )
         return {"bill_id": str(bill.bill_id)}
 
@@ -73,6 +87,18 @@ async def update_bill(bill_id: UUID, data: BillEditSchema, username: str = Depen
         if not contract:
             raise HTTPException(status_code=400, detail="Контракт не найден")
         update_data["contract"] = contract
+
+    if data.buyer:
+        buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
+        if not buyer:
+            raise HTTPException(status_code=400, detail="Покупатель не найден")
+        update_data["buyer"] = buyer
+
+    if data.seller:
+        seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
+        if not seller:
+            raise HTTPException(status_code=400, detail="Продавец не найден")
+        update_data["seller"] = seller
 
     await bill.update_from_dict(update_data)
     await bill.save()
@@ -114,7 +140,7 @@ async def get_bills(filters: dict = Depends(bill_filter_params), username: str =
         page_size = filters.get("page_size", 10)
 
         bills = await Bills.filter(query) \
-            .prefetch_related("contract", "bank_account") \
+            .prefetch_related("contract", "bank_account", "buyer", "seller") \
             .offset((page - 1) * page_size) \
             .limit(page_size)
 
@@ -125,8 +151,10 @@ async def get_bills(filters: dict = Depends(bill_filter_params), username: str =
                     bill_id=bill.bill_id,
                     bill_number=bill.bill_number,
                     bill_date=bill.bill_date,
-                    contract=bill.contract.contract_id,  # ✅ Теперь передаем ID контракта
-                    bank_account=bill.bank_account.bank_account_id  # ✅ Теперь передаем ID счета
+                    contract=bill.contract.contract_id,
+                    bank_account=bill.bank_account.bank_account_id,
+                    buyer=bill.buyer.legal_entity_id,
+                    seller=bill.seller.legal_entity_id
                 )
                 for bill in bills
             ]
@@ -146,13 +174,15 @@ async def get_bills(filters: dict = Depends(bill_filter_params), username: str =
     summary="Просмотр одного счета"
 )
 async def get_bill(bill_id: UUID, username: str = Depends(get_current_user)):
-    bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account").first()
+    bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
     return BillSchema(
         bill_id=bill.bill_id,
         bill_number=bill.bill_number,
         bill_date=bill.bill_date,
-        contract=bill.contract.contract_id,  # 👈 Передаем UUID контракта
-        bank_account=bill.bank_account.bank_account_id,  # 👈 Передаем UUID счета
+        contract=bill.contract.contract_id,
+        bank_account=bill.bank_account.bank_account_id,
+        buyer=bill.buyer.legal_entity_id,
+        seller=bill.seller.legal_entity_id
     )

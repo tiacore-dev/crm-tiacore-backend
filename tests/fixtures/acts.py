@@ -1,11 +1,11 @@
 import pytest
-from app.database.models import Acts, ActDetails, Contract, Service
+from app.database.models import Acts, ActDetails, Contract, Service, LegalEntity
 
 
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_act(seed_contract):
+async def seed_act(seed_legal_entity, seed_legal_entity_buyer, seed_contract):
     """Создает тестовое юридическое лицо, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
@@ -15,18 +15,28 @@ async def seed_act(seed_contract):
         raise ValueError(
             "Ошибка: Не удалось получить объект Contract")
 
+    buyer = await LegalEntity.get_or_none(legal_entity_id=seed_legal_entity_buyer['legal_entity_id'])
+
+    seller = await LegalEntity.get_or_none(legal_entity_id=seed_legal_entity['legal_entity_id'])
+    if not buyer and seller:
+        raise ValueError(
+            "Ошибка: Не удалось получить объект Contract")
     # Создаем юридическое лицо, передавая объекты
     act = await Acts.create(
         act_number="ACT-001",
         act_date=1700000000,
-        contract=contract
+        contract=contract,
+        buyer=buyer,
+        seller=seller
     )
 
     return {
         "act_id": str(act.act_id),
         "act_number": act.act_number,
         "act_date": act.act_date,
-        "contract": act.contract
+        "contract": str(act.contract.contract_id),
+        "buyer": str(act.buyer.legal_entity_id),
+        "seller": str(act.seller.legal_entity_id)
     }
 
 

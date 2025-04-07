@@ -1,0 +1,26 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"acts\" ADD \"buyer_id\" UUID NOT NULL",
+    "ALTER TABLE \"acts\" ALTER COLUMN \"contract_id\" DROP NOT NULL",
+    "ALTER TABLE \"acts\" ADD \"seller_id\" UUID NOT NULL",
+    "ALTER TABLE \"bills\" ADD \"buyer_id\" UUID NOT NULL",
+    "ALTER TABLE \"bills\" ALTER COLUMN \"contract_id\" DROP NOT NULL",
+    "ALTER TABLE \"bills\" ADD \"seller_id\" UUID NOT NULL",
+    "ALTER TABLE \"acts\" ADD CONSTRAINT \"fk_acts_legal_en_5036a301\" FOREIGN KEY (\"buyer_id\") REFERENCES \"legal_entities\" (\"legal_entity_id\") ON DELETE CASCADE",
+    "ALTER TABLE \"acts\" ADD CONSTRAINT \"fk_acts_legal_en_5cce50c3\" FOREIGN KEY (\"seller_id\") REFERENCES \"legal_entities\" (\"legal_entity_id\") ON DELETE CASCADE",
+    "ALTER TABLE \"bills\" ADD CONSTRAINT \"fk_bills_legal_en_33a5c017\" FOREIGN KEY (\"buyer_id\") REFERENCES \"legal_entities\" (\"legal_entity_id\") ON DELETE CASCADE",
+    "ALTER TABLE \"bills\" ADD CONSTRAINT \"fk_bills_legal_en_66cf0dfd\" FOREIGN KEY (\"seller_id\") REFERENCES \"legal_entities\" (\"legal_entity_id\") ON DELETE CASCADE"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"bills\" DROP CONSTRAINT \"fk_bills_legal_en_66cf0dfd\"",
+    "ALTER TABLE \"bills\" DROP CONSTRAINT \"fk_bills_legal_en_33a5c017\"",
+    "ALTER TABLE \"acts\" DROP CONSTRAINT \"fk_acts_legal_en_5cce50c3\"",
+    "ALTER TABLE \"acts\" DROP CONSTRAINT \"fk_acts_legal_en_5036a301\"",
+    "ALTER TABLE \"acts\" ALTER COLUMN \"contract_id\" SET NOT NULL",
+    "ALTER TABLE \"acts\" DROP COLUMN \"buyer_id\"",
+    "ALTER TABLE \"acts\" DROP COLUMN \"seller_id\"",
+    "ALTER TABLE \"bills\" ALTER COLUMN \"contract_id\" SET NOT NULL",
+    "ALTER TABLE \"bills\" DROP COLUMN \"buyer_id\"",
+    "ALTER TABLE \"bills\" DROP COLUMN \"seller_id\""
+  ]
+}

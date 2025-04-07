@@ -138,7 +138,11 @@ class Acts(Model):
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "diff_models.Contract", related_name="acts")
+        "diff_models.Contract", related_name="acts", null=True, db_column="contract_id")
+    buyer = fields.ForeignKeyField(
+        "diff_models.LegalEntity", related_name="act_buyer", db_column="act_buyer_id",)
+    seller = fields.ForeignKeyField(
+        "diff_models.LegalEntity", related_name="act_seller", db_column="act_seller_id",)
 
     class Meta:
         table = "acts"
@@ -147,10 +151,15 @@ class Acts(Model):
 class Bills(Model):
     bill_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     bank_account = fields.ForeignKeyField(
-        "diff_models.BankAccount", related_name="bills")
+        "diff_models.BankAccount", related_name="bills", db_column="bank_account_id")
     bill_number = fields.CharField(max_length=255)
     bill_date = fields.BigIntField()
-    contract = fields.ForeignKeyField("diff_models.Contract", related_name="bills")
+    contract = fields.ForeignKeyField(
+        "diff_models.Contract", related_name="bills", null=True, db_column="contract_id")
+    buyer = fields.ForeignKeyField(
+        "diff_models.LegalEntity", related_name="bill_buyer", db_column="bill_buyer_id")
+    seller = fields.ForeignKeyField(
+        "diff_models.LegalEntity", related_name="bill_seller", db_column="bill_seller_id",)
 
     class Meta:
         table = "bills"
