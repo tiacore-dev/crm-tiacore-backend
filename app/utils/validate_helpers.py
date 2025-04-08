@@ -1,12 +1,40 @@
 import re
+import html
+import unicodedata
 from pydantic import UUID4
 
 
-def sanitize_input(value: str) -> str:
-    """Удаляет XSS-атаку, но сохраняет текст"""
-    value = re.sub(r'<[^>]*>', '', value)  # Убираем HTML-теги
-    value = value.replace("alert", "")     # Убираем JavaScript
-    return value.strip()  # Убираем лишние пробелы
+def sanitize_input(value: str, max_length: int = 255, html_safe: bool = True) -> str:
+    """Очистка строки от XSS, пробелов, html-сущностей, невидимых символов и подмен"""
+    if not isinstance(value, str):
+        return value
+
+    # 1. HTML entities → символы
+    value = html.unescape(value)
+
+    # 2. Удаление HTML-тегов
+    value = re.sub(r'<[^>]*>', '', value)
+
+    # 3. Удаление очевидных XSS-паттернов
+    value = re.sub(r'(?i)(javascript:|data:|vbscript:|on\w+=)', '', value)
+    value = value.replace("alert", "")
+
+    # 4. Unicode нормализация (на всякий случай)
+    value = unicodedata.normalize("NFKC", value)
+
+    # 5. Удаление невидимых символов (например, управляющие)
+    value = ''.join(c for c in value if unicodedata.category(c)
+                    not in ['Cc', 'Cf'])
+
+    # 7. Обрезаем до max_length
+    if len(value) > max_length:
+        value = value[:max_length]
+
+    # 8. (Опционально) экранируем HTML, если нужно
+    if html_safe:
+        value = html.escape(value)
+
+    return value
 
 
 def normalize_form_field(value, target_type):
