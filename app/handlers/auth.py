@@ -46,13 +46,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer
         raise HTTPException(status_code=401, detail="Empty token")
 
     token = credentials.credentials
-    # logger.info(f"🔍 Проверяем токен: {token}")
 
     return verify_token(token)
 
 
 def verify_token(token: str) -> str:
-    logger.info(f"Проверка токена: {token}")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -62,7 +60,6 @@ def verify_token(token: str) -> str:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
             )
-        # logger.success(f"Токен валиден, username: {username}")
         return username
     except JWTError as exc:
         logger.error("Ошибка JWT-декодирования")

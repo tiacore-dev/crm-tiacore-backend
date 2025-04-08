@@ -31,7 +31,7 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
             position=data.position,
             password=data.password
         )
-        logger.debug(f"Результат создания пользователя: {user}")
+        logger.debug(f"Пользователь создан: {user.user_id}")
         if not user:
             logger.error("Не удалось создать пользователя")
             raise HTTPException(

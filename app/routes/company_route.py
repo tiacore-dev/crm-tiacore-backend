@@ -23,7 +23,7 @@ async def add_company(data: CompanyCreateSchema = Body(), username: str = Depend
             raise HTTPException(
                 status_code=500, detail="Не удалось создать компанию")
 
-        logger.success(f"Компания создана: {company}")
+        logger.success(f"Компания создана: {company.company_id}")
         return {"company_id": str(company.company_id)}
 
     except HTTPException as http_exc:

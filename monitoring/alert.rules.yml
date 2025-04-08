@@ -1,0 +1,11 @@
+groups:
+  - name: InstanceDown
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Инстанс {{ $labels.instance }} недоступен"
+          description: "Экспортер {{ $labels.job }} не отвечает более 1 минуты"
