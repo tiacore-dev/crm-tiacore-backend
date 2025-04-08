@@ -1,10 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator, UUID4
+from pydantic import Field,  UUID4
 from fastapi import Query
-from app.utils.validate_helpers import sanitize_input
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class UserCreateSchema(BaseModel):
+class UserCreateSchema(CleanableBaseModel):
     username: str = Field(..., min_length=3, max_length=50,
                           description="Уникальное имя пользователя")
     password: str = Field(..., min_length=6,
@@ -14,41 +14,25 @@ class UserCreateSchema(BaseModel):
     position: Optional[str] = Field(
         None, max_length=50, description="Должность пользователя")
 
-    @field_validator("username", "full_name", "position", mode="before")
-    @classmethod
-    def validate_text_fields(cls, value: str) -> str:
-        """Фильтрация входных данных от XSS и других инъекций."""
-        if value is None:
-            return value
-        return sanitize_input(value)
-
     class Config:
         from_attributes = True
 
 
-class UserEditSchema(BaseModel):
+class UserEditSchema(CleanableBaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     password: Optional[str] = Field(None, min_length=6)
     full_name: Optional[str] = Field(None, min_length=3, max_length=100)
     position: Optional[str] = Field(None, max_length=50)
 
-    @field_validator("username", "full_name", "position", mode="before")
-    @classmethod
-    def validate_text_fields(cls, value: str) -> str:
-        """Фильтрация входных данных от XSS и других инъекций"""
-        if value is None:
-            return value
-        return sanitize_input(value)
 
-
-class UserSchema(BaseModel):
+class UserSchema(CleanableBaseModel):
     user_id: UUID4
     username: str
     full_name: str
     position: str
 
 
-class UserListResponseSchema(BaseModel):
+class UserListResponseSchema(CleanableBaseModel):
     total: int  # Общее количество пользователей по фильтру
     users: List[UserSchema]  # Используем `list`, а не `List[UserSchema]`
 
@@ -57,7 +41,7 @@ class UserListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # 🔥 Это разрешает "нестандартные" типы
 
 
-class UserResponseSchema(BaseModel):
+class UserResponseSchema(CleanableBaseModel):
     user_id: UUID4
 
 

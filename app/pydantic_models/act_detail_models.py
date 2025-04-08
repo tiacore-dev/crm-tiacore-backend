@@ -1,10 +1,11 @@
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
+from pydantic import UUID4, field_validator, Field
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class ActDetailCreateSchema(BaseModel):
+class ActDetailCreateSchema(CleanableBaseModel):
     act: UUID4 = Field(...)
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0, max_digits=8, decimal_places=3)
@@ -25,7 +26,7 @@ class ActDetailCreateSchema(BaseModel):
         from_attributes = True
 
 
-class ActDetailSchema(BaseModel):
+class ActDetailSchema(CleanableBaseModel):
     act_detail_id: UUID4
     act: UUID4  # ✅ Передаем UUID вместо объекта
     service: UUID4  # ✅ Передаем UUID вместо объекта
@@ -36,14 +37,14 @@ class ActDetailSchema(BaseModel):
         from_attributes = True
 
 
-class ActDetailResponseSchema(BaseModel):
+class ActDetailResponseSchema(CleanableBaseModel):
     act_detail_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class ActDetailListResponseSchema(BaseModel):
+class ActDetailListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Общее количество деталей акта по фильтру
     # ✅ Используем `list`, а не `List[ActDetailSchema]`
     act_details: List[ActDetailSchema]
@@ -53,7 +54,7 @@ class ActDetailListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class ActDetailEditSchema(BaseModel):
+class ActDetailEditSchema(CleanableBaseModel):
     act: Optional[UUID4] = None
     service: Optional[UUID4] = None
     quantity: Optional[Decimal] = None

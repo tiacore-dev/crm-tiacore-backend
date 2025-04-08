@@ -1,9 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field, model_validator
+from pydantic import UUID4, field_validator, Field, model_validator
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class ActCreateSchema(BaseModel):
+class ActCreateSchema(CleanableBaseModel):
     act_number: str = Field(..., min_length=3, max_length=255)
     act_date: int = Field(..., ge=0)  # Unix timestamp
     contract: Optional[UUID4] = Field(None)
@@ -37,7 +38,7 @@ class ActCreateSchema(BaseModel):
         from_attributes = True
 
 
-class ActSchema(BaseModel):
+class ActSchema(CleanableBaseModel):
     act_id: UUID4
     act_number: str
     act_date: int
@@ -49,14 +50,14 @@ class ActSchema(BaseModel):
         from_attributes = True
 
 
-class ActResponseSchema(BaseModel):
+class ActResponseSchema(CleanableBaseModel):
     act_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class ActListResponseSchema(BaseModel):
+class ActListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Общее количество актов по фильтру
     acts: List[ActSchema]  # ✅ Используем `list`, а не `List[ActSchema]`
 
@@ -65,7 +66,7 @@ class ActListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class ActEditSchema(BaseModel):
+class ActEditSchema(CleanableBaseModel):
     act_number: Optional[str] = None
     act_date: Optional[int] = None
     contract: Optional[UUID4] = None

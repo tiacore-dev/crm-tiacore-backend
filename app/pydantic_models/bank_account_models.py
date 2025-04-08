@@ -1,9 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
+from pydantic import UUID4, field_validator, Field
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class BankAccountCreateSchema(BaseModel):
+class BankAccountCreateSchema(CleanableBaseModel):
     account_number: str = Field(..., min_length=20, max_length=20)
     bank_name: str = Field(..., min_length=3, max_length=255)
     bank_bic: str = Field(..., min_length=9, max_length=9)
@@ -27,7 +28,7 @@ class BankAccountCreateSchema(BaseModel):
         from_attributes = True
 
 
-class BankAccountSchema(BaseModel):
+class BankAccountSchema(CleanableBaseModel):
     bank_account_id: UUID4
     legal_entity: UUID4  # ✅ Передаем UUID вместо объекта
     bank_name: str
@@ -39,14 +40,14 @@ class BankAccountSchema(BaseModel):
         from_attributes = True
 
 
-class BankAccountResponseSchema(BaseModel):
+class BankAccountResponseSchema(CleanableBaseModel):
     bank_account_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class BankAccountListResponseSchema(BaseModel):
+class BankAccountListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Общее количество банковских счетов по фильтру
     # ✅ Используем `list`, а не `List[BankAccountSchema]`
     bank_accounts: List[BankAccountSchema]
@@ -56,7 +57,7 @@ class BankAccountListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class BankAccountEditSchema(BaseModel):
+class BankAccountEditSchema(CleanableBaseModel):
     account_number: Optional[str] = Field(None, min_length=20, max_length=20)
     bank_name: Optional[str] = Field(None, min_length=3, max_length=255)
     bank_bic: Optional[str] = Field(None, min_length=9, max_length=9)

@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class TokenResponse(BaseModel):
+class TokenResponse(CleanableBaseModel):
     access_token: str
     refresh_token: str
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(CleanableBaseModel):
     username: str
     password: str

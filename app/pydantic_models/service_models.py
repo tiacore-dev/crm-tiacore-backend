@@ -1,32 +1,24 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator, UUID4
-from fastapi import Query, HTTPException
+from pydantic import Field, field_validator, UUID4
+from fastapi import Query
 from app.utils.validate_helpers import sanitize_input
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class ServiceCreateSchema(BaseModel):
+class ServiceCreateSchema(CleanableBaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
 
-    @field_validator("service_name")
-    @classmethod
-    def validate_service_name(cls, value: str) -> str:
-        """Фильтрация входных данных от XSS и других инъекций"""
-        if not value or len(value) < 3:
-            raise HTTPException(
-                status_code=400, detail="Название услуги должно быть не менее 3 символов")
-        return sanitize_input(value)
 
-
-class ServiceResponseSchema(BaseModel):
+class ServiceResponseSchema(CleanableBaseModel):
     service_id: UUID4
 
 
-class ServiceSchema(BaseModel):
+class ServiceSchema(CleanableBaseModel):
     service_id: UUID4
     service_name: str
 
 
-class ServiceListResponseSchema(BaseModel):
+class ServiceListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество услуг по фильтру
     # ✅ Используем `list`, а не `List[ServiceSchema]`
     services: List[ServiceSchema]
@@ -36,7 +28,7 @@ class ServiceListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class ServiceEditSchema(BaseModel):
+class ServiceEditSchema(CleanableBaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
 
     @field_validator("service_name")

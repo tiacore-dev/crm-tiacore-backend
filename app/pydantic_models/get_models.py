@@ -1,46 +1,46 @@
 from typing import List, Optional
-from pydantic import BaseModel
 from fastapi import Query
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class LegalEntityTypeSchema(BaseModel):
+class LegalEntityTypeSchema(CleanableBaseModel):
     legal_entity_type_id: str
     entity_name: str
 
     model_config = {"from_attributes": True}
 
 
-class LegalEntityTypeListResponse(BaseModel):
+class LegalEntityTypeListResponse(CleanableBaseModel):
     total: int
     legal_entity_types: List[LegalEntityTypeSchema]
 
 
-class UserRoleSchema(BaseModel):
+class UserRoleSchema(CleanableBaseModel):
     role_id: str
     role_name: str
 
     model_config = {"from_attributes": True}
 
 
-class UserRoleListResponse(BaseModel):
+class UserRoleListResponse(CleanableBaseModel):
     total: int
     user_roles: List[UserRoleSchema]
 
 
-class ContractStatusSchema(BaseModel):
+class ContractStatusSchema(CleanableBaseModel):
     contract_status_id: str
     status_name: str
 
     model_config = {"from_attributes": True}
 
 
-class ContractStatusListResponse(BaseModel):
+class ContractStatusListResponse(CleanableBaseModel):
     total: int
     contract_statuses: List[ContractStatusSchema]
 
 
 # ✅ Фильтры и параметры поиска
-class FilterParams(BaseModel):
+class FilterParams(CleanableBaseModel):
     search: Optional[str] = Query(None, description="Фильтр по названию")
     sort_by: Optional[str] = Query(
         "name", description="Сортировка (по умолчанию name)")

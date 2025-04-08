@@ -1,9 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field, model_validator
+from pydantic import UUID4, field_validator, Field, model_validator
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class BillCreateSchema(BaseModel):
+class BillCreateSchema(CleanableBaseModel):
     bank_account: UUID4 = Field(...)
     bill_number: str = Field(..., min_length=3, max_length=255)
     bill_date: int = Field(..., ge=0)  # Unix timestamp
@@ -36,14 +37,14 @@ class BillCreateSchema(BaseModel):
         from_attributes = True
 
 
-class BillResponseSchema(BaseModel):
+class BillResponseSchema(CleanableBaseModel):
     bill_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class BillEditSchema(BaseModel):
+class BillEditSchema(CleanableBaseModel):
     bank_account: Optional[UUID4] = None
     bill_number: Optional[str] = None
     bill_date: Optional[int] = None
@@ -55,7 +56,7 @@ class BillEditSchema(BaseModel):
         from_attributes = True
 
 
-class BillSchema(BaseModel):
+class BillSchema(CleanableBaseModel):
     bill_id: UUID4
     bill_number: str
     bill_date: int
@@ -68,7 +69,7 @@ class BillSchema(BaseModel):
         from_attributes = True
 
 
-class BillListResponseSchema(BaseModel):
+class BillListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество записей по фильтру
     bills: List[BillSchema]  # ✅ Используем `list`, а не `List[BillSchema]`
 

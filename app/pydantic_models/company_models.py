@@ -1,10 +1,11 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator, UUID4
+from pydantic import Field, field_validator, UUID4
 from fastapi import Query, HTTPException
 from app.utils.validate_helpers import sanitize_input
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class CompanyCreateSchema(BaseModel):
+class CompanyCreateSchema(CleanableBaseModel):
     company_name: str = Field(..., min_length=3, max_length=100)
     description: Optional[str] = Field(None, description="Описание компании")
 
@@ -17,17 +18,17 @@ class CompanyCreateSchema(BaseModel):
         return sanitize_input(value)
 
 
-class CompanyResponseSchema(BaseModel):
+class CompanyResponseSchema(CleanableBaseModel):
     company_id: UUID4
 
 
-class CompanySchema(BaseModel):
+class CompanySchema(CleanableBaseModel):
     company_id: UUID4
     company_name: str
-    description: str
+    description: Optional[str] = None
 
 
-class CompanyListResponseSchema(BaseModel):
+class CompanyListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество записей по фильтру
     # ✅ Используем `list`, а не `List[CompanySchema]`
     companies: List[CompanySchema]
@@ -37,17 +38,9 @@ class CompanyListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class CompanyEditSchema(BaseModel):
+class CompanyEditSchema(CleanableBaseModel):
     company_name: Optional[str] = Field(None, min_length=3, max_length=100)
     description: Optional[str] = Field(None, description="Описание компании")
-
-    @field_validator("company_name", mode="before")
-    @classmethod
-    def validate_company_name(cls, value: Optional[str]) -> Optional[str]:
-        """Фильтрация только если передано новое значение"""
-        if value:
-            return sanitize_input(value)
-        return value
 
 
 def company_filter_params(

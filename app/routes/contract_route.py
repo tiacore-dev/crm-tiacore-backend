@@ -23,31 +23,56 @@ contract_router = APIRouter()
     summary="Добавить контракт",
     status_code=status.HTTP_201_CREATED
 )
-async def add_contract(data: ContractCreateSchema = Depends(ContractCreateSchema.as_form), username: str = Depends(get_current_user)):
+async def add_contract(
+    data: ContractCreateSchema = Depends(ContractCreateSchema.as_form),
+    username: str = Depends(get_current_user)
+):
     try:
+        logger.debug(f"[{username}] Полученные данные: {data.model_dump()}")
+
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
         status_obj = await ContractStatus.get_or_none(contract_status_id=data.status)
 
+        if not buyer:
+            logger.warning(f"[{username}] Покупатель не найден: {data.buyer}")
+        if not seller:
+            logger.warning(f"[{username}] Продавец не найден: {data.seller}")
+        if not status_obj:
+            logger.warning(f"[{username}] Статус не найден: {data.status}")
+
         if not buyer or not seller or not status_obj:
             raise HTTPException(
-                status_code=400, detail="Покупатель, продавец или статус не найдены"
+                status_code=400,
+                detail="Покупатель, продавец или статус не найдены"
             )
+
         s3_key = None
         if data.file:
+            logger.debug(f"[{username}] Обработка файла: {data.file.filename}")
 
             file_bytes = await data.file.read()
             if not file_bytes:
+                logger.warning(f"[{username}] Файл пустой или не прочитан.")
                 raise HTTPException(
-                    status_code=400, detail="Не удалось загрузить данные файла"
+                    status_code=400,
+                    detail="Не удалось загрузить данные файла"
                 )
 
             logger.info(
-                f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт")
+                f"[{username}] Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт"
+            )
 
             filename = data.file.filename
             manager = AsyncS3Manager()
-            s3_key = await manager.upload_bytes(file_bytes, f"{data.buyer}+{data.seller}", filename, entity="contract")
+            s3_key = await manager.upload_bytes(
+                file_bytes,
+                f"{data.buyer}+{data.seller}",
+                filename,
+                entity="contract"
+            )
+            logger.info(
+                f"[{username}] Файл успешно загружен в S3, ключ: {s3_key}")
 
         contract = await Contract.create(
             contract_name=data.contract_name,
@@ -58,13 +83,18 @@ async def add_contract(data: ContractCreateSchema = Depends(ContractCreateSchema
             s3_key=s3_key,
             status=status_obj,
         )
+
+        logger.info(
+            f"[{username}] Контракт успешно создан: {contract.contract_id}")
         return {"contract_id": str(contract.contract_id)}
 
     except HTTPException as http_exc:
+        logger.warning(
+            f"[{username}] HTTP ошибка при создании контракта: {http_exc.detail}")
         raise http_exc
 
     except Exception as e:
-        logger.exception("Ошибка при создании контракта")
+        logger.exception(f"[{username}] Ошибка при создании контракта")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 

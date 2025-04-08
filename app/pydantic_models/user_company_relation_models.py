@@ -1,9 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
+from pydantic import UUID4, field_validator, Field
 from fastapi import Query
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class UserCompanyRelationCreateSchema(BaseModel):
+class UserCompanyRelationCreateSchema(CleanableBaseModel):
     user: UUID4 = Field(...,
                         description="UUID пользователя, связанного с компанией")
     company: UUID4 = Field(..., description="UUID компании")
@@ -22,7 +23,7 @@ class UserCompanyRelationCreateSchema(BaseModel):
         from_attributes = True
 
 
-class UserCompanyRelationSchema(BaseModel):
+class UserCompanyRelationSchema(CleanableBaseModel):
     user_company_id: UUID4
     user_id: UUID4
     company_id: UUID4
@@ -32,7 +33,7 @@ class UserCompanyRelationSchema(BaseModel):
         from_attributes = True
 
 
-class UserCompanyRelationListResponseSchema(BaseModel):
+class UserCompanyRelationListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество связей по фильтру
     # ✅ Используем `list`, а не `List[UserCompanyRelationSchema]`
     relations: List[UserCompanyRelationSchema]
@@ -42,14 +43,14 @@ class UserCompanyRelationListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class UserCompanyRelationResponseSchema(BaseModel):
+class UserCompanyRelationResponseSchema(CleanableBaseModel):
     user_company_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class UserCompanyRelationEditSchema(BaseModel):
+class UserCompanyRelationEditSchema(CleanableBaseModel):
     user: Optional[UUID4] = None
     company: Optional[UUID4] = None
     role: Optional[str] = None

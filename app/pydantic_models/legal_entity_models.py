@@ -1,9 +1,10 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator, Field
+from pydantic import UUID4, field_validator, Field
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class LegalEntityCreateSchema(BaseModel):
+class LegalEntityCreateSchema(CleanableBaseModel):
     legal_entity_name: str = Field(..., min_length=3, max_length=255)
     inn: str = Field(..., min_length=10, max_length=12)
     kpp: Optional[str] = Field(None, min_length=9, max_length=9)
@@ -46,7 +47,7 @@ class LegalEntityCreateSchema(BaseModel):
         }
 
 
-class LegalEntitySchema(BaseModel):
+class LegalEntitySchema(CleanableBaseModel):
     legal_entity_id: UUID4
     legal_entity_name: str = Field(..., max_length=255)
     inn: str = Field(..., min_length=10, max_length=12)
@@ -62,14 +63,14 @@ class LegalEntitySchema(BaseModel):
         from_attributes = True
 
 
-class LegalEntityResponseSchema(BaseModel):
+class LegalEntityResponseSchema(CleanableBaseModel):
     legal_entity_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class LegalEntityListResponseSchema(BaseModel):
+class LegalEntityListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество записей по фильтру
     # ✅ Используем `list`, а не `List[LegalEntitySchema]`
     entities: List[LegalEntitySchema]
@@ -79,7 +80,7 @@ class LegalEntityListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class LegalEntityEditSchema(BaseModel):
+class LegalEntityEditSchema(CleanableBaseModel):
     legal_entity_name: Optional[str] = None
     inn: Optional[str] = None
     kpp: Optional[str] = None

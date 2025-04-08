@@ -1,22 +1,24 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4
+from pydantic import UUID4
 from fastapi import Query, Form, UploadFile, File
+from app.utils.validate_helpers import normalize_form_field
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class GenerateFileSchema(BaseModel):
+class GenerateFileSchema(CleanableBaseModel):
     template_id: UUID4 = Form(...)
     entity_id: UUID4 = Form(...)
     is_pdf: Optional[bool] = Form(False)
 
 
-class TemplateResponseSchema(BaseModel):
+class TemplateResponseSchema(CleanableBaseModel):
     template_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class TemplateSchema(BaseModel):
+class TemplateSchema(CleanableBaseModel):
     template_id: UUID4
     template_name: str
     description: Optional[str] = None
@@ -28,7 +30,7 @@ class TemplateSchema(BaseModel):
         from_attributes = True
 
 
-class TemplateListResponseSchema(BaseModel):
+class TemplateListResponseSchema(CleanableBaseModel):
     total: int
     templates: List[TemplateSchema]
 
@@ -52,7 +54,7 @@ def template_filter_params(
     }
 
 
-class TemplateCreateSchema(BaseModel):
+class TemplateCreateSchema(CleanableBaseModel):
     template_name: str
     description: Optional[str] = None
     company: UUID4
@@ -77,7 +79,7 @@ class TemplateCreateSchema(BaseModel):
         )
 
 
-class TemplateEditSchema(BaseModel):
+class TemplateEditSchema(CleanableBaseModel):
     template_name: Optional[str] = None
     description: Optional[str] = None
     company: Optional[UUID4] = None
@@ -87,16 +89,17 @@ class TemplateEditSchema(BaseModel):
     @classmethod
     def as_form(
         cls,
-        template_name=Form(None),
-        company=Form(None),
-        description=Form(None),
-        entity=Form(None),
-        file=File(None)
+        template_name: Optional[str] = Form(None),
+        description: Optional[str] = Form(None),
+        company: Optional[str] = Form(None),  # строка → UUID внутри
+        entity: Optional[str] = Form(None),
+        file: Optional[str | UploadFile] = File(None),  # ключевая фишка
     ):
         return cls(
-            template_name=template_name,
-            company=company,
-            description=description,
-            entity=entity,
-            file=file
+            template_name=normalize_form_field(template_name, str),
+            description=normalize_form_field(description, str),
+            company=normalize_form_field(company, UUID4),
+            entity=normalize_form_field(entity, str),
+            file=None if isinstance(
+                file, str) and file.strip() == "" else file,
         )

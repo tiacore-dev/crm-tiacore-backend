@@ -1,10 +1,11 @@
 from decimal import Decimal
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, Field, field_validator
+from pydantic import UUID4, Field, field_validator
 from fastapi import Query, HTTPException
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class BillDetailCreateSchema(BaseModel):
+class BillDetailCreateSchema(CleanableBaseModel):
     bill: UUID4 = Field(...)
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0)
@@ -25,14 +26,14 @@ class BillDetailCreateSchema(BaseModel):
         from_attributes = True
 
 
-class BillDetailResponseSchema(BaseModel):
+class BillDetailResponseSchema(CleanableBaseModel):
     bill_detail_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class BillDetailEditSchema(BaseModel):
+class BillDetailEditSchema(CleanableBaseModel):
     quantity: Optional[Decimal] = Field(None, gt=0)
     summ: Optional[Decimal] = Field(None, gt=0)
 
@@ -40,7 +41,7 @@ class BillDetailEditSchema(BaseModel):
         from_attributes = True
 
 
-class BillDetailSchema(BaseModel):
+class BillDetailSchema(CleanableBaseModel):
     bill_detail_id: UUID4
     bill: UUID4  # ✅ Теперь передаем UUID счета
     service: UUID4  # ✅ Теперь передаем UUID услуги
@@ -51,7 +52,7 @@ class BillDetailSchema(BaseModel):
         from_attributes = True
 
 
-class BillDetailListResponseSchema(BaseModel):
+class BillDetailListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество записей по фильтру
     # ✅ Используем `list`, а не `List[BillDetailSchema]`
     bill_details: List[BillDetailSchema]

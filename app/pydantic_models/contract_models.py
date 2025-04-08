@@ -1,9 +1,11 @@
 from typing import Optional, List
-from pydantic import BaseModel, UUID4, field_validator
+from pydantic import UUID4, field_validator
 from fastapi import Query, HTTPException, UploadFile, File, Form
+from app.utils.validate_helpers import normalize_form_field
+from app.pydantic_models.clean_model import CleanableBaseModel
 
 
-class ContractCreateSchema(BaseModel):
+class ContractCreateSchema(CleanableBaseModel):
     contract_name: str
     contract_date: int
     buyer: UUID4
@@ -36,6 +38,9 @@ class ContractCreateSchema(BaseModel):
         file=File(None),
         status=Form(...)
     ):
+        if isinstance(file, str) and file.strip() == "":
+            file = None
+
         return cls(
             contract_name=contract_name,
             contract_date=contract_date,
@@ -50,7 +55,7 @@ class ContractCreateSchema(BaseModel):
         from_attributes = True
 
 
-class ContractSchema(BaseModel):
+class ContractSchema(CleanableBaseModel):
     contract_id: UUID4
     contract_name: str
     contract_date: int  # Unix timestamp
@@ -64,7 +69,7 @@ class ContractSchema(BaseModel):
         from_attributes = True
 
 
-class ContractListResponseSchema(BaseModel):
+class ContractListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество записей по фильтру
     # ✅ Используем `list`, а не `List[ContractSchema]`
     contracts: List[ContractSchema]
@@ -74,14 +79,14 @@ class ContractListResponseSchema(BaseModel):
         arbitrary_types_allowed = True  # Разрешаем нестандартные типы
 
 
-class ContractResponseSchema(BaseModel):
+class ContractResponseSchema(CleanableBaseModel):
     contract_id: UUID4
 
     class Config:
         from_attributes = True
 
 
-class ContractEditSchema(BaseModel):
+class ContractEditSchema(CleanableBaseModel):
     contract_name: Optional[str] = None
     contract_date: Optional[int] = None
     buyer: Optional[UUID4] = None
@@ -94,23 +99,22 @@ class ContractEditSchema(BaseModel):
     def as_form(
         cls,
         contract_name: Optional[str] = Form(None),
-        contract_date: Optional[int] = Form(None),
-        buyer: Optional[UUID4] = Form(None),
-        seller: Optional[UUID4] = Form(None),
+        contract_date: Optional[str] = Form(None),
+        buyer: Optional[str] = Form(None),
+        seller: Optional[str] = Form(None),
         comment: Optional[str] = Form(None),
-        file: Optional[UploadFile] = File(None),
+        file: Optional[str | UploadFile] = File(None),
         status: Optional[str] = Form(None),
     ):
-        if isinstance(file, str) and file == "":
-            file = None
         return cls(
-            contract_name=contract_name,
-            contract_date=contract_date,
-            buyer=buyer,
-            seller=seller,
-            comment=comment,
-            file=file,
-            status=status,
+            contract_name=normalize_form_field(contract_name, str),
+            contract_date=normalize_form_field(contract_date, int),
+            buyer=normalize_form_field(buyer, UUID4),
+            seller=normalize_form_field(seller, UUID4),
+            comment=normalize_form_field(comment, str),
+            file=None if isinstance(
+                file, str) and file.strip() == "" else file,
+            status=normalize_form_field(status, str),
         )
 
     class Config:
