@@ -25,7 +25,7 @@ act_router = APIRouter()
 )
 async def add_act(data: ActCreateSchema, username: str = Depends(get_current_user)):
     try:
-
+        contract = None
         if data.contract:
             contract = await Contract.get_or_none(contract_id=data.contract).prefetch_related("buyer", "seller")
 

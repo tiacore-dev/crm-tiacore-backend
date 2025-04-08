@@ -30,6 +30,7 @@ async def add_bill(data: BillCreateSchema, username: str = Depends(get_current_u
             raise HTTPException(
                 status_code=400, detail="Банковский счет  не найден"
             )
+        contract = None
         if data.contract:
             contract = await Contract.get_or_none(contract_id=data.contract).prefetch_related("buyer", "seller")
 
