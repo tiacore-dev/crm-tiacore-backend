@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
+# from fastapi.middleware.gzip import GZipMiddleware
+# from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 from tortoise.contrib.fastapi import register_tortoise
@@ -16,8 +16,8 @@ def create_app(config_name='Development') -> FastAPI:
     app = FastAPI()
     settings = Settings()
     # Разрешаем запросы через прокси
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-    app.add_middleware(GZipMiddleware)
+    # app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    # app.add_middleware(GZipMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
