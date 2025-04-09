@@ -47,7 +47,7 @@ def setup_logger():
         level="DEBUG",
         rotation="10 MB",
         retention="7 days",
-        compression="zip",
+        # compression="zip",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {function}:{line} - {message}",
         enqueue=True,
     )

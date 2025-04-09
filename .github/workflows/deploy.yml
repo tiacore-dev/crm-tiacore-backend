@@ -127,7 +127,7 @@ jobs:
 
             set -e
 
-            if docker compose -f docker-compose.app.yml run --rm aerich upgrade; then
+            if docker compose -f docker-compose.app.yml run --rm aerich; then
               echo "✅ Миграции применены или не требовались"
             else
               echo "⚠️ Aerich завершился с ошибкой"

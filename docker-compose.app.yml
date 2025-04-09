@@ -5,6 +5,8 @@ services:
     volumes:
       - .:/app
       - .env:/app/.env 
+    environment:
+      - TORTOISE_ORM=app.database.config.TORTOISE_ORM
     env_file:
       - .env  
     networks:
