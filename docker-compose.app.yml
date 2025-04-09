@@ -4,8 +4,12 @@ services:
     command: ["aerich", "upgrade"]
     volumes:
       - .:/app
+      - .env:/app/.env 
+    env_file:
+      - .env  
     networks:
       - crm_network
+
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
     tty: true
