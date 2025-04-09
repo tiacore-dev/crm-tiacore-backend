@@ -3,11 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import make_asgi_app
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
-
+from app.tracer import init_tracer
 # Определяем OAuth2 (аналогично Flask)
 
 
@@ -24,6 +25,9 @@ def create_app(config_name='Development') -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
     )
+    app.mount("/metrics", make_asgi_app())
+
+    init_tracer(app)
     # Подключаем конфигурацию
 
     if config_name == 'Test':
