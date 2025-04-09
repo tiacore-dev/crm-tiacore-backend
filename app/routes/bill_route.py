@@ -152,7 +152,7 @@ async def get_bills(filters: dict = Depends(bill_filter_params), username: str =
                     bill_id=bill.bill_id,
                     bill_number=bill.bill_number,
                     bill_date=bill.bill_date,
-                    contract=bill.contract.contract_id,
+                    contract=bill.contract.contract_id if bill.contract else None,
                     bank_account=bill.bank_account.bank_account_id,
                     buyer=bill.buyer.legal_entity_id,
                     seller=bill.seller.legal_entity_id
@@ -182,7 +182,7 @@ async def get_bill(bill_id: UUID, username: str = Depends(get_current_user)):
         bill_id=bill.bill_id,
         bill_number=bill.bill_number,
         bill_date=bill.bill_date,
-        contract=bill.contract.contract_id,
+        contract=bill.contract.contract_id if bill.contract else None,
         bank_account=bill.bank_account.bank_account_id,
         buyer=bill.buyer.legal_entity_id,
         seller=bill.seller.legal_entity_id

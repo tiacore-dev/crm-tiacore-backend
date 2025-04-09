@@ -133,7 +133,7 @@ async def get_acts(filters: dict = Depends(act_filter_params), username: str = D
             acts=[
                 ActSchema(
                     act_id=act.act_id,
-                    contract=act.contract.contract_id,  # ✅ Теперь передаем UUID контракта
+                    contract=act.contract.contract_id if act.contract else None,
                     act_number=act.act_number,
                     act_date=act.act_date,
                     buyer=act.buyer.legal_entity_id,
@@ -164,7 +164,7 @@ async def get_act(act_id: UUID, username: str = Depends(get_current_user)):
 
     return ActSchema(
         act_id=act.act_id,
-        contract=act.contract.contract_id,  # ✅ Теперь передаем UUID
+        contract=act.contract.contract_id if act.contract else None,
         act_number=act.act_number,
         act_date=act.act_date,
         buyer=act.buyer.legal_entity_id,
