@@ -115,15 +115,41 @@ async def delete_act(act_id: UUID, username: str = Depends(get_current_user)):
 async def get_acts(filters: dict = Depends(act_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
+
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
 
-        total_count = await Acts.filter(query).count()  # ✅ Общее число записей
+        if filters.get("act_date_from"):
+            try:
+                date_from = int(filters["act_date_from"])
+                query &= Q(act_date__gte=date_from)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422, detail="act_date_from должен быть целым числом (timestamp)") from e
+
+        if filters.get("act_date_to"):
+            try:
+                date_to = int(filters["act_date_to"])
+                query &= Q(act_date__lte=date_to)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422, detail="act_date_to должен быть целым числом (timestamp)") from e
 
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
+        total_count = await Acts.filter(query).count()
+
         acts = await Acts.filter(query) \
+            .order_by(sort_field) \
             .prefetch_related("contract", "buyer", "seller") \
             .offset((page - 1) * page_size) \
             .limit(page_size)

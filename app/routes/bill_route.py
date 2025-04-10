@@ -129,18 +129,42 @@ async def delete_bill(bill_id: UUID, username: str = Depends(get_current_user)):
 async def get_bills(filters: dict = Depends(bill_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
+
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
         if filters.get("bank_account"):
             query &= Q(bank_account_id=filters["bank_account"])
 
-        # ✅ Общее число записей
-        total_count = await Bills.filter(query).count()
+        if filters.get("bill_date_from"):
+            try:
+                date_from = int(filters["bill_date_from"])
+                query &= Q(bill_date__gte=date_from)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422, detail="bill_date_from должен быть целым числом (timestamp)") from e
+
+        if filters.get("bill_date_to"):
+            try:
+                date_to = int(filters["bill_date_to"])
+                query &= Q(bill_date__lte=date_to)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422, detail="bill_date_to должен быть целым числом (timestamp)") from e
+
+        sort_by = filters.get("sort_by", "bill_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
 
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
+        total_count = await Bills.filter(query).count()
+
         bills = await Bills.filter(query) \
+            .order_by(sort_field) \
             .prefetch_related("contract", "bank_account", "buyer", "seller") \
             .offset((page - 1) * page_size) \
             .limit(page_size)

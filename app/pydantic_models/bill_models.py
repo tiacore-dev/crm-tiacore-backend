@@ -82,12 +82,23 @@ def bill_filter_params(
     bank_account: Optional[UUID4] = Query(
         None, description="Фильтр по банковскому счету"),
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
+    bill_date_from: Optional[int] = Query(
+        None, description="Фильтр по дате от (timestamp)"),
+    bill_date_to: Optional[int] = Query(
+        None, description="Фильтр по дате до (timestamp)"),
+    sort_by: Optional[str] = Query("bill_date", description="Поле сортировки"),
+    order: Optional[str] = Query(
+        "asc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "bank_account": bank_account,
         "contract": contract,
+        "bill_date_from": bill_date_from,
+        "bill_date_to": bill_date_to,
+        "sort_by": sort_by,
+        "order": order,
         "page": page,
         "page_size": page_size,
     }

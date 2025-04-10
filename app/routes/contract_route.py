@@ -184,6 +184,29 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
         if filters.get("status"):
             query &= Q(status_id=filters["status"])
 
+        if filters.get("contract_name"):
+            query &= Q(contract_name__icontains=filters["contract_name"])
+
+        if filters.get("contract_date_from"):
+            try:
+                date_from = int(filters["contract_date_from"])
+                query &= Q(contract_date__gte=date_from)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail="contract_date_from должен быть целым числом (timestamp)"
+                ) from e
+
+        if filters.get("contract_date_to"):
+            try:
+                date_to = int(filters["contract_date_to"])
+                query &= Q(contract_date__lte=date_to)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422,
+                    detail="contract_date_to должен быть целым числом (timestamp)"
+                ) from e
+
         # ✅ Общее число записей
         total_count = await Contract.filter(query).count()
 

@@ -58,7 +58,7 @@ class ContractCreateSchema(CleanableBaseModel):
 class ContractSchema(CleanableBaseModel):
     contract_id: UUID4
     contract_name: str
-    contract_date: int  # Unix timestamp
+    contract_date: int
     buyer: UUID4
     seller: UUID4
     s3_key: Optional[str] = None
@@ -99,7 +99,7 @@ class ContractEditSchema(CleanableBaseModel):
     def as_form(
         cls,
         contract_name: Optional[str] = Form(None),
-        contract_date: Optional[str] = Form(None),
+        contract_date: Optional[int] = Form(None),
         buyer: Optional[str] = Form(None),
         seller: Optional[str] = Form(None),
         comment: Optional[str] = Form(None),
@@ -125,6 +125,14 @@ def contract_filter_params(
     buyer: Optional[UUID4] = Query(None, description="Фильтр по покупателю"),
     seller: Optional[UUID4] = Query(None, description="Фильтр по продавцу"),
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
+    contract_date_to: Optional[int] = Query(
+        None, description="Фильтр по дате от"),
+    contract_date_from: Optional[int] = Query(
+        None, description="Фильтр по дате до"),
+    sort_by: Optional[str] = Query(
+        "contract_name", description="Поле сортировки"),
+    order: Optional[str] = Query(
+        "asc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
@@ -132,6 +140,10 @@ def contract_filter_params(
         "buyer": buyer,
         "seller": seller,
         "status": status,
+        "contract_date_from": contract_date_from,
+        "contract_date_to": contract_date_to,
+        "sort_by": sort_by,
+        "order": order,
         "page": page,
         "page_size": page_size,
     }
