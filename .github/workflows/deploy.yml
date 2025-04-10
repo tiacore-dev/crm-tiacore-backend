@@ -157,7 +157,7 @@ jobs:
             docker image prune -f > /dev/null
           EOF
 
- notify:
+  notify:
     name: 📬 Telegram Notify
     runs-on: ubuntu-latest
     needs: [build-test-push, deploy]
