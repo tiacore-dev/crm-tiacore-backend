@@ -157,20 +157,46 @@ jobs:
             docker image prune -f > /dev/null
           EOF
 
+ notify:
+    name: 📬 Telegram Notify
+    runs-on: ubuntu-latest
+    needs: [build-test-push, deploy]
+    if: always()
+    steps:
       - name: 📬 Telegram Notification
-        if: always()
         run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            CHAT_ID="${{ secrets.TELEGRAM_SUCCESS_CHAT_ID }}"
-            STATUS="✅ Деплой *успешен*"
-          else
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          REF_NAME="${{ github.ref_name }}"
+          SHA="${{ github.sha }}"
+
+          DEPLOY_STATUS="${{ needs.deploy.result }}"
+          BUILD_STATUS="${{ needs['build-test-push'].result }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "$BUILD_STATUS" != "success" ]; then
+            STATUS="❌ *Ошибка сборки или тестов*"
             CHAT_ID="${{ secrets.TELEGRAM_PERSONAL_CHAT_ID }}"
-            STATUS="❌ Деплой *с ошибкой*"
+            EXTRA_LINK="\n\n[🔍 Открыть GitHub Actions]($RUN_URL)"
+          elif [ "$DEPLOY_STATUS" != "success" ]; then
+            STATUS="🛑 *Ошибка деплоя*"
+            CHAT_ID="${{ secrets.TELEGRAM_PERSONAL_CHAT_ID }}"
+            EXTRA_LINK="\n\n[🔍 Открыть GitHub Actions]($RUN_URL)"
+          else
+            STATUS="✅ Деплой *успешен*"
+            CHAT_ID="${{ secrets.TELEGRAM_SUCCESS_CHAT_ID }}"
+            EXTRA_LINK=""
           fi
 
+          TEXT="${STATUS}
+
+          📦 *Ветка:* \`$REF_NAME\`
+          🔖 *Тег:* \`$SHA\`
+          📝 *Коммит:* $COMMIT_MESSAGE${EXTRA_LINK}"
+
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id=$CHAT_ID \
+            -d chat_id="$CHAT_ID" \
             -d parse_mode=Markdown \
-            -d text="🚀 *Деплой выполнен успешно!*\n\n📦 *Ветка:* \`${{ github.ref_name }}\`\n🔖 *Тег:* \`${{ github.sha }}\`"
+            -d "text=$TEXT"
+
 
 

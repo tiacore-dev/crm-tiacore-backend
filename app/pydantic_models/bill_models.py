@@ -6,7 +6,7 @@ from app.pydantic_models.clean_model import CleanableBaseModel
 
 class BillCreateSchema(CleanableBaseModel):
     bank_account: UUID4 = Field(...)
-    bill_number: str = Field(..., min_length=3, max_length=255)
+    bill_number: str = Field(...,  max_length=255)
     bill_date: int = Field(..., ge=0)  # Unix timestamp
     contract: Optional[UUID4] = Field(None)
     buyer: Optional[UUID4] = Field(None)

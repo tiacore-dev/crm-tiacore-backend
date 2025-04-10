@@ -5,7 +5,7 @@ from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class ActCreateSchema(CleanableBaseModel):
-    act_number: str = Field(..., min_length=3, max_length=255)
+    act_number: str = Field(..., max_length=255)
     act_date: int = Field(..., ge=0)  # Unix timestamp
     contract: Optional[UUID4] = Field(None)
     buyer: Optional[UUID4] = Field(None)
