@@ -46,8 +46,14 @@ jobs:
 
       - name: Run Tests in Docker
         run: |
-          docker buildx build --load -t crm-backend-test --target test .
+          docker buildx build \
+            --target test \
+            --cache-from=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache \
+            --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max \
+            --load \
+            -t crm-backend-test .
           docker run --rm --env-file .env.test crm-backend-test pytest --maxfail=3 --disable-warnings
+
 
 
       - name: Log in to Docker Hub
@@ -65,7 +71,6 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max
-
 
 
 
@@ -165,5 +170,7 @@ jobs:
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id=$CHAT_ID \
-            -d text="${STATUS}\nВетка: *${{ github.ref_name }}*\nТег: \`${{ github.sha }}\`" \
-            -d parse_mode=Markdown
+            -d parse_mode=Markdown \
+            -d text="🚀 *Деплой выполнен успешно!*\n\n📦 *Ветка:* \`${{ github.ref_name }}\`\n🔖 *Тег:* \`${{ github.sha }}\`"
+
+
