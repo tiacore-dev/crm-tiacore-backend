@@ -1,16 +1,4 @@
 services:
-  aerich:
-    build: .
-    command: ["aerich", "upgrade"]
-    volumes:
-      - .:/app
-      - .env:/app/.env 
-    environment:
-      - TORTOISE_ORM=app.database.config.TORTOISE_ORM
-    env_file:
-      - .env  
-    networks:
-      - crm_network
 
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
@@ -24,6 +12,19 @@ services:
       - .env:/app/.env 
     command: >
        gunicorn -c gunicorn.conf.py run:app
+    networks:
+      - crm_network
+
+  template-service:
+    image: ${DOCKERHUB_USERNAME}/template-service:latest
+    tty: true
+    stdin_open: true
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logs:/app/logs  
+      - .env:/app/.env 
     networks:
       - crm_network
 

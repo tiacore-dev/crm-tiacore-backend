@@ -1,6 +1,7 @@
 from uuid import UUID
 from io import BytesIO
 import os
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from tortoise.expressions import Q
@@ -17,9 +18,10 @@ from app.pydantic_models.template_models import (
 )
 from app.handlers.auth import get_current_user
 from app.handlers.template_handler import handle_acts, handle_bills
-from app.utils.converter import convert_to_pdf
+from app.config import Settings
 from app.s3.s3_manager import AsyncS3Manager
 
+settings = Settings()
 
 template_router = APIRouter()
 
@@ -225,27 +227,41 @@ MEDIA_TYPES = {
 @template_router.post("/generate")
 async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
     template = await Templates.get_or_none(template_id=data.template_id)
-    manager = AsyncS3Manager()
-    template_bytes = await manager.download_bytes(template.s3_key)
-    document_bytes = None
-    entity_number = None
     extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
     if template.entity == "Act":
-        document_bytes, entity_number = await handle_acts(data.entity_id, template_bytes, extension)
+        document_data = await handle_acts(data.entity_id)
     elif template.entity == "Bill":
-        document_bytes, entity_number = await handle_bills(data.entity_id, template_bytes, extension)
+        document_data = await handle_bills(data.entity_id)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
 
-    if data.is_pdf:
-        document_bytes = convert_to_pdf(document_bytes, extension)
-        extension = "pdf"
+    payload = {
+        "s3_key": template.s3_key,
+        "document_data": document_data,  # или data.document_data
+        "name": f"{template.entity}_{data.entity_id}",
+        "is_pdf": data.is_pdf
+    }
 
-    media_type = MEDIA_TYPES.get(extension)
+    template_service_url = settings.TEMPLATE_SERVICE_URL
 
-    return StreamingResponse(
-        BytesIO(document_bytes),
-        media_type=media_type,
-        headers={
-            "Content-Disposition": f"attachment; filename={template.entity}_{entity_number}.{extension}"}
-    )
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(template_service_url, json=payload)
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code, detail=response.text)
+
+            content_type = response.headers.get(
+                "content-type", "application/octet-stream")
+            disposition = response.headers.get(
+                "content-disposition", f'attachment; filename="document.{extension}"')
+
+            return StreamingResponse(
+                BytesIO(response.content),
+                media_type=content_type,
+                headers={"Content-Disposition": disposition}
+            )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500, detail=f"Ошибка обращения к template-service: {e}") from e

@@ -8,11 +8,11 @@ from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
-from app.tracer import init_tracer
+
 # Определяем OAuth2 (аналогично Flask)
 
 
-def create_app(config_name='Development') -> FastAPI:
+def create_app(config_name) -> FastAPI:
     app = FastAPI()
     settings = Settings()
     # Разрешаем запросы через прокси
@@ -26,8 +26,9 @@ def create_app(config_name='Development') -> FastAPI:
         allow_headers=["*"],  # Разрешаем все заголовки
     )
     app.mount("/metrics", make_asgi_app())
-
-    init_tracer(app)
+    if config_name == "Production":
+        from app.tracer import init_tracer
+        init_tracer(app)
     # Подключаем конфигурацию
 
     if config_name == 'Test':

@@ -25,3 +25,4 @@ class Settings:
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     BUCKET_NAME = os.getenv('BUCKET_NAME')
     OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT")
+    TEMPLATE_SERVICE_URL = os.getenv('TEMPLATE_SERVICE_URL')

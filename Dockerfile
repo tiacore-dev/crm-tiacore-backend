@@ -12,11 +12,7 @@ COPY . .
 
 # ===== FINAL =====
 FROM base AS prod
-RUN apt update && \
-    apt install -y libreoffice libreoffice-writer libreoffice-calc && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
+
 COPY . .
 
 
-CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8000"]

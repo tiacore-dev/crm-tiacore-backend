@@ -7,6 +7,7 @@ load_dotenv()
 # Порт и биндинг
 PORT = 8000
 PASSWORD = os.getenv('PASSWORD')
+CONFIG_NAME = os.getenv('CONFIG_NAME')
 
 
 async def create_admin_user():
@@ -29,7 +30,7 @@ async def create_test_data():
     except Exception as e:
         print(f"Exception: {e}")
 
-app = create_app()
+app = create_app(config_name=CONFIG_NAME)
 
 
 @app.on_event("startup")
