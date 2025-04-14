@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
 from app.database.models import create_user, Service
@@ -9,18 +9,27 @@ from app.config import Settings
 settings = Settings()
 
 
-@pytest.fixture
-async def test_app():
+@pytest.fixture(scope="session")
+def test_app():
+    """Фикстура для тестового приложения."""
     app = create_app(config_name="Test")
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+
+    client = TestClient(app)
+
+    yield client  # Отдаём клиент тестам
+
+    # Закрываем соединения после тестов
+    import asyncio
+    asyncio.run(Tortoise.close_connections())
 
 
 @pytest.fixture(scope="function", autouse=True)
 @pytest.mark.asyncio
-async def setup_and_clean_db():
+async def setup_db():
+    """Гарантируем, что Tortoise ORM инициализирован перед тестами."""
     await Tortoise.init(config={
-        "connections": {"default": settings.TEST_DATABASE_URL},
+        # Используем in-memory базу
+        "connections": {"default": "sqlite://:memory:"},
         "apps": {
             "models": {
                 "models": ["app.database.models"],
@@ -29,13 +38,6 @@ async def setup_and_clean_db():
         },
     })
     await Tortoise.generate_schemas()
-
-    for model in reversed(list(Tortoise.apps.get("models", {}).values())):
-        try:
-            await model.all().delete()
-        except Exception:
-            pass
-
     yield
     await Tortoise.close_connections()
 
