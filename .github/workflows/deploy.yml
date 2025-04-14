@@ -52,7 +52,12 @@ jobs:
             --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max \
             --load \
             -t crm-backend-test .
-          docker run --rm --env-file .env.test crm-backend-test pytest --maxfail=3 --disable-warnings
+          docker run \
+            --rm \
+            --add-host=host.docker.internal:host-gateway \
+            --env-file .env.test \
+            crm-backend-test \
+            pytest --maxfail=3 --disable-warnings
 
 
 
@@ -71,6 +76,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max
+
 
 
 
@@ -138,12 +144,13 @@ jobs:
               -v \$(pwd)/.env:/app/.env \
               -e PYTHONPATH=/app \
               -e TORTOISE_ORM=app.database.config.TORTOISE_ORM \
-              --network observer_network \
-              \$DOCKERHUB_USERNAME/observer-backend:\$TAG aerich upgrade || {
+              --network crm_network \
+              \$DOCKERHUB_USERNAME/crm-backend:\$TAG aerich upgrade || {
                 echo "⚠️ Aerich завершился с ошибкой"
                 exit 1
             }
           EOF
+
 
 
       - name: 🚀 Start Backend
@@ -158,6 +165,7 @@ jobs:
 
             docker image prune -f > /dev/null
           EOF
+
 
   notify:
     name: 📬 Telegram Notify
@@ -199,6 +207,5 @@ jobs:
             -d chat_id="$CHAT_ID" \
             -d parse_mode=Markdown \
             -d "text=$TEXT"
-
 
 
