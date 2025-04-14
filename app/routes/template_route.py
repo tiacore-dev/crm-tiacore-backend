@@ -229,16 +229,16 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
     template = await Templates.get_or_none(template_id=data.template_id)
     extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
     if template.entity == "Act":
-        document_data = await handle_acts(data.entity_id)
+        document_data, entity_number = await handle_acts(data.entity_id)
     elif template.entity == "Bill":
-        document_data = await handle_bills(data.entity_id)
+        document_data, entity_number = await handle_bills(data.entity_id)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
 
     payload = {
         "s3_key": template.s3_key,
         "document_data": document_data,  # или data.document_data
-        "name": f"{template.entity}_{data.entity_id}",
+        "name": f"{template.entity}_{entity_number}",
         "is_pdf": data.is_pdf
     }
 

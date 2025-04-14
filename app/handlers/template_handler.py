@@ -13,7 +13,7 @@ async def handle_bills(bill_id: str):
 
     context = await build_bill_context(bill)
 
-    return context
+    return context, bill.bill_number
 
 
 async def handle_acts(act_id: str):
@@ -25,4 +25,4 @@ async def handle_acts(act_id: str):
 
     context = await build_act_context(act)
 
-    return context
+    return context, act.act_number
