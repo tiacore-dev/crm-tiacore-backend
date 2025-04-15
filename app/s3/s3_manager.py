@@ -1,4 +1,5 @@
 import io
+import re
 from loguru import logger
 import aioboto3
 from botocore.exceptions import ClientError
@@ -22,7 +23,10 @@ class AsyncS3Manager:
         return f"{self.bucket_folder}/{entity}/{company_id}/{filename}"
 
     async def upload_bytes(self, file_bytes: bytes, company_id: str, filename: str, entity: str):
-        key = self._build_path(company_id, filename, entity)
+        # 🔧 Нормализуем имя файла
+        normalized_filename = self._normalize_filename(filename)
+        key = self._build_path(company_id, normalized_filename, entity)
+
         session = self._get_session()
         async with session.client(
             "s3",
@@ -38,7 +42,6 @@ class AsyncS3Manager:
                     Body=io.BytesIO(file_bytes),
                     ACL="private",
                     ContentLength=len(file_bytes),
-                    # 👇 явно отключаем хеширование — критично для некоторых кастомных S3 (MinIO, Yandex.Cloud, etc.)
                     Metadata={"x-amz-content-sha256": "UNSIGNED-PAYLOAD"},
                 )
 
@@ -47,6 +50,14 @@ class AsyncS3Manager:
             except ClientError as e:
                 logger.error(f"Ошибка загрузки: {e}")
                 raise
+
+    def _normalize_filename(self, filename: str) -> str:
+        # Убираем опасные символы, заменяем пробелы и двойные точки
+        filename = filename.strip()
+        filename = filename.replace(" ", "_")
+        # можно строже, если нужно
+        filename = re.sub(r"[^\w.\-]", "", filename)
+        return filename
 
     async def generate_presigned_url(self, key, expiration=3600):
         session = self._get_session()
