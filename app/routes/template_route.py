@@ -226,42 +226,66 @@ MEDIA_TYPES = {
 
 @template_router.post("/generate")
 async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
+    logger.info(
+        f"🔧 Генерация файла запрошена пользователем: {username}, шаблон: {data.template_id}, PDF: {data.is_pdf}")
+
     template = await Templates.get_or_none(template_id=data.template_id)
+    if not template:
+        logger.warning(f"📂 Шаблон не найден: {data.template_id}")
+        raise HTTPException(status_code=404, detail="Шаблон не найден")
+
     extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
-    if template.entity.lower() == "act":
-        document_data, entity_number = await handle_acts(data.entity_id)
-    elif template.entity.lower() == "bill":
-        document_data, entity_number = await handle_bills(data.entity_id)
-    else:
-        raise HTTPException(status_code=400, detail="Неверная сущность")
+
+    try:
+        if template.entity.lower() == "act":
+            document_data, entity_number = await handle_acts(data.entity_id)
+        elif template.entity.lower() == "bill":
+            document_data, entity_number = await handle_bills(data.entity_id)
+        else:
+            logger.error(f"❌ Неверная сущность: {template.entity}")
+            raise HTTPException(status_code=400, detail="Неверная сущность")
+    except Exception as e:
+        logger.exception(f"⚠️ Ошибка при обработке сущности: {e}")
+        raise
 
     payload = {
         "s3_key": template.s3_key,
-        "document_data": document_data,  # или data.document_data
+        "document_data": document_data,
         "name": f"{template.entity}_{entity_number}",
         "is_pdf": data.is_pdf
     }
 
     template_service_url = settings.TEMPLATE_SERVICE_URL
+    logger.debug(
+        f"📡 Отправка запроса в template-service: {template_service_url}, payload: {payload}")
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(template_service_url, json=payload)
 
             if response.status_code != 200:
+                logger.error(
+                    f"🚨 Ошибка от template-service: {response.status_code}, текст: {response.text}")
                 raise HTTPException(
-                    status_code=response.status_code, detail=response.text)
+                    status_code=response.status_code,
+                    detail=response.text
+                )
 
             content_type = response.headers.get(
                 "content-type", "application/octet-stream")
             disposition = response.headers.get(
-                "content-disposition", f'attachment; filename="document.{extension}"')
+                "content-disposition", f'attachment; filename="document.{extension}"'
+            )
 
+            logger.info(
+                "✅ Файл успешно сгенерирован и получен от template-service")
             return StreamingResponse(
                 BytesIO(response.content),
                 media_type=content_type,
                 headers={"Content-Disposition": disposition}
             )
     except httpx.RequestError as e:
+        logger.exception(f"❌ Ошибка обращения к template-service: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Ошибка обращения к template-service: {e}") from e
+            status_code=500, detail=f"Ошибка обращения к template-service: {e}"
+        ) from e
