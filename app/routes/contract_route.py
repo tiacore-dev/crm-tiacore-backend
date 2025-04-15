@@ -206,12 +206,29 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
                     status_code=422,
                     detail="contract_date_to должен быть целым числом (timestamp)"
                 ) from e
+        sort_field = filters["sort_by"]
+        order = filters["order"]
 
-        # ✅ Общее число записей
+        # Проверка и безопасное составление сортировочного поля
+        # добавь другие поля, если нужно
+        if sort_field not in {"contract_name", "contract_date"}:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Неверное поле сортировки: {sort_field}"
+            )
+
+        if order not in {"asc", "desc"}:
+            raise HTTPException(
+                status_code=400,
+                detail="Порядок сортировки должен быть 'asc' или 'desc'"
+            )
+
+        # Префикс для порядка сортировки
+        order_prefix = "" if order == "asc" else "-"
         total_count = await Contract.filter(query).count()
-
         contracts = await Contract.filter(query) \
             .prefetch_related("buyer", "seller", "status") \
+            .order_by(f"{order_prefix}{sort_field}") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
 
