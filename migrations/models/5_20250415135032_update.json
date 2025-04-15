@@ -1,0 +1,20 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"user_to_company_relations\" DROP CONSTRAINT IF EXISTS \"user_to_company_relations_role_id_fkey\";",
+    "ALTER TABLE \"user_to_company_relations\" ALTER COLUMN \"role_id\" TYPE UUID USING role_id::uuid;",
+    "ALTER TABLE \"user_roles\" ALTER COLUMN \"role_id\" DROP DEFAULT;",
+    "ALTER TABLE \"user_roles\" ALTER COLUMN \"role_id\" TYPE UUID USING role_id::uuid;",
+    "ALTER TABLE \"user_to_company_relations\" ADD CONSTRAINT \"user_to_company_relations_role_id_fkey\" FOREIGN KEY (\"role_id\") REFERENCES \"user_roles\" (\"role_id\") ON DELETE CASCADE;",
+    "ALTER TABLE \"user_roles\" ADD CONSTRAINT \"uid_user_roles_role_na_f9d68d\" UNIQUE (\"role_name\");",
+    "CREATE TABLE IF NOT EXISTS \"permissions\" (\n    \"permission_id\" VARCHAR(255) NOT NULL PRIMARY KEY,\n    \"comment\" VARCHAR(255) NOT NULL,\n    \"role_id\" UUID NOT NULL REFERENCES \"user_roles\" (\"role_id\") ON DELETE CASCADE\n);"
+  ],
+  "downgrade": [
+    "DROP TABLE IF EXISTS \"permissions\";",
+    "ALTER TABLE \"user_to_company_relations\" DROP CONSTRAINT IF EXISTS \"user_to_company_relations_role_id_fkey\";",
+    "ALTER TABLE \"user_roles\" DROP CONSTRAINT \"uid_user_roles_role_na_f9d68d\";",
+    "ALTER TABLE \"user_roles\" ALTER COLUMN \"role_id\" TYPE VARCHAR(255) USING role_id::text;",
+    "ALTER TABLE \"user_roles\" ALTER COLUMN \"role_id\" DROP DEFAULT;",
+    "ALTER TABLE \"user_to_company_relations\" ALTER COLUMN \"role_id\" TYPE VARCHAR(255) USING role_id::text;",
+    "ALTER TABLE \"user_to_company_relations\" ADD CONSTRAINT \"user_to_company_relations_role_id_fkey\" FOREIGN KEY (\"role_id\") REFERENCES \"user_roles\" (\"role_id\") ON DELETE CASCADE;"
+  ]
+}

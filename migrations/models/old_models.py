@@ -17,11 +17,28 @@ class LegalEntityType(Model):
 
 
 class UserRole(Model):
-    role_id = fields.CharField(max_length=255, pk=True)
-    role_name = fields.CharField(max_length=255)
+
+    role_id = fields.UUIDField(pk=True, default=uuid.uuid4)
+    role_name = fields.CharField(max_length=50, unique=True)
+
+    def __repr__(self):
+        return f"<UserRole(role_id={self.role_id}, role_name='{self.role_name}')>"
 
     class Meta:
         table = "user_roles"
+
+
+class Permissions(Model):
+    permission_id = fields.CharField(max_length=255)
+    role = fields.ForeignKeyField(
+        "diff_models.UserRole", related_name="permissions")
+    comment = fields.CharField(max_length=255)
+
+    def __repr__(self):
+        return f"<Permissions(permission_id={self.permission_id}, role={self.role.role_id})>"
+
+    class Meta:
+        table = "permissions"
 
 
 class ContractStatus(Model):
@@ -138,11 +155,11 @@ class Acts(Model):
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "diff_models.Contract", related_name="acts", null=True, db_column="contract_id")
+        "diff_models.Contract", related_name="acts", null=True)
     buyer = fields.ForeignKeyField(
-        "diff_models.LegalEntity", related_name="act_buyer", db_column="act_buyer_id",)
+        "diff_models.LegalEntity", related_name="act_buyer")
     seller = fields.ForeignKeyField(
-        "diff_models.LegalEntity", related_name="act_seller", db_column="act_seller_id",)
+        "diff_models.LegalEntity", related_name="act_seller")
 
     class Meta:
         table = "acts"
@@ -151,15 +168,15 @@ class Acts(Model):
 class Bills(Model):
     bill_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     bank_account = fields.ForeignKeyField(
-        "diff_models.BankAccount", related_name="bills", db_column="bank_account_id")
+        "diff_models.BankAccount", related_name="bills")
     bill_number = fields.CharField(max_length=255)
     bill_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "diff_models.Contract", related_name="bills", null=True, db_column="contract_id")
+        "diff_models.Contract", related_name="bills", null=True)
     buyer = fields.ForeignKeyField(
-        "diff_models.LegalEntity", related_name="bill_buyer", db_column="bill_buyer_id")
+        "diff_models.LegalEntity", related_name="bill_buyer")
     seller = fields.ForeignKeyField(
-        "diff_models.LegalEntity", related_name="bill_seller", db_column="bill_seller_id",)
+        "diff_models.LegalEntity", related_name="bill_seller")
 
     class Meta:
         table = "bills"

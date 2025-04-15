@@ -7,7 +7,6 @@ from app.database.models import UserRole, LegalEntityType, ContractStatus
 @pytest.mark.asyncio
 async def seed_role():
     role = await UserRole.create(
-        role_id="admin",
         role_name="Администратор"
     )
     return {
@@ -20,7 +19,6 @@ async def seed_role():
 @pytest.fixture(scope="function")
 async def seed_role_manager():
     role = await UserRole.create(
-        role_id="manager",
         role_name="Менеджер"
     )
     return {
