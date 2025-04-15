@@ -13,6 +13,9 @@ from .bill_route import bill_router
 from .bill_detail_route import bill_detail_router
 from .template_route import template_router
 from .easter_route import easter_router
+from .role_route import role_router
+from .permissions_route import permissions_router
+from .role_permission_relation_route import role_relation_router
 # Функция для регистрации всех маршрутов
 
 
@@ -42,3 +45,8 @@ def register_routes(app):
     app.include_router(
         template_router, prefix='/api/templates', tags=["Templates"])
     app.include_router(easter_router)
+    app.include_router(role_router, prefix='/api/roles', tags=["Roles"])
+    app.include_router(permissions_router,
+                       prefix='/api/permissions', tags=["Permissions"])
+    app.include_router(role_relation_router,
+                       prefix='/api/role-permission-relations', tags=["RolePermissionRelations"])

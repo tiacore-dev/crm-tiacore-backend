@@ -28,14 +28,24 @@ class UserRole(Model):
         table = "user_roles"
 
 
-class Permissions(Model):
-    permission_id = fields.CharField(max_length=255)
+class RolePermissionRelation(Model):
+    role_permission_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role = fields.ForeignKeyField(
-        "models.UserRole", related_name="permissions")
-    comment = fields.CharField(max_length=255)
+        "models.UserRole", related_name="role_permission_relations")
+    permission = fields.ForeignKeyField(
+        "models.Permissions", related_name="role_permission_relations")
+
+    class Meta:
+        table = "role_permission_relations"
+
+
+class Permissions(Model):
+    permission_id = fields.CharField(max_length=255, pk=True)
+    permission_name = fields.CharField(max_length=255)
+    comment = fields.CharField(max_length=255, null=True)
 
     def __repr__(self):
-        return f"<Permissions(permission_id={self.permission_id}, role={self.role.role_id})>"
+        return f"<Permissions(permission_id={self.permission_id}, permission_name={self.permission_name})>"
 
     class Meta:
         table = "permissions"

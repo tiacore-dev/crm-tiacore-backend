@@ -1,0 +1,8 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"permissions\" ALTER COLUMN \"comment\" DROP NOT NULL"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"permissions\" ALTER COLUMN \"comment\" SET NOT NULL"
+  ]
+}
