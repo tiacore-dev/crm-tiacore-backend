@@ -228,9 +228,9 @@ MEDIA_TYPES = {
 async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
     template = await Templates.get_or_none(template_id=data.template_id)
     extension = os.path.splitext(template.s3_key)[-1].lower().replace('.', '')
-    if template.entity == "Act":
+    if template.entity.lower() == "act":
         document_data, entity_number = await handle_acts(data.entity_id)
-    elif template.entity == "Bill":
+    elif template.entity.lower() == "bill":
         document_data, entity_number = await handle_bills(data.entity_id)
     else:
         raise HTTPException(status_code=400, detail="Неверная сущность")
