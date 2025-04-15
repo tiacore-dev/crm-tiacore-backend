@@ -8,8 +8,8 @@ async def seed_test_data():
     """Создаем тестовые данные перед запуском тестов."""
     await LegalEntityType.create(legal_entity_type_id="adc", entity_name="Компания ABC")
     await LegalEntityType.create(legal_entity_type_id="xyz", entity_name="Компания XYZ")
-    await UserRole.create(role_id="admin", role_name="Администратор")
-    await UserRole.create(role_id="manager", role_name="Менеджер")
+    await UserRole.create(role_name="Администратор")
+    await UserRole.create(role_name="Менеджер")
     await ContractStatus.create(contract_status_id="active", status_name="Активен")
     await ContractStatus.create(contract_status_id="waiting", status_name="Ожидание")
 

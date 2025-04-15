@@ -1,70 +1,59 @@
 from typing import Optional, List
-from pydantic import UUID4, field_validator, Field
+from uuid import UUID
+from pydantic import Field
 from fastapi import Query
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class UserCompanyRelationCreateSchema(CleanableBaseModel):
-    user: UUID4 = Field(...,
-                        description="UUID пользователя, связанного с компанией")
-    company: UUID4 = Field(..., description="UUID компании")
-    role: str = Field(..., min_length=3, max_length=50,
-                      description="Роль пользователя в компании")
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, value: str):
-        """Запрещаем передавать пустые строки в role"""
-        if value.strip() == "":
-            raise ValueError("Поле role не может быть пустым.")
-        return value
+    user: UUID = Field(...,
+                       description="UUID пользователя, связанного с компанией")
+    company: UUID = Field(..., description="UUID компании")
+    role: UUID = Field(..., description="UUID роли пользователя в компании")
 
     class Config:
         from_attributes = True
 
 
 class UserCompanyRelationSchema(CleanableBaseModel):
-    user_company_id: UUID4
-    user_id: UUID4
-    company_id: UUID4
-    role_id: str
+    user_company_id: UUID
+    user_id: UUID
+    company_id: UUID
+    role_id: UUID
 
     class Config:
         from_attributes = True
 
 
 class UserCompanyRelationListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Количество связей по фильтру
-    # ✅ Используем `list`, а не `List[UserCompanyRelationSchema]`
+    total: int
     relations: List[UserCompanyRelationSchema]
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 class UserCompanyRelationResponseSchema(CleanableBaseModel):
-    user_company_id: UUID4
+    user_company_id: UUID
 
     class Config:
         from_attributes = True
 
 
 class UserCompanyRelationEditSchema(CleanableBaseModel):
-    user: Optional[UUID4] = None
-    company: Optional[UUID4] = None
-    role: Optional[str] = None
+    user: Optional[UUID] = None
+    company: Optional[UUID] = None
+    role: Optional[UUID] = None
 
     class Config:
         from_attributes = True
 
 
 def user_company_filter_params(
-    user: Optional[UUID4] = Query(
-        None, description="Фильтр по пользователю"),
-    company: Optional[UUID4] = Query(
-        None, description="Фильтр по компании"),
-    role: Optional[str] = Query(None, description="Фильтр по роли"),
+    user: Optional[UUID] = Query(None, description="Фильтр по пользователю"),
+    company: Optional[UUID] = Query(None, description="Фильтр по компании"),
+    role: Optional[UUID] = Query(None, description="Фильтр по роли"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

@@ -10,7 +10,7 @@ async def seed_role():
         role_name="Администратор"
     )
     return {
-        "role_id": role.role_id,
+        "role_id": str(role.role_id),
         "role_name": role.role_name
     }
 
@@ -22,7 +22,7 @@ async def seed_role_manager():
         role_name="Менеджер"
     )
     return {
-        "role_id": role.role_id,
+        "role_id": str(role.role_id),
         "role_name": role.role_name
     }
 

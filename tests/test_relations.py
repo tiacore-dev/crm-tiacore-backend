@@ -42,7 +42,7 @@ async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_use
     """Проверка изменения связи"""
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
-    update_data = {"role": "manager"}
+    update_data = {"role": seed_role_manager['role_id']}
     response = test_app.patch(
         f"/api/user-company-relations/{seed_relation['user_company_id']}", headers=headers, json=update_data)
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
@@ -55,7 +55,7 @@ async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_use
     # Проверяем в БД, загружая связанные данные
     relation = await UserCompanyRelation.filter(user_company_id=seed_relation["user_company_id"]).prefetch_related("role").first()
     assert relation is not None, "Связь не найдена в БД!"
-    assert relation.role.role_id == "manager", f"Роль не обновилась в БД! Ожидали 'manager', а получили '{relation.role.role_id}'"
+    assert relation.role.role_name == "Менеджер", f"Роль не обновилась в БД! Ожидали 'manager', а получили '{relation.role.role_name}'"
 
 
 @pytest.mark.asyncio
