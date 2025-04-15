@@ -89,12 +89,12 @@ async def delete_user_company_relation(user_company_id: UUID, username: str = De
 async def get_user_company_relations(filters: dict = Depends(user_company_filter_params), username: str = Depends(get_current_user)):
     try:
         query = Q()
-        if filters.get("user_id"):
-            query &= Q(user_id=filters["user_id"])
+        if filters.get("user"):
+            query &= Q(user=filters["user"])
         if filters.get("company_id"):
-            query &= Q(company_id=filters["company_id"])
-        if filters.get("role_id"):
-            query &= Q(role_id=filters["role_id"])
+            query &= Q(company=filters["company"])
+        if filters.get("role"):
+            query &= Q(role=filters["role"])
 
         # ✅ Общее число записей
         total_count = await UserCompanyRelation.filter(query).count()
