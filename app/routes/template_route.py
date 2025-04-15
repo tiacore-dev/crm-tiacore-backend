@@ -1,5 +1,6 @@
 from uuid import UUID
 from io import BytesIO
+import json
 import os
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -254,6 +255,8 @@ async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_c
         "name": f"{template.entity}_{entity_number}",
         "is_pdf": data.is_pdf
     }
+    logger.debug(
+        f"document_data: {json.dumps(document_data, ensure_ascii=False, indent=2)}")
 
     template_service_url = settings.TEMPLATE_SERVICE_URL
     logger.debug(
