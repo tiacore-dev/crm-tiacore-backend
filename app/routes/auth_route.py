@@ -1,27 +1,28 @@
 from fastapi import APIRouter, Body, HTTPException
-from jose import JWTError, jwt
-from loguru import logger
-from app.handlers import login_handler, create_refresh_token, create_access_token
-from app.handlers.auth import SECRET_KEY, ALGORITHM
+from jose import JWTError
+from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token
+from app.utils.permissions_get import get_company_permissions_for_user
+from app.database.models import User
 from app.pydantic_models.auth_models import TokenResponse, LoginRequest
+
 
 auth_router = APIRouter()
 
 
-# @auth_router.get("/health", summary="Проверка работоспособности")
-# async def health_check():
-#     return {"message": "Hello, world!"}, 200
-
-
-@auth_router.post("/token", response_model=TokenResponse, summary="Авторизация пользователя")
+@auth_router.post("/token", response_model=TokenResponse)
 async def login(data: LoginRequest):
-    user = await login_handler(data.username, data.password)
-    if not user:
+    result = await login_handler(data.username, data.password)
+    if not result:
         raise HTTPException(status_code=401, detail="Неверные учетные данные")
 
+    user, company_permissions = result
+
     return TokenResponse(
-        access_token=create_access_token({"sub": data.username}),
-        refresh_token=create_refresh_token({"sub": data.username}),
+        access_token=create_access_token({
+            "sub": user.username,
+            "permissions": company_permissions
+        }),
+        refresh_token=create_refresh_token({"sub": user.username}),
         token_type="bearer"
     )
 
@@ -29,27 +30,30 @@ async def login(data: LoginRequest):
 @auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
 async def refresh_access_token(data: dict = Body(...)):
     try:
-
         refresh_token = data.get("refresh_token")
         if not refresh_token:
             raise HTTPException(
                 status_code=400, detail="Refresh token is required")
-        logger.info(f"Полученный токен: {refresh_token}")
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        logger.info(f"Полученный токен: {refresh_token}")
-        if not username:
-            raise HTTPException(status_code=401, detail="Неверный токен")
 
-        new_access_token = create_access_token({"sub": username})
-        new_refresh_token = create_refresh_token({"sub": username})
+        payload = verify_token(refresh_token)
+        username = payload["username"]
+
+        user = await User.get_or_none(username=username)
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        company_permissions = await get_company_permissions_for_user(user)
 
         return TokenResponse(
-            access_token=new_access_token,
-            refresh_token=new_refresh_token,
+            access_token=create_access_token({
+                "sub": username,
+                "permissions": company_permissions
+            }),
+            refresh_token=create_refresh_token({"sub": username}),
             token_type="bearer"
         )
 
     except JWTError as exc:
         raise HTTPException(
-            status_code=401, detail="Неверный или просроченный токен") from exc
+            status_code=401, detail="Неверный или просроченный токен"
+        ) from exc

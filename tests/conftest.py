@@ -82,6 +82,8 @@ async def seed_admin():
         position="admin",
         full_name="Test Admin"
     )
+    admin.is_superadmin = True
+    await admin.save()
     return {
         "user_id": str(admin.user_id),
         "username": admin.username,

@@ -96,19 +96,6 @@ async def test_sorting_legal_entity_types(seed_test_data, test_app: AsyncClient,
 
 
 @pytest.mark.asyncio
-async def test_get_user_roles(seed_test_data, test_app: AsyncClient, jwt_token_user):
-    """Тест получения всех ролей пользователей."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
-    response = test_app.get("/api/user-roles/all", headers=headers)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["total"] == 2
-    assert {item["role_name"]
-            for item in data["user_roles"]} == {"Администратор", "Менеджер"}
-
-
-@pytest.mark.asyncio
 async def test_get_contract_statuses(seed_test_data, test_app: AsyncClient, jwt_token_user):
     """Тест получения всех статусов контрактов."""
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}

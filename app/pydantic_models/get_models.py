@@ -1,6 +1,5 @@
 from typing import List, Optional
 from fastapi import Query
-from pydantic import UUID4
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -14,18 +13,6 @@ class LegalEntityTypeSchema(CleanableBaseModel):
 class LegalEntityTypeListResponse(CleanableBaseModel):
     total: int
     legal_entity_types: List[LegalEntityTypeSchema]
-
-
-class UserRoleSchema(CleanableBaseModel):
-    role_id: UUID4
-    role_name: str
-
-    model_config = {"from_attributes": True}
-
-
-class UserRoleListResponse(CleanableBaseModel):
-    total: int
-    user_roles: List[UserRoleSchema]
 
 
 class ContractStatusSchema(CleanableBaseModel):

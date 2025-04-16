@@ -73,12 +73,12 @@ async def test_view_user(test_app: AsyncClient, jwt_token_user, seed_user):
 
 
 @pytest.mark.asyncio
-async def test_delete_user(test_app: AsyncClient, jwt_token_user, seed_user):
+async def test_delete_user(test_app: AsyncClient, jwt_token_user, seed_user, seed_company):
     """Тест удаления пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 
     response = test_app.delete(
-        f"/api/users/{seed_user['user_id']}",
+        f"/api/users/{seed_user['user_id']}?company={seed_company['company_id']}",
         headers=headers
     )
 
@@ -90,9 +90,9 @@ async def test_delete_user(test_app: AsyncClient, jwt_token_user, seed_user):
 
 
 @pytest.mark.asyncio
-async def test_get_users(test_app: AsyncClient, jwt_token_user, seed_user):
+async def test_get_users(test_app: AsyncClient, jwt_token_admin, seed_user):
     """Тест получения списка пользователей с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/users/all",

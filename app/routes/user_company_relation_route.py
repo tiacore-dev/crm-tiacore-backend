@@ -91,7 +91,7 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
         query = Q()
         if filters.get("user"):
             query &= Q(user=filters["user"])
-        if filters.get("company_id"):
+        if filters.get("company"):
             query &= Q(company=filters["company"])
         if filters.get("role"):
             query &= Q(role=filters["role"])

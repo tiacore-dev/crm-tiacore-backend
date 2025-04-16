@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.auth import get_current_user
-from app.database.models import Company
+from app.database.models import Company, UserCompanyRelation, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
 )
@@ -92,16 +92,28 @@ async def get_companies(
     filters: dict = Depends(company_filter_params),
     username: str = Depends(get_current_user)
 ):
-    logger.info(f"Запрос списка компаний: {filters}")
+    logger.info(
+        f"Запрос списка компаний: {filters} от пользователя: {username}")
 
     try:
+        user = await User.get(username=username.get('username'))
         query = Q()
+
+        # Фильтр по поисковому запросу
         if filters.get("search"):
             query &= Q(company_name__icontains=filters["search"])
 
-        # ✅ Общее число записей
+        # ⚙️ Фильтрация по UserCompanyRelation, если не супер-админ
+        if not user.is_superadmin:
+            # Получаем список company_id, связанных с этим пользователем
+            related_company_ids = await UserCompanyRelation.filter(user=user).values_list("company__company_id", flat=True)
+
+            query &= Q(company_id__in=related_company_ids)
+
+        # Общее количество записей
         total_count = await Company.filter(query).count()
 
+        # Сортировка и пагинация
         order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'company_name')}"
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)

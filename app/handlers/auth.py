@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import HTTPException, Security, status
+from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
 from app.config import Settings
-from app.database import User
+from app.utils.permissions_get import get_company_permissions_for_user
+from app.database.models import User
 from app.auth_schemas import bearer_scheme
 
 # Конфигурация JWT
@@ -20,9 +21,11 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
+    logger.debug(f"📏 Длина payload: {len(to_encode)}")
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    logger.debug(f"🧠 Длина токена: {len(encoded_jwt)} символов")
     logger.info(f"Created Access JWT: {encoded_jwt}")
     return encoded_jwt
 
@@ -33,50 +36,40 @@ def create_refresh_token(data: dict):
     return create_access_token(data, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> str:
-    """
-    Проверяет токен из заголовка Authorization и возвращает имя пользователя.
-    """
-    if credentials is None:
-        logger.warning("❌ Запрос без токена! Отправляем 401")
-        raise HTTPException(status_code=401, detail="Missing token")
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> dict:
+    if not credentials or not credentials.credentials or credentials.credentials.strip() == "":
+        logger.warning("❌ Отсутствует или пустой токен Authorization")
+        raise HTTPException(status_code=401, detail="Missing or empty token")
 
-    if not credentials.credentials:
-        logger.warning("❌ Пустой токен! Отправляем 401")
-        raise HTTPException(status_code=401, detail="Empty token")
-
-    token = credentials.credentials
+    token = credentials.credentials.strip()
+    logger.debug(f"🔐 Получен токен ({len(token)} символов): {token}")
 
     return verify_token(token)
 
 
-def verify_token(token: str) -> str:
+def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        permissions: list = payload.get("permissions", [])
+        logger.debug(
+            f"✅ Токен принят. Пользователь: {username}, разрешения: {permissions}"
+        )
         if username is None:
-            logger.warning("Некорректный токен: отсутствует sub")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-            )
-        return username
-    except JWTError as exc:
-        logger.error("Ошибка JWT-декодирования")
+            logger.warning("❌ Токен не содержит 'sub'. Отказ в доступе.")
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"username": username, "permissions": permissions}
+    except JWTError as e:
+        logger.warning(f"❌ Ошибка при декодировании токена: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        ) from exc
+            status_code=401, detail="Invalid or expired token"
+        ) from e
 
 
 async def login_handler(username: str, password: str):
-    user = await User.filter(username=username).first()
+    user = await User.get_or_none(username=username)
+    if not user or not user.check_password(password):
+        return None
 
-    if not user:
-        return None  # Возвращаем None, если пользователь не найден
-
-    check_password = user.check_password(password)
-    if check_password:
-        return user
-
-    return None  # Возвращаем None, если пароль неверный
+    company_permissions = await get_company_permissions_for_user(user)
+    return user, company_permissions

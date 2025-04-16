@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
 from app.database.models import User, create_user
 from app.pydantic_models.user_models import (
     UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema, UserSchema
@@ -88,7 +89,7 @@ async def edit_user(
 async def delete_user(
         user_id: UUID = Path(..., title="ID пользователя",
                              description="ID удаляемого пользователя"),
-        username: str = Depends(get_current_user)):
+        context=Depends(require_permission_in_context("delete_user"))):
     logger.info(f"Удаление пользователя {user_id}")
     try:
         deleted_count = await User.filter(user_id=user_id).delete()

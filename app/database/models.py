@@ -58,8 +58,6 @@ class ContractStatus(Model):
     class Meta:
         table = "contract_statuses"
 
-# Полноценные модели
-
 
 async def create_user(username: str, password: str, full_name: str, position: str):
     # Хэшируем пароль
@@ -75,6 +73,7 @@ class User(Model):
     password_hash = fields.CharField(max_length=255)
     full_name = fields.CharField(max_length=255)
     position = fields.CharField(max_length=255, null=True)
+    is_superadmin = fields.BooleanField(default=False)
 
     class Meta:
         table = "users"

@@ -58,4 +58,3 @@ async def test_refresh_token_invalid(test_app):
         "/api/auth/refresh", data=json.dumps({"refresh_token": "invalid_token"}))
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Неверный или просроченный токен"

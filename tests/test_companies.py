@@ -80,7 +80,7 @@ async def test_delete_company(test_app: AsyncClient, jwt_token_user, seed_compan
 
 
 @pytest.mark.asyncio
-async def test_get_companies(test_app: AsyncClient, jwt_token_user, seed_company):
+async def test_get_companies(test_app: AsyncClient, jwt_token_user, seed_company, seed_relation):
     """Тест получения списка компаний с фильтрацией."""
     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
 

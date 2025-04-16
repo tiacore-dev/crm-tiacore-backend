@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from tortoise.expressions import Q
 from loguru import logger
 from app.handlers.auth import get_current_user
-from app.database.models import LegalEntityType, UserRole, ContractStatus
+from app.database.models import LegalEntityType,  ContractStatus
 from app.pydantic_models.get_models import (
-    LegalEntityTypeListResponse, UserRoleListResponse, ContractStatusListResponse,
+    LegalEntityTypeListResponse, ContractStatusListResponse,
     FilterParams
 )
 
@@ -44,40 +44,6 @@ async def get_legal_entity_types(filters: FilterParams = Depends(), username: st
         raise http_exc
     except Exception as e:
         logger.exception("Ошибка при получении типов юридических лиц")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
-
-
-@get_router.get(
-    "/user-roles/all",
-    response_model=UserRoleListResponse,
-    summary="Получение списка ролей пользователей"
-)
-async def get_user_roles(filters: FilterParams = Depends(), username: str = Depends(get_current_user)):
-    try:
-        query = UserRole.all()
-
-        if filters.search:
-            query = query.filter(Q(role_name__icontains=filters.search))
-
-        order_by = f"{'-' if filters.order == 'desc' else ''}role_name"
-        query = query.order_by(order_by)
-        total_count = await query.count()
-        roles = await query.offset((filters.page - 1) * filters.page_size).limit(filters.page_size)
-
-        return {
-            "total": total_count,
-            "user_roles": [
-                {
-                    "role_id": role.role_id,
-                    "role_name": role.role_name
-                } for role in roles
-            ]
-        }
-
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при получении списка ролей пользователей")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
