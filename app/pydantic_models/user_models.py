@@ -47,6 +47,7 @@ class UserResponseSchema(CleanableBaseModel):
 
 def user_filter_params(
     search: Optional[str] = Query(None, description="Фильтр по названию"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     sort_by: Optional[str] = Query("username", description="Поле сортировки"),
     order: Optional[str] = Query(
         "asc", description="Порядок сортировки: asc/desc"),
@@ -56,6 +57,7 @@ def user_filter_params(
 ):
     return {
         "search": search,
+        "company": company,
         "sort_by": sort_by,
         "order": order,
         "page": page,

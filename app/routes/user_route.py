@@ -5,7 +5,8 @@ from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.auth import get_current_user
 from app.handlers.depends import require_permission_in_context
-from app.database.models import User, create_user
+from app.dependencies.permissions import with_permission_and_company_check
+from app.database.models import User, create_user, UserCompanyRelation
 from app.pydantic_models.user_models import (
     UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema, UserSchema
 )
@@ -15,7 +16,7 @@ user_router = APIRouter()
 
 
 @user_router.post("/add", response_model=UserResponseSchema, summary="Добавление нового пользователя", status_code=status.HTTP_201_CREATED)
-async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(get_current_user)):
+async def add_user(data: UserCreateSchema = Body(...), context=Depends(require_permission_in_context("add_user"))):
     # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
@@ -48,12 +49,16 @@ async def add_user(data: UserCreateSchema = Body(...), username: str = Depends(g
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.patch("/{user_id}", response_model=UserResponseSchema, summary="Изменение пользователя")
+@user_router.patch(
+    "/{user_id}",
+    response_model=UserResponseSchema,
+    summary="Изменение пользователя"
+)
 async def edit_user(
-        user_id: UUID = Path(..., title="ID пользователя",
-                             description="ID изменяемого пользователя"),
-        data: UserEditSchema = Body(...),
-        username: str = Depends(get_current_user)):
+    user_id: UUID,
+    data: UserEditSchema = Body(...),
+    context=with_permission_and_company_check("edit_user")
+):
     """
     Обновление пользователя по ID, переданному в URL.
     """
@@ -85,11 +90,15 @@ async def edit_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.delete("/{user_id}", summary="Удаление пользователя", status_code=status.HTTP_204_NO_CONTENT)
+@user_router.delete(
+    "/{user_id}",
+    summary="Удаление пользователя",
+    status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_user(
-        user_id: UUID = Path(..., title="ID пользователя",
-                             description="ID удаляемого пользователя"),
-        context=Depends(require_permission_in_context("delete_user"))):
+    user_id: UUID,
+    context=with_permission_and_company_check("delete_user")
+):
     logger.info(f"Удаление пользователя {user_id}")
     try:
         deleted_count = await User.filter(user_id=user_id).first()
@@ -122,6 +131,19 @@ async def get_users(filters: dict = Depends(user_filter_params)):
         search_value = filters.get("search")
         if search_value:
             query &= Q(username__icontains=search_value)
+
+            # 🏢 Фильтр по company_id
+        company = filters.get("company")
+        if company:
+            related_user_ids = await UserCompanyRelation.filter(
+                company=company
+            ).values_list("user_id", flat=True)
+
+            if related_user_ids:
+                query &= Q(user_id__in=related_user_ids)
+            else:
+                # Если нет пользователей — сразу отдаём пустой результат
+                return UserListResponseSchema(total=0, users=[])
 
         order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'username')}"
         page = filters.get("page", 1)
