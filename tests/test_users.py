@@ -4,9 +4,9 @@ from app.database.models import User
 
 
 @pytest.mark.asyncio
-async def test_add_user(test_app: AsyncClient, jwt_token_user):
+async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест добавления нового пользователя."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "username": "testuser",
         "full_name": "Test User",
@@ -14,7 +14,8 @@ async def test_add_user(test_app: AsyncClient, jwt_token_user):
         "password": "securepassword123"
     }
 
-    response = test_app.post("/api/users/add", headers=headers, json=data)
+    response = test_app.post(
+        f"/api/users/add?company={seed_company['company_id']}", headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что пользователь добавлен в базу
@@ -26,16 +27,16 @@ async def test_add_user(test_app: AsyncClient, jwt_token_user):
 
 
 @pytest.mark.asyncio
-async def test_edit_user(test_app: AsyncClient, jwt_token_user, seed_user):
+async def test_edit_user(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company):
     """Тест редактирования пользователя."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "full_name": "Updated User",
         "position": "Senior Developer"
     }
 
     response = test_app.patch(
-        f"/api/users/{seed_user['user_id']}",
+        f"/api/users/{seed_user['user_id']}?company={seed_company['company_id']}",
         headers=headers,
         json=data
     )
@@ -53,9 +54,9 @@ async def test_edit_user(test_app: AsyncClient, jwt_token_user, seed_user):
 
 
 @pytest.mark.asyncio
-async def test_view_user(test_app: AsyncClient, jwt_token_user, seed_user):
+async def test_view_user(test_app: AsyncClient, jwt_token_admin, seed_user):
     """Тест просмотра пользователя по ID."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/users/{seed_user['user_id']}",
