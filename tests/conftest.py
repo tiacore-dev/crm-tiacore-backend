@@ -110,7 +110,8 @@ async def jwt_token_user(seed_user):
 async def jwt_token_admin(seed_admin):
     """Генерирует JWT токен для администратора."""
     token_data = {
-        "sub": seed_admin["username"]
+        "sub": seed_admin["username"],
+        "permissions": {"*": ["*"]}
     }
     return {
         "access_token": create_access_token(token_data),

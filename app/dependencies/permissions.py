@@ -1,21 +1,19 @@
-from uuid import UUID
-from fastapi import HTTPException
+from typing import Dict, List
 from app.database.models import User, UserCompanyRelation, Permissions
 
 
-async def get_user_permissions(username: str, company: UUID) -> list[str]:
-    user = await User.get(username=username)
+async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
+    if user.is_superadmin:
+        return {"*": ["*"]}  # 💥 вот так правильно
 
-    relation = await UserCompanyRelation.filter(
-        user=user, company=company
-    ).select_related("role").first()
+    relations = await UserCompanyRelation.filter(user=user).select_related("company", "role")
+    company_permissions = {}
 
-    if not relation:
-        raise HTTPException(
-            status_code=403, detail="Нет доступа к указанной компании")
+    for rel in relations:
+        perms = await Permissions.filter(
+            role_permission_relations__role=rel.role
+        ).values_list("permission_id", flat=True)
 
-    permissions = await Permissions.filter(
-        role_permission_relations__role=relation.role
-    ).values_list("permission_id", flat=True)
+        company_permissions[str(rel.company.company_id)] = list(perms)
 
-    return list(permissions)
+    return company_permissions

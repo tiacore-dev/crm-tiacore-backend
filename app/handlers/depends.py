@@ -12,7 +12,7 @@ async def get_current_context(
     permissions_map = token_data.get("permissions", {})
 
     raw_permissions = permissions_map.get(str(company), [])
-    is_token_superadmin = raw_permissions == ["*"]
+    is_token_superadmin = permissions_map.get("*") == ["*"]
 
     user = await User.get_or_none(username=username)
     if not user:
