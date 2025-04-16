@@ -21,12 +21,12 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    logger.debug(f"📏 Длина payload: {len(to_encode)}")
+    # logger.debug(f"📏 Длина payload: {len(to_encode)}")
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    logger.debug(f"🧠 Длина токена: {len(encoded_jwt)} символов")
-    logger.info(f"Created Access JWT: {encoded_jwt}")
+    # logger.debug(f"🧠 Длина токена: {len(encoded_jwt)} символов")
+    # logger.info(f"Created Access JWT: {encoded_jwt}")
     return encoded_jwt
 
 # Проверка токена
@@ -42,7 +42,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer
         raise HTTPException(status_code=401, detail="Missing or empty token")
 
     token = credentials.credentials.strip()
-    logger.debug(f"🔐 Получен токен ({len(token)} символов): {token}")
+    # logger.debug(f"🔐 Получен токен ({len(token)} символов): {token}")
 
     return verify_token(token)
 

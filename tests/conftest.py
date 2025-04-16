@@ -1,9 +1,10 @@
 import pytest
+from datetime import timedelta
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
 from app.database.models import create_user, Service
-from app.handlers.auth import create_access_token, create_refresh_token
+from app.handlers.auth import create_access_token, create_refresh_token, login_handler
 from app.config import Settings
 
 settings = Settings()
@@ -48,7 +49,8 @@ pytest_plugins = [
     "tests.fixtures.contract",
     "tests.fixtures.bank_account",
     "tests.fixtures.acts",
-    "tests.fixtures.bills"
+    "tests.fixtures.bills",
+    "tests.fixtures.permissions"
 ]
 
 
@@ -132,3 +134,28 @@ async def seed_service():
         "service_name": service.service_name
 
     }
+
+
+@pytest.fixture
+def get_token_for_user():
+    # по умолчанию пароль фиксированный
+    async def _get_token(user, password="123"):
+        auth_result = await login_handler(user.username, password)
+        if not auth_result:
+            raise Exception(
+                f"Не удалось залогиниться для пользователя {user.username}")
+
+        user_obj, company_permissions = auth_result
+
+        token_data = {
+            "sub": user_obj.username,
+            "username": user_obj.username,  # 💡 важно!
+            "user_id": str(user_obj.user_id),
+            "is_superadmin": user_obj.is_superadmin,
+            "permissions": company_permissions,  # 💡 ключ должен называться так
+        }
+
+        token = create_access_token(
+            token_data, expires_delta=timedelta(minutes=30))
+        return token
+    return _get_token
