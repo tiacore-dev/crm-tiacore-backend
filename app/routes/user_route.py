@@ -92,7 +92,11 @@ async def delete_user(
         context=Depends(require_permission_in_context("delete_user"))):
     logger.info(f"Удаление пользователя {user_id}")
     try:
-        deleted_count = await User.filter(user_id=user_id).delete()
+        deleted_count = await User.filter(user_id=user_id).first()
+        if deleted_count.username == "admin":
+            raise HTTPException(
+                status_code=403, detail="вы не можете удалить администратора.")
+        await deleted_count.delete()
         if not deleted_count:
             logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
