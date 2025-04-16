@@ -216,7 +216,8 @@ class BillDetails(Model):
 
 class ActDetails(Model):
     act_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    act = fields.ForeignKeyField("diff_models.Acts", related_name="details_in_act")
+    act = fields.ForeignKeyField(
+        "diff_models.Acts", related_name="details_in_act")
     service = fields.ForeignKeyField(
         "diff_models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
@@ -239,7 +240,6 @@ class Templates(Model):
     class Meta:
         table = "templates"
 
-from tortoise import Model, fields
 
 MAX_VERSION_LENGTH = 255
 
@@ -250,4 +250,3 @@ class Aerich(Model):
 
     class Meta:
         ordering = ["-id"]
-

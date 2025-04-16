@@ -31,9 +31,11 @@ class UserRole(Model):
 class RolePermissionRelation(Model):
     role_permission_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role = fields.ForeignKeyField(
-        "models.UserRole", related_name="role_permission_relations")
+        "models.UserRole", related_name="role_permission_relations",
+        on_delete=fields.CASCADE)
     permission = fields.ForeignKeyField(
-        "models.Permissions", related_name="role_permission_relations")
+        "models.Permissions", related_name="role_permission_relations",
+        on_delete=fields.CASCADE)
 
     class Meta:
         table = "role_permission_relations"
@@ -95,14 +97,22 @@ class Company(Model):
 
 
 class UserCompanyRelation(Model):
-    user_company_id = fields.UUIDField(
-        pk=True, default=uuid.uuid4)
+    user_company_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     company = fields.ForeignKeyField(
-        "models.Company", related_name="user_company_relations")
+        "models.Company",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
     user = fields.ForeignKeyField(
-        "models.User", related_name="user_company_relations")
+        "models.User",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
     role = fields.ForeignKeyField(
-        "models.UserRole", related_name="user_company_relations")
+        "models.UserRole",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
 
     class Meta:
         table = "user_to_company_relations"
@@ -202,7 +212,8 @@ class Service(Model):
 class BillDetails(Model):
     bill_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     bill = fields.ForeignKeyField(
-        "models.Bills", related_name="details_in_bill")
+        "models.Bills", related_name="details_in_bill",
+        on_delete=fields.CASCADE)
     service = fields.ForeignKeyField(
         "models.Service", related_name="services_in_bill")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
@@ -214,7 +225,8 @@ class BillDetails(Model):
 
 class ActDetails(Model):
     act_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    act = fields.ForeignKeyField("models.Acts", related_name="details_in_act")
+    act = fields.ForeignKeyField("models.Acts", related_name="details_in_act",
+                                 on_delete=fields.CASCADE)
     service = fields.ForeignKeyField(
         "models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
