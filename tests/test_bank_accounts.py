@@ -4,9 +4,9 @@ from app.database.models import BankAccount
 
 
 @pytest.mark.asyncio
-async def test_add_bank_account(test_app: AsyncClient, jwt_token_user, seed_legal_entity):
+async def test_add_bank_account(test_app: AsyncClient, jwt_token_admin, seed_legal_entity):
     """Тест добавления нового банковского счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "account_number": "12345678901234567890",
         "bank_name": "Test Bank",
@@ -27,9 +27,9 @@ async def test_add_bank_account(test_app: AsyncClient, jwt_token_user, seed_lega
 
 
 @pytest.mark.asyncio
-async def test_edit_bank_account(test_app: AsyncClient, jwt_token_user, seed_bank_account):
+async def test_edit_bank_account(test_app: AsyncClient, jwt_token_admin, seed_bank_account):
     """Тест редактирования банковского счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "bank_name": "Updated Bank Name",
         "bank_bic": "987654321"
@@ -51,9 +51,9 @@ async def test_edit_bank_account(test_app: AsyncClient, jwt_token_user, seed_ban
 
 
 @pytest.mark.asyncio
-async def test_view_bank_account(test_app: AsyncClient, jwt_token_user, seed_bank_account):
+async def test_view_bank_account(test_app: AsyncClient, jwt_token_admin, seed_bank_account):
     """Тест просмотра информации о банковском счете."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/bank-accounts/{seed_bank_account['bank_account_id']}",
@@ -72,9 +72,9 @@ async def test_view_bank_account(test_app: AsyncClient, jwt_token_user, seed_ban
 
 
 @pytest.mark.asyncio
-async def test_delete_bank_account(test_app: AsyncClient, jwt_token_user, seed_bank_account):
+async def test_delete_bank_account(test_app: AsyncClient, jwt_token_admin, seed_bank_account):
     """Тест удаления банковского счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/bank-accounts/{seed_bank_account['bank_account_id']}",
@@ -89,9 +89,9 @@ async def test_delete_bank_account(test_app: AsyncClient, jwt_token_user, seed_b
 
 
 @pytest.mark.asyncio
-async def test_get_bank_accounts(test_app: AsyncClient, jwt_token_user, seed_bank_account):
+async def test_get_bank_accounts(test_app: AsyncClient, jwt_token_admin, seed_bank_account):
     """Тест получения списка банковских счетов с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get("/api/bank-accounts/all", headers=headers)
 

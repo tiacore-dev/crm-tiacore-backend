@@ -6,12 +6,12 @@ from app.database.models import Contract
 @pytest.mark.asyncio
 async def test_add_contract(
     test_app: AsyncClient,
-    jwt_token_user,
+    jwt_token_admin,
     seed_legal_entity,
     seed_legal_entity_buyer,
     seed_contract_status
 ):
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     form_data = {
         "contract_name": "Test Contract",
         "contract_date": "1710000000",
@@ -40,11 +40,11 @@ async def test_add_contract(
 @pytest.mark.asyncio
 async def test_edit_contract(
     test_app: AsyncClient,
-    jwt_token_user,
+    jwt_token_admin,
     seed_contract,
     seed_contract_status_updated
 ):
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     form_data = {
         "contract_name": "Updated Contract Name",
         "comment": "Updated comment",
@@ -71,9 +71,9 @@ async def test_edit_contract(
 
 
 @pytest.mark.asyncio
-async def test_view_contract(test_app: AsyncClient, jwt_token_user, seed_contract):
+async def test_view_contract(test_app: AsyncClient, jwt_token_admin, seed_contract):
     """Тест просмотра информации о контракте."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/contracts/{seed_contract['contract_id']}",
@@ -88,9 +88,9 @@ async def test_view_contract(test_app: AsyncClient, jwt_token_user, seed_contrac
 
 
 @pytest.mark.asyncio
-async def test_delete_contract(test_app: AsyncClient, jwt_token_user, seed_contract):
+async def test_delete_contract(test_app: AsyncClient, jwt_token_admin, seed_contract):
     """Тест удаления контракта."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/contracts/{seed_contract['contract_id']}",
@@ -105,9 +105,9 @@ async def test_delete_contract(test_app: AsyncClient, jwt_token_user, seed_contr
 
 
 @pytest.mark.asyncio
-async def test_get_contracts(test_app: AsyncClient, jwt_token_user, seed_contract):
+async def test_get_contracts(test_app: AsyncClient, jwt_token_admin, seed_contract):
     """Тест получения списка контрактов с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/contracts/all",

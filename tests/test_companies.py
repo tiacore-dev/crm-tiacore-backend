@@ -4,33 +4,34 @@ from app.database.models import Company
 
 
 @pytest.mark.asyncio
-async def test_add_company(test_app: AsyncClient, jwt_token_user):
+async def test_add_company(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест добавления новой компании."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
-        "company_name": "Test Company",
+        "company_name": "Test Company Added",
         "description": "Описание тестовой компании"
     }
 
-    response = test_app.post("/api/companies/add", headers=headers, json=data)
+    response = test_app.post(
+        f"/api/companies/add?company={seed_company['company_id']}", headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
-    company = await Company.filter(company_name="Test Company").first()
+    company = await Company.filter(company_name="Test Company Added").first()
     assert data["company_id"] == str(company.company_id)
 
 
 @pytest.mark.asyncio
-async def test_edit_company(test_app: AsyncClient, jwt_token_user, seed_company):
+async def test_edit_company(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест редактирования компании."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "company_name": "Updated Company Name",
         "description": "Обновленное описание"
     }
 
     response = test_app.patch(
-        f"/api/companies/{seed_company['company_id']}",
+        f"/api/companies/{seed_company['company_id']}?company={seed_company['company_id']}",
         headers=headers,
         json=data
     )
@@ -45,9 +46,9 @@ async def test_edit_company(test_app: AsyncClient, jwt_token_user, seed_company)
 
 
 @pytest.mark.asyncio
-async def test_view_company(test_app: AsyncClient, jwt_token_user, seed_company):
+async def test_view_company(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест просмотра информации о компании."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/companies/{seed_company['company_id']}",
@@ -63,12 +64,12 @@ async def test_view_company(test_app: AsyncClient, jwt_token_user, seed_company)
 
 
 @pytest.mark.asyncio
-async def test_delete_company(test_app: AsyncClient, jwt_token_user, seed_company):
+async def test_delete_company(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест удаления компании."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
-        f"/api/companies/{seed_company['company_id']}",
+        f"/api/companies/{seed_company['company_id']}?company={seed_company['company_id']}",
         headers=headers
     )
 
@@ -80,9 +81,9 @@ async def test_delete_company(test_app: AsyncClient, jwt_token_user, seed_compan
 
 
 @pytest.mark.asyncio
-async def test_get_companies(test_app: AsyncClient, jwt_token_user, seed_company, seed_relation):
+async def test_get_companies(test_app: AsyncClient, jwt_token_admin, seed_company, seed_relation):
     """Тест получения списка компаний с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/companies/all",

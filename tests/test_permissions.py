@@ -4,9 +4,9 @@ from app.database.models import Permissions
 
 
 @pytest.mark.asyncio
-async def test_add_permission(test_app: AsyncClient, jwt_token_user):
+async def test_add_permission(test_app: AsyncClient, jwt_token_admin):
     """Тест добавления нового разрешения."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "permission_id": 'test_permission',
         "permission_name": 'Тестовое разрешение',
@@ -25,9 +25,9 @@ async def test_add_permission(test_app: AsyncClient, jwt_token_user):
 
 
 @pytest.mark.asyncio
-async def test_edit_permission(test_app: AsyncClient, jwt_token_user, seed_permission):
+async def test_edit_permission(test_app: AsyncClient, jwt_token_admin, seed_permission):
     """Тест редактирования разрешения."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "comment": "Updated comment"
     }
@@ -49,9 +49,9 @@ async def test_edit_permission(test_app: AsyncClient, jwt_token_user, seed_permi
 
 
 @pytest.mark.asyncio
-async def test_view_permission(test_app: AsyncClient, jwt_token_user, seed_permission):
+async def test_view_permission(test_app: AsyncClient, jwt_token_admin, seed_permission):
     """Тест просмотра разрешения по ID."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/permissions/{seed_permission['permission_id']}",
@@ -66,9 +66,9 @@ async def test_view_permission(test_app: AsyncClient, jwt_token_user, seed_permi
 
 
 @pytest.mark.asyncio
-async def test_delete_permission(test_app: AsyncClient, jwt_token_user, seed_permission):
+async def test_delete_permission(test_app: AsyncClient, jwt_token_admin, seed_permission):
     """Тест удаления разрешения."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/permissions/{seed_permission['permission_id']}",
@@ -82,9 +82,9 @@ async def test_delete_permission(test_app: AsyncClient, jwt_token_user, seed_per
 
 
 @pytest.mark.asyncio
-async def test_get_permissions(test_app: AsyncClient, jwt_token_user, seed_permission):
+async def test_get_permissions(test_app: AsyncClient, jwt_token_admin, seed_permission):
     """Тест получения списка разрешений с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/permissions/all",

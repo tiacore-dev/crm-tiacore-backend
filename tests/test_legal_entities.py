@@ -4,9 +4,9 @@ from app.database.models import LegalEntity
 
 
 @pytest.mark.asyncio
-async def test_add_legal_entity(test_app: AsyncClient, jwt_token_user, seed_company, seed_legal_entity_type):
+async def test_add_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_company, seed_legal_entity_type):
     """Тест добавления нового юридического лица."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "legal_entity_name": "Test Legal Entity",
         "inn": "123456789012",
@@ -19,7 +19,7 @@ async def test_add_legal_entity(test_app: AsyncClient, jwt_token_user, seed_comp
         "description": "Описание тестового юр. лица"
     }
 
-    response = test_app.post("/api/legal-entities/add",
+    response = test_app.post(f"/api/legal-entities/add?company={seed_company['company_id']}",
                              headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
@@ -29,9 +29,9 @@ async def test_add_legal_entity(test_app: AsyncClient, jwt_token_user, seed_comp
 
 
 @pytest.mark.asyncio
-async def test_edit_legal_entity(test_app: AsyncClient, jwt_token_user, seed_legal_entity):
+async def test_edit_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_legal_entity, seed_company):
     """Тест редактирования юридического лица."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "legal_entity_name": "Updated Legal Entity Name",
         "description": "Обновленное описание",
@@ -39,7 +39,7 @@ async def test_edit_legal_entity(test_app: AsyncClient, jwt_token_user, seed_leg
     }
 
     response = test_app.patch(
-        f"/api/legal-entities/{seed_legal_entity['legal_entity_id']}",
+        f"/api/legal-entities/{seed_legal_entity['legal_entity_id']}?company={seed_company['company_id']}",
         headers=headers,
         json=data
     )
@@ -55,9 +55,9 @@ async def test_edit_legal_entity(test_app: AsyncClient, jwt_token_user, seed_leg
 
 
 @pytest.mark.asyncio
-async def test_view_legal_entity(test_app: AsyncClient, jwt_token_user, seed_legal_entity):
+async def test_view_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_legal_entity):
     """Тест просмотра информации о юридическом лице."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/legal-entities/{seed_legal_entity['legal_entity_id']}",
@@ -75,12 +75,12 @@ async def test_view_legal_entity(test_app: AsyncClient, jwt_token_user, seed_leg
 
 
 @pytest.mark.asyncio
-async def test_delete_legal_entity(test_app: AsyncClient, jwt_token_user, seed_legal_entity):
+async def test_delete_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_legal_entity, seed_company):
     """Тест удаления юридического лица."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
-        f"/api/legal-entities/{seed_legal_entity['legal_entity_id']}",
+        f"/api/legal-entities/{seed_legal_entity['legal_entity_id']}?company={seed_company['company_id']}",
         headers=headers
     )
 
@@ -92,9 +92,9 @@ async def test_delete_legal_entity(test_app: AsyncClient, jwt_token_user, seed_l
 
 
 @pytest.mark.asyncio
-async def test_get_legal_entities(test_app: AsyncClient, jwt_token_user, seed_legal_entity):
+async def test_get_legal_entities(test_app: AsyncClient, jwt_token_admin, seed_legal_entity):
     """Тест получения списка юридических лиц с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/legal-entities/all",

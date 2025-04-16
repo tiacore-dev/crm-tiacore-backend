@@ -9,11 +9,11 @@ from app.database.models import Company, Service, User
     ("/api/users/add", User, "username"),
 ])
 @pytest.mark.asyncio
-async def test_xss_injection(test_app: AsyncClient, jwt_token_user, endpoint, model_class, payload_key):
+async def test_xss_injection(test_app: AsyncClient, jwt_token_admin, endpoint, model_class, payload_key, seed_company):
     """Проверяем, что API защищено от XSS-атак"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {payload_key: "<script>alert('XSS')</script>"}
-
+    endpoint += f"?company={seed_company['company_id']}"
     # Если тестируем пользователя, добавляем пароль и имя
     if payload_key == "username":
         data["password"] = "SecurePass123"

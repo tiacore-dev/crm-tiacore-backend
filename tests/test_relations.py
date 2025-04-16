@@ -4,9 +4,9 @@ from app.database.models import UserCompanyRelation
 
 
 @pytest.mark.asyncio
-async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_user, seed_user, seed_company, seed_role):
+async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company, seed_role):
     """Проверка создания связи пользователя и компании"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
         "user": seed_user['user_id'],
@@ -26,9 +26,9 @@ async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_user, 
 
 
 @pytest.mark.asyncio
-async def test_get_user_company_relation(test_app: AsyncClient, jwt_token_user, seed_relation):
+async def test_get_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_relation):
     """Проверка просмотра одной связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/user-company-relations/{seed_relation["user_company_id"]}", headers=headers)
@@ -38,9 +38,9 @@ async def test_get_user_company_relation(test_app: AsyncClient, jwt_token_user, 
 
 
 @pytest.mark.asyncio
-async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_user, seed_relation, seed_role_manager):
+async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_relation, seed_role_manager):
     """Проверка изменения связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     update_data = {"role": seed_role_manager['role_id']}
     response = test_app.patch(
@@ -59,9 +59,9 @@ async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_use
 
 
 @pytest.mark.asyncio
-async def test_delete_user_company_relation(test_app: AsyncClient, jwt_token_user, seed_relation):
+async def test_delete_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_relation):
     """Проверка удаления связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/user-company-relations/{seed_relation["user_company_id"]}", headers=headers)
@@ -73,9 +73,9 @@ async def test_delete_user_company_relation(test_app: AsyncClient, jwt_token_use
 
 
 @pytest.mark.asyncio
-async def test_get_all_user_company_relations(test_app: AsyncClient, jwt_token_user, seed_relation):
+async def test_get_all_user_company_relations(test_app: AsyncClient, jwt_token_admin, seed_relation):
     """Проверка получения всех связей"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get("/api/user-company-relations/all", headers=headers)
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"

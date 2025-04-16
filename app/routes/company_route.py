@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.auth import get_current_user
+from app.dependencies.permissions import with_permission_and_exact_company
+from app.handlers.depends import require_permission_in_context
 from app.database.models import Company, UserCompanyRelation, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
@@ -14,7 +16,7 @@ company_router = APIRouter()
 
 # ✅ 1. Добавление компании
 @company_router.post("/add", response_model=CompanyResponseSchema, summary="Добавление новой компании", status_code=status.HTTP_201_CREATED)
-async def add_company(data: CompanyCreateSchema = Body(), username: str = Depends(get_current_user)):
+async def add_company(data: CompanyCreateSchema = Body(), context=Depends(require_permission_in_context("add_company"))):
     logger.info(f"Создание компании: {data.model_dump()}")
     try:
         company = await Company.create(company_name=data.company_name, description=data.description)
@@ -37,10 +39,10 @@ async def add_company(data: CompanyCreateSchema = Body(), username: str = Depend
 # ✅ 2. Изменение компании
 @company_router.patch("/{company_id}", response_model=CompanyResponseSchema, summary="Изменение компании")
 async def edit_company(
-        company_id: UUID = Path(..., title="ID компании",
-                                description="ID изменяемой компании"),
-        data: CompanyEditSchema = Body(),
-        username: str = Depends(get_current_user)):
+    company_id: UUID = Path(..., title="ID компании",
+                            description="ID изменяемой компании"),
+    data: CompanyEditSchema = Body(),
+        context=with_permission_and_exact_company("edit_company")):
     logger.info(
         f"Обновление компании {company_id}: {data.model_dump(exclude_unset=True)}")
     try:
@@ -65,7 +67,7 @@ async def edit_company(
 async def delete_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID удаляемой компании"),
-        username: str = Depends(get_current_user)):
+        context=with_permission_and_exact_company("delete_company")):
     logger.info(f"Удаление компании: {company_id}")
     try:
         deleted_count = await Company.filter(company_id=company_id).delete()

@@ -4,9 +4,9 @@ from app.database.models import UserRole
 
 
 @pytest.mark.asyncio
-async def test_add_role(test_app: AsyncClient, jwt_token_user):
+async def test_add_role(test_app: AsyncClient, jwt_token_admin):
     """Тест добавления новой роли."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "role_name": "Test Role"
     }
@@ -22,9 +22,9 @@ async def test_add_role(test_app: AsyncClient, jwt_token_user):
 
 
 @pytest.mark.asyncio
-async def test_edit_role(test_app: AsyncClient, jwt_token_user, seed_role):
+async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role):
     """Тест редактирования роли."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "role_name": "Updated Role Name"
     }
@@ -46,9 +46,9 @@ async def test_edit_role(test_app: AsyncClient, jwt_token_user, seed_role):
 
 
 @pytest.mark.asyncio
-async def test_view_role(test_app: AsyncClient, jwt_token_user, seed_role):
+async def test_view_role(test_app: AsyncClient, jwt_token_admin, seed_role):
     """Тест просмотра роли по ID."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/roles/{seed_role['role_id']}",
@@ -63,9 +63,9 @@ async def test_view_role(test_app: AsyncClient, jwt_token_user, seed_role):
 
 
 @pytest.mark.asyncio
-async def test_delete_role(test_app: AsyncClient, jwt_token_user, seed_role):
+async def test_delete_role(test_app: AsyncClient, jwt_token_admin, seed_role):
     """Тест удаления роли."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/roles/{seed_role['role_id']}",
@@ -79,9 +79,9 @@ async def test_delete_role(test_app: AsyncClient, jwt_token_user, seed_role):
 
 
 @pytest.mark.asyncio
-async def test_get_roles(test_app: AsyncClient, jwt_token_user, seed_role):
+async def test_get_roles(test_app: AsyncClient, jwt_token_admin, seed_role):
     """Тест получения списка ролей с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/roles/all",

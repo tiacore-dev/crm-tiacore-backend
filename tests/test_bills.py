@@ -4,9 +4,9 @@ from app.database.models import Bills
 
 
 @pytest.mark.asyncio
-async def test_add_bill(test_app: AsyncClient, jwt_token_user, seed_bank_account, seed_contract):
+async def test_add_bill(test_app: AsyncClient, jwt_token_admin, seed_bank_account, seed_contract):
     """Тест добавления нового счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "bank_account": seed_bank_account["bank_account_id"],
         "bill_number": "INV-2024-001",
@@ -23,9 +23,9 @@ async def test_add_bill(test_app: AsyncClient, jwt_token_user, seed_bank_account
 
 
 @pytest.mark.asyncio
-async def test_edit_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
+async def test_edit_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест редактирования счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "bill_number": "INV-2024-002"
     }
@@ -43,9 +43,9 @@ async def test_edit_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
 
 
 @pytest.mark.asyncio
-async def test_view_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
+async def test_view_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест просмотра информации о счете."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/bills/{seed_bill['bill_id']}",
@@ -63,9 +63,9 @@ async def test_view_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
 
 
 @pytest.mark.asyncio
-async def test_delete_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
+async def test_delete_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест удаления счета."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/bills/{seed_bill['bill_id']}", headers=headers)
@@ -76,9 +76,9 @@ async def test_delete_bill(test_app: AsyncClient, jwt_token_user, seed_bill):
 
 
 @pytest.mark.asyncio
-async def test_get_all_bills(test_app: AsyncClient, jwt_token_user, seed_bill):
+async def test_get_all_bills(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест получения списка счетов."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get("/api/bills/all", headers=headers)
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"

@@ -4,9 +4,9 @@ from app.database.models import ActDetails
 
 
 @pytest.mark.asyncio
-async def test_add_act_detail(test_app: AsyncClient, jwt_token_user, seed_act, seed_service):
+async def test_add_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act, seed_service):
     """Тест добавления новой детали акта."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "act": seed_act["act_id"],
         "service": seed_service["service_id"],
@@ -25,9 +25,9 @@ async def test_add_act_detail(test_app: AsyncClient, jwt_token_user, seed_act, s
 
 
 @pytest.mark.asyncio
-async def test_edit_act_detail(test_app: AsyncClient, jwt_token_user, seed_act_detail):
+async def test_edit_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act_detail):
     """Тест редактирования детали акта."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "quantity": "10.250",
         "summ": "2000.75"
@@ -49,9 +49,9 @@ async def test_edit_act_detail(test_app: AsyncClient, jwt_token_user, seed_act_d
 
 
 @pytest.mark.asyncio
-async def test_view_act_detail(test_app: AsyncClient, jwt_token_user, seed_act_detail):
+async def test_view_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act_detail):
     """Тест просмотра информации о детали акта."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/act-details/{seed_act_detail['act_detail_id']}",
@@ -66,9 +66,9 @@ async def test_view_act_detail(test_app: AsyncClient, jwt_token_user, seed_act_d
 
 
 @pytest.mark.asyncio
-async def test_delete_act_detail(test_app: AsyncClient, jwt_token_user, seed_act_detail):
+async def test_delete_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act_detail):
     """Тест удаления детали акта."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     # Дебаг, проверяем есть ли запись перед удалением
     act_detail = await ActDetails.filter(act_detail_id=seed_act_detail["act_detail_id"]).first()
@@ -87,9 +87,9 @@ async def test_delete_act_detail(test_app: AsyncClient, jwt_token_user, seed_act
 
 
 @pytest.mark.asyncio
-async def test_get_all_act_details(test_app: AsyncClient, jwt_token_user, seed_act_detail):
+async def test_get_all_act_details(test_app: AsyncClient, jwt_token_admin, seed_act_detail):
     """Тест получения списка деталей акта с фильтрацией."""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/act-details/all",

@@ -12,13 +12,15 @@ from app.pydantic_models.legal_entity_models import (
     LegalEntityListResponseSchema
 )
 from app.handlers.auth import get_current_user
+from app.dependencies.permissions import with_permission_and_entity_company_check
+from app.handlers.depends import require_permission_in_context
 
 
 entity_router = APIRouter()
 
 
 @entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо", status_code=status.HTTP_201_CREATED)
-async def add_legal_entity(data: LegalEntityCreateSchema, username: str = Depends(get_current_user)):
+async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(require_permission_in_context("add_legal_entity"))):
     try:
         entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
         company = await Company.get_or_none(company_id=data.company)
@@ -30,7 +32,7 @@ async def add_legal_entity(data: LegalEntityCreateSchema, username: str = Depend
         existing_entity = await LegalEntity.get_or_none(inn=data.inn)
         if existing_entity:
             logger.warning(
-                f"[{username}] Юрлицо с ИНН {data.inn} уже существует")
+                f"Юрлицо с ИНН {data.inn} уже существует")
             raise HTTPException(
                 status_code=400,
                 detail=f"Юрлицо с ИНН {data.inn} уже существует"
@@ -58,7 +60,7 @@ async def add_legal_entity(data: LegalEntityCreateSchema, username: str = Depend
 
 
 @entity_router.patch("/{legal_entity_id}", response_model=LegalEntityResponseSchema, summary="Изменить юридическое лицо")
-async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema, username: str = Depends(get_current_user)):
+async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema, context=with_permission_and_entity_company_check("edit_legal_entity")):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(
@@ -86,7 +88,7 @@ async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema
 
 
 @entity_router.delete("/{legal_entity_id}", summary="Удалить юридическое лицо", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_legal_entity(legal_entity_id: UUID, username: str = Depends(get_current_user)):
+async def delete_legal_entity(legal_entity_id: UUID,  context=with_permission_and_entity_company_check("delete_legal_entity")):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(

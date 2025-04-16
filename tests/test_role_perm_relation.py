@@ -4,9 +4,9 @@ from app.database.models import RolePermissionRelation
 
 
 @pytest.mark.asyncio
-async def test_add_role_permission_relation(test_app: AsyncClient, jwt_token_user, seed_role, seed_permission):
+async def test_add_role_permission_relation(test_app: AsyncClient, jwt_token_admin, seed_role, seed_permission):
     """Проверка создания связи роли и разрешения"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
         "role": seed_role["role_id"],
@@ -26,9 +26,9 @@ async def test_add_role_permission_relation(test_app: AsyncClient, jwt_token_use
 
 
 @pytest.mark.asyncio
-async def test_get_role_permission_relation(test_app: AsyncClient, jwt_token_user, seed_role_permission_relation):
+async def test_get_role_permission_relation(test_app: AsyncClient, jwt_token_admin, seed_role_permission_relation):
     """Проверка просмотра одной связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         f"/api/role-permission-relations/{seed_role_permission_relation['role_permission_id']}", headers=headers
@@ -41,12 +41,12 @@ async def test_get_role_permission_relation(test_app: AsyncClient, jwt_token_use
 @pytest.mark.asyncio
 async def test_update_role_permission_relation(
     test_app: AsyncClient,
-    jwt_token_user,
+    jwt_token_admin,
     seed_role_permission_relation,
     seed_role_manager,
 ):
     """Проверка изменения роли у связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     update_data = {"role": seed_role_manager["role_id"]}
 
@@ -71,9 +71,9 @@ async def test_update_role_permission_relation(
 
 
 @pytest.mark.asyncio
-async def test_delete_role_permission_relation(test_app: AsyncClient, jwt_token_user, seed_role_permission_relation):
+async def test_delete_role_permission_relation(test_app: AsyncClient, jwt_token_admin, seed_role_permission_relation):
     """Проверка удаления связи"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
         f"/api/role-permission-relations/{seed_role_permission_relation['role_permission_id']}", headers=headers
@@ -85,9 +85,9 @@ async def test_delete_role_permission_relation(test_app: AsyncClient, jwt_token_
 
 
 @pytest.mark.asyncio
-async def test_get_all_role_permission_relations(test_app: AsyncClient, jwt_token_user, seed_role_permission_relation):
+async def test_get_all_role_permission_relations(test_app: AsyncClient, jwt_token_admin, seed_role_permission_relation):
     """Проверка получения всех связей"""
-    headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
+    headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
         "/api/role-permission-relations/all", headers=headers)
