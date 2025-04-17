@@ -13,6 +13,14 @@ error_counter_by_user = Counter(
 )
 
 
+def exclude_metrics_log(record):
+    # Исключаем только access-логи /metrics
+    message = record.get("message", "")
+    if "GET /metrics" in message and "200" in message:
+        return False
+    return True
+
+
 # 📈 Прометеевский хук — реагирует на ERROR и выше
 def prometheus_hook(message):
     record = message.record
@@ -57,7 +65,7 @@ def setup_logger():
         enqueue=True,
         backtrace=True,
         diagnose=True,
-        # serialize=True,  # если хочешь JSON-логи
+        filter=exclude_metrics_log,
     )
 
     # 🧾 Файл логов
