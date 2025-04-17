@@ -33,8 +33,9 @@ template_router = APIRouter()
     summary="Добавить шаблон",
     status_code=status.HTTP_201_CREATED
 )
-async def add_template(data: TemplateCreateSchema = Depends(TemplateCreateSchema.as_form),
-                       username: str = Depends(get_current_user)):
+async def add_template(
+        data: TemplateCreateSchema = Depends(TemplateCreateSchema.as_form),
+        username: str = Depends(get_current_user)):
     try:
         company_obj = await Company.get_or_none(company_id=data.company)
         if not company_obj:

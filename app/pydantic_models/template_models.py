@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 from pydantic import UUID4
 from fastapi import Query, Form, UploadFile, File
 from app.utils.validate_helpers import normalize_form_field
@@ -56,7 +56,7 @@ def template_filter_params(
 
 class TemplateCreateSchema(CleanableBaseModel):
     template_name: str
-    description: Optional[str] = None
+    description: Optional[str]
     company: UUID4
     entity: str
     file: UploadFile
@@ -64,16 +64,16 @@ class TemplateCreateSchema(CleanableBaseModel):
     @classmethod
     def as_form(
         cls,
-        template_name=Form(...),
-        company=Form(...),
-        description=Form(None),
-        entity=Form(...),
-        file=File(...)
+        template_name: str = Form(...),
+        description: Optional[str] = Form(None),
+        company: UUID4 = Form(...),
+        entity: str = Form(...),
+        file: UploadFile = File(...),
     ):
         return cls(
             template_name=template_name,
-            company=company,
             description=description,
+            company=company,
             entity=entity,
             file=file
         )
@@ -91,9 +91,9 @@ class TemplateEditSchema(CleanableBaseModel):
         cls,
         template_name: Optional[str] = Form(None),
         description: Optional[str] = Form(None),
-        company: Optional[str] = Form(None),  # строка → UUID внутри
+        company: Optional[str] = Form(None),  # как строка из формы
         entity: Optional[str] = Form(None),
-        file: Optional[str | UploadFile] = File(None),  # ключевая фишка
+        file: Optional[Union[str, UploadFile]] = File(None),
     ):
         return cls(
             template_name=normalize_form_field(template_name, str),
