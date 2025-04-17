@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException
 from jose import JWTError
+from loguru import logger
 from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token
 from app.utils.permissions_get import get_company_permissions_for_user
 from app.database.models import User
@@ -16,6 +17,9 @@ async def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Неверные учетные данные")
 
     user, company_permissions = result
+
+    logger.success(
+        f"✅ Успешный вход: {user.username} | Суперадмин: {user.is_superadmin} | Компаний: {len(company_permissions)}")
 
     return TokenResponse(
         access_token=create_access_token({

@@ -21,13 +21,14 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    # logger.debug(f"📏 Длина payload: {len(to_encode)}")
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
+
+    logger.debug(f"🧾 Payload токена: {to_encode}")
+
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    # logger.debug(f"🧠 Длина токена: {len(encoded_jwt)} символов")
-    # logger.info(f"Created Access JWT: {encoded_jwt}")
     return encoded_jwt
+
 
 # Проверка токена
 
@@ -68,8 +69,21 @@ def verify_token(token: str) -> dict:
 
 async def login_handler(username: str, password: str):
     user = await User.get_or_none(username=username)
-    if not user or not user.check_password(password):
+
+    if not user:
+        logger.warning(f"🔐 Пользователь '{username}' не найден")
         return None
 
+    if not user.check_password(password):
+        logger.warning(f"🔐 Неверный пароль для пользователя '{username}'")
+        return None
+
+    logger.debug(
+        f"🔑 Пользователь найден: {user.username}, is_superadmin: {getattr(user, 'is_superadmin', None)}")
+
     company_permissions = await get_company_permissions_for_user(user)
+
+    logger.debug(
+        f"🔒 Полученные права доступа для {user.username}: {company_permissions}")
+
     return user, company_permissions
