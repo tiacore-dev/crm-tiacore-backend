@@ -1,8 +1,9 @@
 import sys
+import logging
 from loguru import logger
 from prometheus_client import Counter
 
-# 📊 Prometheus counters
+# 📊 Prometheus метрики
 error_counter = Counter("fastapi_errors_total",
                         "Total number of FastAPI errors")
 error_counter_by_user = Counter(
@@ -12,44 +13,78 @@ error_counter_by_user = Counter(
 )
 
 
-# 📈 Prometheus hook — простой, без user_id
+# 📈 Прометеевский хук — реагирует на ERROR и выше
 def prometheus_hook(message):
     record = message.record
-    if record["level"].no >= 40:  # 40 = ERROR
+    if record["level"].no >= 40:
         error_counter.inc()
         try:
             error_counter_by_user.labels(
-                user_id="unknown",
-                login="system",
-                role="system"
+                user_id=record.get("extra", {}).get("user_id", "unknown"),
+                login=record.get("extra", {}).get("login", "system"),
+                role=record.get("extra", {}).get("role", "system"),
             ).inc()
         except Exception as e:
             print(f"[PrometheusHook] Ошибка при инкременте метрик: {e}")
 
 
-# 🛠 Logger setup — простой текст, как раньше
+# 🔁 Перехват логов из logging в loguru
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except Exception:
+            level = record.levelno
+
+        frame, depth = logging.currentframe(), 2
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage())
+
+
+# 🛠 Настройка логгера
 def setup_logger():
     logger.remove()
 
+    # 🎯 STDOUT для Loki (можно включить serialize=True)
     logger.add(
         sys.stdout,
         level="DEBUG",
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:<8}</level> | "
-               "<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        format="{time:YYYY-MM-DDTHH:mm:ss.SSSZ} | {level} | {name}:{function}:{line} - {message}",
         enqueue=True,
         backtrace=True,
         diagnose=True,
-        colorize=True,
+        # serialize=True,  # если хочешь JSON-логи
     )
 
+    # 🧾 Файл логов
     logger.add(
         "logs/app.log",
         level="DEBUG",
         rotation="10 MB",
         retention="7 days",
-        # compression="zip",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {function}:{line} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name}:{function}:{line} - {message}",
         enqueue=True,
     )
 
+    # 📡 Интеграция Prometheus hook
     logger.add(prometheus_hook, level="ERROR")
+
+    # 🔗 Перехват логов
+    logging.basicConfig(handlers=[InterceptHandler()],
+                        level=logging.INFO, force=True)
+
+    for name in (
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "fastapi",
+        "gunicorn",
+        "gunicorn.access",
+        "gunicorn.error",
+    ):
+        logging.getLogger(name).handlers = [InterceptHandler()]
+        logging.getLogger(name).setLevel(logging.INFO)
