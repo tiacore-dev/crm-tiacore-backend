@@ -7,11 +7,19 @@ from app.database.models import User, UserCompanyRelation, Permissions, LegalEnt
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
-    if user.is_superadmin:
-        logger.debug("Пользователь супер админ")
-        return {"*": ["*"]}  # 💥 вот так правильно
-    logger.debug("Пользователь не суперадмин")
-    relations = await UserCompanyRelation.filter(user=user).select_related("company", "role")
+    logger.debug(
+        f"🧩 user: {user} | type: {type(user)} | has is_superadmin: {hasattr(user, 'is_superadmin')}")
+
+    is_superadmin = getattr(user, "is_superadmin", False)
+    if is_superadmin:
+        logger.debug(
+            "👑 Пользователь супер админ — возвращаем универсальные права")
+        return {"*": ["*"]}
+
+    logger.debug("🔒 Пользователь не суперадмин — ищем права по компаниям")
+
+    relations = await UserCompanyRelation.filter(user_id=user.user_id).select_related("company", "role")
+
     company_permissions = {}
 
     for rel in relations:
