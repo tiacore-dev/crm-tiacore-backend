@@ -1,5 +1,6 @@
 from typing import Dict, List
 from uuid import UUID
+from loguru import logger
 from fastapi import HTTPException, Depends, Path
 from app.handlers.depends import require_permission_in_context
 from app.database.models import User, UserCompanyRelation, Permissions, LegalEntity
@@ -7,12 +8,14 @@ from app.database.models import User, UserCompanyRelation, Permissions, LegalEnt
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
     if user.is_superadmin:
+        logger.debug("Пользователь супер админ")
         return {"*": ["*"]}  # 💥 вот так правильно
 
     relations = await UserCompanyRelation.filter(user=user).select_related("company", "role")
     company_permissions = {}
 
     for rel in relations:
+        logger.debug("Пользователь не усперадмин")
         perms = await Permissions.filter(
             role_permission_relations__role=rel.role
         ).values_list("permission_id", flat=True)
