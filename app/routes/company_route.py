@@ -2,10 +2,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import get_current_user
 from app.dependencies.permissions import with_permission_and_exact_company
 from app.handlers.depends import require_permission_in_context
-from app.database.models import Company, UserCompanyRelation, User
+from app.database.models import Company, UserCompanyRelation
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
 )
@@ -92,30 +91,33 @@ async def delete_company(
 )
 async def get_companies(
     filters: dict = Depends(company_filter_params),
-    username: str = Depends(get_current_user)
+    context: dict = Depends(
+        require_permission_in_context("get_all_companies"))
 ):
-    logger.info(
-        f"Запрос списка компаний: {filters} от пользователя: {username}")
-
+    logger.info(f"Запрос списка компаний: {filters}")
     try:
-        user = await User.get(username=username.get('username'))
         query = Q()
 
-        # Фильтр по поисковому запросу
-        if filters.get("search"):
-            query &= Q(company_name__icontains=filters["search"])
+        user = context["user"]
 
-        # ⚙️ Фильтрация по UserCompanyRelation, если не супер-админ
-        if not user.is_superadmin:
-            # Получаем список company_id, связанных с этим пользователем
-            related_company_ids = await UserCompanyRelation.filter(user=user).values_list("company__company_id", flat=True)
+        if not context["is_superadmin"]:
+            # 🔍 Получаем список компаний, к которым у пользователя есть доступ
+            related_company_ids = await UserCompanyRelation.filter(
+                user=user
+            ).values_list("company__company_id", flat=True)
+
+            if not related_company_ids:
+                return CompanyListResponseSchema(total=0, companies=[])
 
             query &= Q(company_id__in=related_company_ids)
 
-        # Общее количество записей
+        # 🔎 Фильтрация по названию
+        if filters.get("search"):
+            query &= Q(company_name__icontains=filters["search"])
+
+        # 📊 Подсчёт и выборка
         total_count = await Company.filter(query).count()
 
-        # Сортировка и пагинация
         order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'company_name')}"
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
@@ -132,8 +134,7 @@ async def get_companies(
                     company_id=company.company_id,
                     company_name=company.company_name,
                     description=company.description
-                )
-                for company in companies
+                ) for company in companies
             ]
         )
 
@@ -150,7 +151,8 @@ async def get_companies(
 async def get_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID просматриваемой компании"),
-        username: str = Depends(get_current_user)):
+        context: dict = Depends(require_permission_in_context("view_company"))
+):
     logger.info(f"Запрос на просмотр компании: {company_id}")
     try:
         company = await Company.get_or_none(company_id=company_id)
@@ -158,7 +160,11 @@ async def get_company(
             logger.warning(f"Компания {company_id} не найдена")
             raise HTTPException(status_code=404, detail="Компания не найдена")
 
-        # ✅ Создаём Pydantic-модель вручную
+        # 🔐 Проверка доступа
+        if not context["is_superadmin"] and company.company_id != context["company"]:
+            raise HTTPException(
+                status_code=403, detail="Нет доступа к этой компании")
+
         company_schema = CompanySchema(
             company_id=company.company_id,
             company_name=company.company_name,

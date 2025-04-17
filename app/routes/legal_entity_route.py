@@ -11,7 +11,6 @@ from app.pydantic_models.legal_entity_models import (
     LegalEntitySchema,
     LegalEntityListResponseSchema
 )
-from app.handlers.auth import get_current_user
 from app.dependencies.permissions import with_permission_and_entity_company_check
 from app.handlers.depends import require_permission_in_context
 
@@ -103,15 +102,27 @@ async def delete_legal_entity(legal_entity_id: UUID,  context=with_permission_an
     response_model=LegalEntityListResponseSchema,
     summary="Получение списка юридических лиц"
 )
-async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params), username: str = Depends(get_current_user)):
+async def get_legal_entities(
+    filters: dict = Depends(legal_entity_filter_params),
+    context: dict = Depends(
+        require_permission_in_context("get_all_entities"))
+):
     try:
         query = Q()
-        if filters.get("company"):
-            query &= Q(company_id=filters["company"])
+
+        company_filter = filters.get("company")
+
+        if context["is_superadmin"]:
+            if company_filter:
+                query &= Q(company_id=company_filter)
+            # иначе — без ограничений
+        else:
+            # у обычного пользователя должен быть контекст компании
+            query &= Q(company_id=context["company"])
+
         if filters.get("entity_type"):
             query &= Q(entity_type_id=filters["entity_type"])
 
-        # ✅ Общее число записей
         total_count = await LegalEntity.filter(query).count()
 
         entities = await LegalEntity.filter(query) \
@@ -129,9 +140,9 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
                     kpp=entity.kpp,
                     vat_rate=entity.vat_rate,
                     address=entity.address,
-                    entity_type=entity.entity_type.legal_entity_type_id,  # Теперь ID
+                    entity_type=entity.entity_type.legal_entity_type_id,
                     signer=entity.signer,
-                    company=entity.company.company_id,  # Теперь ID
+                    company=entity.company.company_id,
                     description=entity.description
                 )
                 for entity in entities
@@ -151,7 +162,7 @@ async def get_legal_entities(filters: dict = Depends(legal_entity_filter_params)
     response_model=LegalEntitySchema,
     summary="Просмотр одного юридического лица"
 )
-async def get_legal_entity(legal_entity_id: UUID, username: str = Depends(get_current_user)):
+async def get_legal_entity(legal_entity_id: UUID, context: dict = Depends(require_permission_in_context("view_entity"))):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id) \
         .prefetch_related("company", "entity_type") \
         .first()
@@ -159,6 +170,10 @@ async def get_legal_entity(legal_entity_id: UUID, username: str = Depends(get_cu
     if not entity:
         raise HTTPException(
             status_code=404, detail="Юридическое лицо не найдено")
+
+    if not context["is_superadmin"] and entity.company.company_id != context["company"]:
+        raise HTTPException(
+            status_code=403, detail="Нет доступа к этой записи")
 
     return LegalEntitySchema(
         legal_entity_id=entity.legal_entity_id,

@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import Depends, Query, HTTPException
 from app.database.models import User
 from app.handlers.auth import get_current_user
@@ -6,33 +7,36 @@ from app.handlers.auth import get_current_user
 
 async def get_current_context(
     token_data: dict = Depends(get_current_user),
-    company: UUID = Query(..., description="ID компании")
+    company: Optional[UUID] = Query(None, description="ID компании")
 ):
     username = token_data["username"]
     permissions_map = token_data.get("permissions", {})
 
-    raw_permissions = permissions_map.get(str(company), [])
     is_token_superadmin = permissions_map.get("*") == ["*"]
 
     user = await User.get_or_none(username=username)
     if not user:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
 
+    # 👑 Суперадмин — ему всё можно
     if is_token_superadmin:
         if not user.is_superadmin:
             raise HTTPException(
-                status_code=403, detail="Пользователь не является суперадмином"
-            )
+                status_code=403, detail="Пользователь не является суперадмином")
 
         return {
             "user": user,
-            "company": company,
+            "company": company,  # может быть None — это ок
             "role": "superadmin",
-
             "permissions": ["*"],
             "is_superadmin": True
         }
 
+    # 🔐 Не суперадмин — без company не пущу
+    if not company:
+        raise HTTPException(status_code=400, detail="Не указана компания")
+
+    raw_permissions = permissions_map.get(str(company), [])
     return {
         "user": user,
         "company": company,

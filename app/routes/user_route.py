@@ -3,7 +3,6 @@ import bcrypt
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import get_current_user
 from app.handlers.depends import require_permission_in_context
 from app.dependencies.permissions import with_permission_and_company_check
 from app.database.models import User, create_user, UserCompanyRelation
@@ -15,8 +14,13 @@ from app.pydantic_models.user_models import (
 user_router = APIRouter()
 
 
-@user_router.post("/add", response_model=UserResponseSchema, summary="Добавление нового пользователя", status_code=status.HTTP_201_CREATED)
-async def add_user(data: UserCreateSchema = Body(...), context=Depends(require_permission_in_context("add_user"))):
+@user_router.post(
+    "/add", response_model=UserResponseSchema,
+    summary="Добавление нового пользователя",
+    status_code=status.HTTP_201_CREATED)
+async def add_user(data: UserCreateSchema = Body(...),
+                   context=Depends(require_permission_in_context("add_user"))
+                   ):
     # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
@@ -120,29 +124,39 @@ async def delete_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@user_router.get(
-    "/all",
-    response_model=UserListResponseSchema,
-    summary="Получение списка пользователей"
-)
-async def get_users(filters: dict = Depends(user_filter_params)):
+async def get_users(
+    filters: dict = Depends(user_filter_params),
+    context=Depends(require_permission_in_context("get_all_users"))
+):
     try:
         query = Q()
         search_value = filters.get("search")
         if search_value:
             query &= Q(username__icontains=search_value)
 
-            # 🏢 Фильтр по company_id
-        company = filters.get("company")
-        if company:
+        company_filter = filters.get("company")
+
+        if context["is_superadmin"]:
+            if company_filter:
+                # 🔍 фильтрация по переданной компании
+                related_user_ids = await UserCompanyRelation.filter(
+                    company=company_filter
+                ).values_list("user_id", flat=True)
+
+                if related_user_ids:
+                    query &= Q(user_id__in=related_user_ids)
+                else:
+                    return UserListResponseSchema(total=0, users=[])
+            # 🆓 без company — видит всех
+        else:
+            # 🔒 обычный пользователь — только свою компанию
             related_user_ids = await UserCompanyRelation.filter(
-                company=company
+                company=context["company"]
             ).values_list("user_id", flat=True)
 
             if related_user_ids:
                 query &= Q(user_id__in=related_user_ids)
             else:
-                # Если нет пользователей — сразу отдаём пустой результат
                 return UserListResponseSchema(total=0, users=[])
 
         order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'username')}"
@@ -174,21 +188,28 @@ async def get_users(filters: dict = Depends(user_filter_params)):
 async def get_user(
     user_id: UUID = Path(..., title="ID пользователя",
                          description="ID просматриваемого пользователя"),
-    username: str = Depends(get_current_user)
+    context: dict = Depends(require_permission_in_context("view_user"))
 ):
     logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
     try:
-        user = await User.get_or_none(user_id=user_id).values()
-        if user is None:
+        user_data = await User.get_or_none(user_id=user_id).values()
+        if user_data is None:
             logger.warning(f"Пользователь {user_id} не найден")
             raise HTTPException(
                 status_code=404, detail="Пользователь не найден")
 
-        # ✅ Создаём Pydantic-модель вручную
-        user_schema = UserSchema(
-            **user
-        )
+        # 🔐 Проверка доступа
+        if not context["is_superadmin"]:
+            # Получаем список user_id в рамках текущей компании
+            allowed_user_ids = await UserCompanyRelation.filter(
+                company=context["company"]
+            ).values_list("user_id", flat=True)
 
+            if user_id not in allowed_user_ids:
+                raise HTTPException(
+                    status_code=403, detail="Нет доступа к этому пользователю")
+
+        user_schema = UserSchema(**user_data)
         logger.success(f"Найден пользователь: {user_schema}")
         return user_schema
 
