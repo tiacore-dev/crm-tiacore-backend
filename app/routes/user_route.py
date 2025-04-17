@@ -124,6 +124,7 @@ async def delete_user(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
+@user_router.get("/all", response_model=UserListResponseSchema, summary="Просмотр пользователей")
 async def get_users(
     filters: dict = Depends(user_filter_params),
     context=Depends(require_permission_in_context("get_all_users"))
