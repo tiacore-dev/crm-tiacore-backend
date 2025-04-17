@@ -1,15 +1,12 @@
 from typing import Dict, List
 from collections import defaultdict
-from app.database.models import Company, User, UserCompanyRelation, RolePermissionRelation
+from app.database.models import User, UserCompanyRelation, RolePermissionRelation
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
     if user.is_superadmin:
-        # Маркер: доступ ко всем компаниям, все разрешения
-        company_ids = await Company.all().values_list("company_id", flat=True)
-        return {
-            str(company_id): ["*"] for company_id in company_ids
-        }
+        # 💎 Достаточно одного универсального маркера
+        return {"*": ["*"]}
 
     # 1. Получаем все связи юзера с компаниями и ролями
     relations = await UserCompanyRelation.filter(user=user).select_related("company", "role")
