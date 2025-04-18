@@ -4,7 +4,7 @@ from loguru import logger
 from tortoise.expressions import Q
 from app.dependencies.permissions import with_permission_and_exact_company
 from app.handlers.depends import require_permission_in_context
-from app.database.models import Company, UserCompanyRelation
+from app.database.models import Company, UserCompanyRelation,  UserRole
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
 )
@@ -25,6 +25,9 @@ async def add_company(data: CompanyCreateSchema = Body(), context=Depends(requir
                 status_code=500, detail="Не удалось создать компанию")
 
         logger.success(f"Компания создана: {company.company_id}")
+        role = await UserRole.get_or_none(role_name="admin")
+        if role and context['user']:
+            await UserCompanyRelation.create(role=role, company=company, user=context['user'])
         return {"company_id": str(company.company_id)}
 
     except HTTPException as http_exc:

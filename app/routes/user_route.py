@@ -5,7 +5,7 @@ from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.depends import require_permission_in_context
 from app.dependencies.permissions import with_permission_and_company_check
-from app.database.models import User, create_user, UserCompanyRelation
+from app.database.models import User, create_user, UserCompanyRelation, UserRole, Company
 from app.pydantic_models.user_models import (
     UserCreateSchema, UserEditSchema, user_filter_params, UserResponseSchema, UserListResponseSchema, UserSchema
 )
@@ -42,9 +42,12 @@ async def add_user(data: UserCreateSchema = Body(...),
             logger.error("Не удалось создать пользователя")
             raise HTTPException(
                 status_code=500, detail="Не удалось создать пользователя")
-
         logger.success(
             f"Пользователь {user.username} ({user.user_id}) успешно создан")
+        role = await UserRole.get_or_none(role_name='user')
+        company = await Company.get_or_none(company_id=context['company'])
+        if role and company:
+            await UserCompanyRelation.create(user=user, company=company, role=role)
         return {"user_id": str(user.user_id)}
     except HTTPException as e:
         raise e
