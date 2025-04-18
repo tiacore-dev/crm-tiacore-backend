@@ -42,12 +42,14 @@ class TemplateListResponseSchema(CleanableBaseModel):
 def template_filter_params(
     company: Optional[UUID4] = Query(
         None, description="Фильтр по компании"),
+    entity: Optional['str'] = Query(None, description="Фильтр по типу"),
     search: Optional[str] = Query(None, description="Фильтр поиска"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "company": company,
+        "entity": entity,
         "search": search,
         "page": page,
         "page_size": page_size,

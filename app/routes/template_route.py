@@ -151,8 +151,8 @@ async def get_templates(filters: dict = Depends(template_filter_params), usernam
         query = Q()
         if filters.get("company"):
             query &= Q(company_id=filters["company"])
-        # if filters.get("search"):
-        #     query &= Q(bank_account_id=filters["bank_account"])
+        if filters.get("entity"):
+            query &= Q(entity=filters["entity"])
 
         # ✅ Общее число записей
         total_count = await Templates.filter(query).count()

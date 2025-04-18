@@ -118,6 +118,19 @@ class UserCompanyRelation(Model):
         table = "user_to_company_relations"
 
 
+class EntityCompanyRelation(Model):
+    entity_company_relation = fields.UUIDField(pk=True, default=uuid.uuid4)
+    company = fields.ForeignKeyField(
+        "models.Company", related_name="entity_company_relations",
+        on_delete=fields.CASCADE)
+    legal_entity = fields.ForeignKeyField(
+        "models.LegalEntity", related_name="entity_company_relations", on_delete=fields.CASCADE)
+    relation_type = fields.CharField(max_length=10)
+
+    class Meta:
+        table = "entity_company_relations"
+
+
 class LegalEntity(Model):
     legal_entity_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     legal_entity_name = fields.CharField(max_length=255)
@@ -128,11 +141,8 @@ class LegalEntity(Model):
     address = fields.CharField(max_length=255)
     entity_type = fields.ForeignKeyField(
         "models.LegalEntityType", related_name="entities"
-    )  # Указал правильную связь
-    signer = fields.CharField(max_length=255, null=True)
-    company = fields.ForeignKeyField(
-        "models.Company", related_name="entities"
     )
+    signer = fields.CharField(max_length=255, null=True)
     description = fields.TextField(null=True)
 
     class Meta:

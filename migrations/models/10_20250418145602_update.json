@@ -1,0 +1,11 @@
+{
+  "upgrade": [
+    "CREATE TABLE IF NOT EXISTS \"entity_company_relations\" (\n    \"entity_company_relation\" UUID NOT NULL PRIMARY KEY,\n    \"relation_type\" VARCHAR(10) NOT NULL,\n    \"company_id\" UUID NOT NULL REFERENCES \"companies\" (\"company_id\") ON DELETE CASCADE,\n    \"legal_entity_id\" UUID NOT NULL REFERENCES \"legal_entities\" (\"legal_entity_id\") ON DELETE CASCADE\n);",
+    "ALTER TABLE \"legal_entities\" DROP COLUMN \"company_id\""
+  ],
+  "downgrade": [
+    "ALTER TABLE \"legal_entities\" ADD \"company_id\" UUID NOT NULL",
+    "DROP TABLE IF EXISTS \"entity_company_relations\"",
+    "ALTER TABLE \"legal_entities\" ADD CONSTRAINT \"fk_legal_en_companie_a63798f8\" FOREIGN KEY (\"company_id\") REFERENCES \"companies\" (\"company_id\") ON DELETE CASCADE"
+  ]
+}

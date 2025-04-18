@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import UUID4, field_validator, Field
 from fastapi import Query, HTTPException
 from app.pydantic_models.clean_model import CleanableBaseModel
@@ -15,6 +15,7 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     signer: Optional[str] = Field(None, min_length=3, max_length=255)
     company: UUID4 = Field(...,
                            description="ID компании (внешний ключ), UUID4")
+    relation_type: Literal["seller", "buyer"] = Field(...)
     description: Optional[str] = Field(None, max_length=500)
 
     @field_validator(
@@ -42,6 +43,7 @@ class LegalEntityCreateSchema(CleanableBaseModel):
                 "entity_type": "string-id-type",
                 "signer": "Иванов И.И.",
                 "company": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "relation_type": "seller",
                 "description": "Юр. лицо для контрактов"
             }
         }
@@ -56,7 +58,6 @@ class LegalEntitySchema(CleanableBaseModel):
     address: str = Field(..., max_length=255)
     entity_type: str  # Теперь хранит ID, а не строку
     signer: Optional[str] = Field(None, max_length=255)
-    company: UUID4
     description: Optional[str] = None
 
     class Config:
@@ -88,7 +89,6 @@ class LegalEntityEditSchema(CleanableBaseModel):
     address: Optional[str] = None
     entity_type: Optional[str] = None
     signer: Optional[str] = None
-    company: Optional[UUID4] = None
     description: Optional[str] = None
 
     class Config:

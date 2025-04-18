@@ -16,6 +16,7 @@ async def test_add_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_com
         "entity_type": seed_legal_entity_type["legal_entity_type_id"],
         "signer": "Test Signer",
         "company": seed_company["company_id"],
+        "relation_type": "seller",
         "description": "Описание тестового юр. лица"
     }
 

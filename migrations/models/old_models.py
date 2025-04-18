@@ -31,9 +31,11 @@ class UserRole(Model):
 class RolePermissionRelation(Model):
     role_permission_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role = fields.ForeignKeyField(
-        "diff_models.UserRole", related_name="role_permission_relations")
+        "diff_models.UserRole", related_name="role_permission_relations",
+        on_delete=fields.CASCADE)
     permission = fields.ForeignKeyField(
-        "diff_models.Permissions", related_name="role_permission_relations")
+        "diff_models.Permissions", related_name="role_permission_relations",
+        on_delete=fields.CASCADE)
 
     class Meta:
         table = "role_permission_relations"
@@ -57,8 +59,6 @@ class ContractStatus(Model):
 
     class Meta:
         table = "contract_statuses"
-
-# Полноценные модели
 
 
 async def create_user(username: str, password: str, full_name: str, position: str):
@@ -97,17 +97,38 @@ class Company(Model):
 
 
 class UserCompanyRelation(Model):
-    user_company_id = fields.UUIDField(
-        pk=True, default=uuid.uuid4)
+    user_company_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     company = fields.ForeignKeyField(
-        "diff_models.Company", related_name="user_company_relations")
+        "diff_models.Company",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
     user = fields.ForeignKeyField(
-        "diff_models.User", related_name="user_company_relations")
+        "diff_models.User",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
     role = fields.ForeignKeyField(
-        "diff_models.UserRole", related_name="user_company_relations")
+        "diff_models.UserRole",
+        related_name="user_company_relations",
+        on_delete=fields.CASCADE
+    )
 
     class Meta:
         table = "user_to_company_relations"
+
+
+class EntityCompanyRelation(Model):
+    entity_company_relation = fields.UUIDField(pk=True, default=uuid.uuid4)
+    company = fields.ForeignKeyField(
+        "diff_models.Company", related_name="entity_company_relations",
+        on_delete=fields.CASCADE)
+    legal_entity = fields.ForeignKeyField(
+        "diff_models.LegalEntity", related_name="entity_company_relations", on_delete=fields.CASCADE)
+    relation_type = fields.CharField(max_length=10)
+
+    class Meta:
+        table = "entity_company_relations"
 
 
 class LegalEntity(Model):
@@ -120,11 +141,8 @@ class LegalEntity(Model):
     address = fields.CharField(max_length=255)
     entity_type = fields.ForeignKeyField(
         "diff_models.LegalEntityType", related_name="entities"
-    )  # Указал правильную связь
-    signer = fields.CharField(max_length=255, null=True)
-    company = fields.ForeignKeyField(
-        "diff_models.Company", related_name="entities"
     )
+    signer = fields.CharField(max_length=255, null=True)
     description = fields.TextField(null=True)
 
     class Meta:
@@ -204,7 +222,8 @@ class Service(Model):
 class BillDetails(Model):
     bill_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     bill = fields.ForeignKeyField(
-        "diff_models.Bills", related_name="details_in_bill")
+        "diff_models.Bills", related_name="details_in_bill",
+        on_delete=fields.CASCADE)
     service = fields.ForeignKeyField(
         "diff_models.Service", related_name="services_in_bill")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
@@ -216,8 +235,8 @@ class BillDetails(Model):
 
 class ActDetails(Model):
     act_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    act = fields.ForeignKeyField(
-        "diff_models.Acts", related_name="details_in_act")
+    act = fields.ForeignKeyField("diff_models.Acts", related_name="details_in_act",
+                                 on_delete=fields.CASCADE)
     service = fields.ForeignKeyField(
         "diff_models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
@@ -240,6 +259,7 @@ class Templates(Model):
     class Meta:
         table = "templates"
 
+from tortoise import Model, fields
 
 MAX_VERSION_LENGTH = 255
 
@@ -250,3 +270,4 @@ class Aerich(Model):
 
     class Meta:
         ordering = ["-id"]
+
