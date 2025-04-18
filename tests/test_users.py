@@ -1,10 +1,10 @@
 import pytest
 from httpx import AsyncClient
-from app.database.models import User
+from app.database.models import User, UserCompanyRelation
 
 
 @pytest.mark.asyncio
-async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company):
+async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, seed_role_user):
     """Тест добавления нового пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
@@ -21,9 +21,11 @@ async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company):
     # Проверяем, что пользователь добавлен в базу
     response_data = response.json()
     user = await User.filter(username="testuser").first()
+    relation = await UserCompanyRelation.filter(user=user).prefetch_related("company").first()
 
     assert user is not None, "Пользователь не был сохранён в БД"
     assert response_data["user_id"] == str(user.user_id)
+    assert str(relation.company.company_id) == seed_company['company_id']
 
 
 @pytest.mark.asyncio

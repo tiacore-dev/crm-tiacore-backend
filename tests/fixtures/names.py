@@ -5,9 +5,9 @@ from app.database.models import UserRole, LegalEntityType, ContractStatus, Permi
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_role():
+async def seed_role_admin():
     role = await UserRole.create(
-        role_name="Администратор"
+        role_name="admin"
     )
     return {
         "role_id": str(role.role_id),
@@ -32,8 +32,8 @@ async def seed_permission():
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_role_permission_relation(seed_role, seed_permission):
-    role = await UserRole.get_or_none(role_id=seed_role['role_id'])
+async def seed_role_permission_relation(seed_role_admin, seed_permission):
+    role = await UserRole.get_or_none(role_id=seed_role_admin['role_id'])
     permission = await Permissions.get_or_none(permission_id=seed_permission['permission_id'])
     relation = await RolePermissionRelation.create(
         role=role,
@@ -50,7 +50,19 @@ async def seed_role_permission_relation(seed_role, seed_permission):
 @pytest.fixture(scope="function")
 async def seed_role_manager():
     role = await UserRole.create(
-        role_name="Менеджер"
+        role_name="manager"
+    )
+    return {
+        "role_id": str(role.role_id),
+        "role_name": role.role_name
+    }
+
+
+@pytest.mark.usefixtures("setup_db")
+@pytest.fixture(scope="function")
+async def seed_role_user():
+    role = await UserRole.create(
+        role_name="user"
     )
     return {
         "role_id": str(role.role_id),

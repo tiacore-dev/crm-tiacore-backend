@@ -4,12 +4,12 @@ from app.database.models import RolePermissionRelation
 
 
 @pytest.mark.asyncio
-async def test_add_role_permission_relation(test_app: AsyncClient, jwt_token_admin, seed_role, seed_permission):
+async def test_add_role_permission_relation(test_app: AsyncClient, jwt_token_admin, seed_role_admin, seed_permission):
     """Проверка создания связи роли и разрешения"""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
-        "role": seed_role["role_id"],
+        "role": seed_role_admin["role_id"],
         "permission": seed_permission["permission_id"]
     }
 

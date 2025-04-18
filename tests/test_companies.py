@@ -4,7 +4,7 @@ from app.database.models import Company
 
 
 @pytest.mark.asyncio
-async def test_add_company(test_app: AsyncClient, jwt_token_admin, seed_company):
+async def test_add_company(test_app: AsyncClient, jwt_token_admin, seed_company, seed_role_admin):
     """Тест добавления новой компании."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {

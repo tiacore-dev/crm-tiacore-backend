@@ -4,14 +4,14 @@ from app.database.models import UserCompanyRelation
 
 
 @pytest.mark.asyncio
-async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company, seed_role):
+async def test_add_user_company_relation(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company, seed_role_admin):
     """Проверка создания связи пользователя и компании"""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     data = {
         "user": seed_user['user_id'],
         "company": seed_company['company_id'],
-        "role": seed_role['role_id'],
+        "role": seed_role_admin['role_id'],
     }
 
     response = test_app.post(

@@ -22,7 +22,7 @@ async def test_add_role(test_app: AsyncClient, jwt_token_admin):
 
 
 @pytest.mark.asyncio
-async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role):
+async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role_admin):
     """Тест редактирования роли."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
@@ -30,7 +30,7 @@ async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role):
     }
 
     response = test_app.patch(
-        f"/api/roles/{seed_role['role_id']}",
+        f"/api/roles/{seed_role_admin['role_id']}",
         headers=headers,
         json=data
     )
@@ -38,7 +38,7 @@ async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role):
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    role = await UserRole.filter(role_id=seed_role["role_id"]).first()
+    role = await UserRole.filter(role_id=seed_role_admin["role_id"]).first()
 
     assert role is not None, "Роль не найдена в БД"
     assert response_data["role_id"] == str(role.role_id)
@@ -46,40 +46,40 @@ async def test_edit_role(test_app: AsyncClient, jwt_token_admin, seed_role):
 
 
 @pytest.mark.asyncio
-async def test_view_role(test_app: AsyncClient, jwt_token_admin, seed_role):
+async def test_view_role(test_app: AsyncClient, jwt_token_admin, seed_role_admin):
     """Тест просмотра роли по ID."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.get(
-        f"/api/roles/{seed_role['role_id']}",
+        f"/api/roles/{seed_role_admin['role_id']}",
         headers=headers
     )
 
     assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
 
     response_data = response.json()
-    assert response_data["role_id"] == str(seed_role["role_id"])
-    assert response_data["role_name"] == seed_role["role_name"]
+    assert response_data["role_id"] == str(seed_role_admin["role_id"])
+    assert response_data["role_name"] == seed_role_admin["role_name"]
 
 
 @pytest.mark.asyncio
-async def test_delete_role(test_app: AsyncClient, jwt_token_admin, seed_role):
+async def test_delete_role(test_app: AsyncClient, jwt_token_admin, seed_role_admin):
     """Тест удаления роли."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
-        f"/api/roles/{seed_role['role_id']}",
+        f"/api/roles/{seed_role_admin['role_id']}",
         headers=headers
     )
 
     assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
 
-    role = await UserRole.filter(role_id=seed_role["role_id"]).first()
+    role = await UserRole.filter(role_id=seed_role_admin["role_id"]).first()
     assert role is None, "Роль не была удалена из БД"
 
 
 @pytest.mark.asyncio
-async def test_get_roles(test_app: AsyncClient, jwt_token_admin, seed_role):
+async def test_get_roles(test_app: AsyncClient, jwt_token_admin, seed_role_admin):
     """Тест получения списка ролей с фильтрацией."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -96,5 +96,5 @@ async def test_get_roles(test_app: AsyncClient, jwt_token_admin, seed_role):
     assert response_data.get('total') > 0
 
     role_ids = [role["role_id"] for role in roles]
-    assert str(seed_role["role_id"]
+    assert str(seed_role_admin["role_id"]
                ) in role_ids, "Тестовая роль отсутствует в списке"
