@@ -55,7 +55,7 @@ async def test_update_user_company_relation(test_app: AsyncClient, jwt_token_adm
     # Проверяем в БД, загружая связанные данные
     relation = await UserCompanyRelation.filter(user_company_id=seed_relation["user_company_id"]).prefetch_related("role").first()
     assert relation is not None, "Связь не найдена в БД!"
-    assert relation.role.role_name == "Менеджер", f"Роль не обновилась в БД! Ожидали 'manager', а получили '{relation.role.role_name}'"
+    assert relation.role.role_name == "manager", f"Роль не обновилась в БД! Ожидали 'manager', а получили '{relation.role.role_name}'"
 
 
 @pytest.mark.asyncio

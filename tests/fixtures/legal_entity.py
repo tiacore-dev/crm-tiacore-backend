@@ -39,7 +39,6 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
         "vat_rate": legal_entity.vat_rate,
         "address": legal_entity.address,
         "signer": legal_entity.signer,
-        "company": str(company.company_id),
         "entity_type": str(entity_type.legal_entity_type_id),
         "description": legal_entity.description
     }
@@ -81,7 +80,6 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
         "vat_rate": legal_entity.vat_rate,
         "address": legal_entity.address,
         "signer": legal_entity.signer,
-        "company": str(legal_entity.company.company_id),  # ID для проверки
         "entity_type": str(legal_entity.entity_type.legal_entity_type_id),
         "description": legal_entity.description
     }

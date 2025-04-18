@@ -22,10 +22,10 @@ async def seed_company():
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_relation(seed_user, seed_company, seed_role):
+async def seed_relation(seed_user, seed_company, seed_role_admin):
     user = await User.get_or_none(user_id=seed_user['user_id'])
     company = await Company.get_or_none(company_id=seed_company['company_id'])
-    role = await UserRole.get_or_none(role_id=seed_role['role_id'])
+    role = await UserRole.get_or_none(role_id=seed_role_admin['role_id'])
     relation = await UserCompanyRelation.create(
         company=company,
         user=user,
