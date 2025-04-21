@@ -4,14 +4,15 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status, Respo
 from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.auth import get_current_user
-from app.database.models import UserRole
+from app.database.models import UserRole, RolePermissionRelation
 from app.pydantic_models.roles_models import (
     UserRoleCreateSchema,
     UserRoleEditSchema,
     role_filter_params,
     UserRoleResponseSchema,
     UserRoleListResponseSchema,
-    UserRoleSchema
+    UserRoleSchema,
+    UserRoleCreateManySchema
 )
 
 role_router = APIRouter()
@@ -30,6 +31,32 @@ async def add_role(
     logger.info(f"Создание роли: {data.dict()}")
     try:
         role = await UserRole.create(role_name=data.role_name)
+        logger.success(
+            f"Роль {role.role_name} ({role.role_id}) успешно создана")
+        return {"role_id": role.role_id}
+    except Exception as e:
+        logger.exception("Ошибка при создании роли")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+
+@role_router.post(
+    "/add-many",
+    response_model=UserRoleResponseSchema,
+    summary="Добавление новой роли",
+    status_code=status.HTTP_201_CREATED
+)
+async def add_many_roles(
+    data: UserRoleCreateManySchema = Body(...),
+    username: str = Depends(get_current_user)
+):
+    logger.info(f"Создание роли: {data.dict()}")
+    try:
+        role = await UserRole.create(role_name=data.role_name)
+        await RolePermissionRelation.bulk_create([
+            RolePermissionRelation(role_id=role.role_id,
+                                   permission_id=permission_id)
+            for permission_id in data.permissions
+        ])
         logger.success(
             f"Роль {role.role_name} ({role.role_id}) успешно создана")
         return {"role_id": role.role_id}

@@ -12,6 +12,15 @@ class UserRoleCreateSchema(CleanableBaseModel):
         from_attributes = True
 
 
+class UserRoleCreateManySchema(CleanableBaseModel):
+    role_name: str = Field(...)
+    permissions: List[str] = Field(
+        ..., description="Список ID разрешений, которые будут назначены этой роли")
+
+    class Config:
+        from_attributes = True
+
+
 class UserRoleSchema(CleanableBaseModel):
     role_id: UUID
     role_name: str
