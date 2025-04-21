@@ -64,6 +64,53 @@ class LegalEntitySchema(CleanableBaseModel):
         from_attributes = True
 
 
+def inn_kpp_filter_params(
+    inn: str = Query(..., description="Инн юр. лица"),
+    kpp: Optional[str] = Query(None, description="Кпп юр. лица")
+):
+    # Проверка, что ИНН состоит только из цифр
+    if not inn.isdigit():
+        raise HTTPException(
+            status_code=400, detail="ИНН должен содержать только цифры")
+
+    # Проверка, что КПП либо None, либо только цифры
+    if kpp is not None and not kpp.isdigit():
+        raise HTTPException(
+            status_code=400, detail="КПП должен содержать только цифры")
+
+    # Вариант 1: ИНН = 10 цифр и КПП = 9 цифр
+    if len(inn) == 10:
+        if kpp is None or len(kpp) != 9:
+            raise HTTPException(
+                status_code=400,
+                detail="При ИНН из 10 цифр требуется КПП из 9 цифр"
+            )
+    # Вариант 2: ИНН = 12 цифр и КПП отсутствует
+    elif len(inn) == 12:
+        if kpp is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="При ИНН из 12 цифр КПП указывать не нужно"
+            )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="ИНН должен содержать либо 10, либо 12 цифр"
+        )
+    return {
+        "inn": inn,
+        "kpp": kpp
+    }
+
+
+class LegalEntityShortSchema(CleanableBaseModel):
+    legal_entity_id: UUID4
+    legal_entity_name: str = Field(..., max_length=255)
+
+    class Config:
+        from_attributes = True
+
+
 class LegalEntityResponseSchema(CleanableBaseModel):
     legal_entity_id: UUID4
 

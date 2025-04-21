@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
@@ -9,7 +10,10 @@ from app.pydantic_models.legal_entity_models import (
     LegalEntityEditSchema,
     legal_entity_filter_params,
     LegalEntitySchema,
-    LegalEntityListResponseSchema
+    LegalEntityListResponseSchema,
+    inn_kpp_filter_params,
+    LegalEntityShortSchema
+
 )
 from app.dependencies.permissions import with_permission_and_entity_company_check
 from app.handlers.depends import require_permission_in_context
@@ -28,7 +32,10 @@ async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(requir
             raise HTTPException(
                 status_code=400, detail="Компания или тип юр. лица не найдены")
 
-        existing_entity = await LegalEntity.get_or_none(inn=data.inn)
+        if data.kpp:
+            existing_entity = await LegalEntity.get_or_none(inn=data.inn, kpp=data.kpp)
+        else:
+            existing_entity = await LegalEntity.get_or_none(inn=data.inn)
         if existing_entity:
             logger.warning(
                 f"Юрлицо с ИНН {data.inn} уже существует")
@@ -162,6 +169,32 @@ async def get_legal_entities(
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")
+        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+
+@entity_router.get(
+    "/inn-kpp",
+    response_model=LegalEntityShortSchema,
+    summary="Получение организации по инн и кпп"
+)
+async def get_legal_entity_by_inn_kpp(
+    filters: dict[str, Optional[str]] = Depends(inn_kpp_filter_params),
+    context: dict = Depends(
+        require_permission_in_context("get_entity_by_inn_kpp"))
+):
+    try:
+
+        entity = await LegalEntity.filter(inn=filters["inn"], kpp=filters["kpp"]).first()
+        if not entity:
+            raise HTTPException(
+                status_code=404, detail="Организация не найдена")
+        return LegalEntityShortSchema(
+            legal_entity_id=entity.legal_entity_id,
+            legal_entity_name=entity.legal_entity_name,
+        )
+
+    except Exception as e:
+        logger.exception("Ошибка при получении организации по инн и кпп")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
