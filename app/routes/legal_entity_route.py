@@ -26,12 +26,13 @@ entity_router = APIRouter()
 async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(require_permission_in_context("add_legal_entity"))):
     try:
         # Проверяем, что пользователь действительно связан с этой компанией
-        is_related = await UserCompanyRelation.exists(user_id=context["user"], company_id=data.company)
-        if not is_related:
-            raise HTTPException(
-                status_code=403,
-                detail="Вы не имеете доступа к этой компании"
-            )
+        if not context.get("is_superadmin"):
+            is_related = await UserCompanyRelation.exists(user_id=context["user"], company_id=data.company)
+            if not is_related:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Вы не имеете доступа к этой компании"
+                )
         entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
         company = await Company.get_or_none(company_id=data.company)
 
