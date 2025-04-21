@@ -1,16 +1,6 @@
 from typing import Optional, List
-from pydantic import Field
 from fastapi import Query
 from app.pydantic_models.clean_model import CleanableBaseModel
-
-
-class PermissionsCreateSchema(CleanableBaseModel):
-    permission_id: str = Field(...)
-    permission_name: str = Field(...)
-    comment: Optional[str] = Field(None)
-
-    class Config:
-        from_attributes = True
 
 
 class PermissionsSchema(CleanableBaseModel):
@@ -33,15 +23,6 @@ class PermissionsListResponseSchema(CleanableBaseModel):
 
 class PermissionsResponseSchema(CleanableBaseModel):
     permission_id: str
-
-    class Config:
-        from_attributes = True
-
-
-class PermissionsEditSchema(CleanableBaseModel):
-    permission_id: Optional[str] = None
-    permission_name: Optional[str] = None
-    comment: Optional[str] = None
 
     class Config:
         from_attributes = True
