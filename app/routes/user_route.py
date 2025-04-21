@@ -44,7 +44,7 @@ async def add_user(data: UserCreateSchema = Body(...),
                 status_code=500, detail="Не удалось создать пользователя")
         logger.success(
             f"Пользователь {user.username} ({user.user_id}) успешно создан")
-        role = await UserRole.get_or_none(role_name='user')
+        role = await UserRole.get_or_none(role_system_name='user')
         company = await Company.get_or_none(company_id=context['company'])
         if role and company:
             await UserCompanyRelation.create(user=user, company=company, role=role)

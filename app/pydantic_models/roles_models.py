@@ -15,6 +15,7 @@ class UserRoleCreateSchema(CleanableBaseModel):
 class UserRoleSchema(CleanableBaseModel):
     role_id: UUID
     role_name: str
+    role_system_name: Optional[str] = None
 
     class Config:
         from_attributes = True

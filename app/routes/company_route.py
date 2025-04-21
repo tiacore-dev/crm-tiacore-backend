@@ -25,7 +25,7 @@ async def add_company(data: CompanyCreateSchema = Body(), context=Depends(requir
                 status_code=500, detail="Не удалось создать компанию")
 
         logger.success(f"Компания создана: {company.company_id}")
-        role = await UserRole.get_or_none(role_name="admin")
+        role = await UserRole.get_or_none(role_system_name="admin")
         if role and context['user']:
             await UserCompanyRelation.create(role=role, company=company, user=context['user'])
         return {"company_id": str(company.company_id)}

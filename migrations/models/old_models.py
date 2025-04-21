@@ -20,6 +20,7 @@ class UserRole(Model):
 
     role_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role_name = fields.CharField(max_length=50, unique=True)
+    role_system_name = fields.CharField(max_length=50, null=True, unique=True)
 
     def __repr__(self):
         return f"<UserRole(role_id={self.role_id}, role_name='{self.role_name}')>"
@@ -134,7 +135,7 @@ class EntityCompanyRelation(Model):
 class LegalEntity(Model):
     legal_entity_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     legal_entity_name = fields.CharField(max_length=255)
-    inn = fields.CharField(max_length=12, unique=True)
+    inn = fields.CharField(max_length=12)
     # КПП не всегда есть (ИП его не имеют)
     kpp = fields.CharField(max_length=9, null=True)
     vat_rate = fields.IntField()
@@ -147,6 +148,7 @@ class LegalEntity(Model):
 
     class Meta:
         table = "legal_entities"
+        unique_together = (("inn", "kpp"),)
 
 
 class Contract(Model):

@@ -51,13 +51,21 @@ async def edit_role(
 ):
     logger.info(f"Обновление роли {role_id}: {data.dict(exclude_unset=True)}")
     try:
-        updated_rows = await UserRole.filter(role_id=role_id).update(**data.dict(exclude_unset=True))
-        if not updated_rows:
+        role = await UserRole.filter(role_id=role_id).first()
+        if not role:
             logger.warning(f"Роль {role_id} не найдена")
             raise HTTPException(status_code=404, detail="Роль не найдена")
 
+        if role.role_system_name:
+            raise HTTPException(
+                status_code=403, detail="Нельзя изменить системную роль"
+            )
+
+        await role.update_from_dict(data.dict(exclude_unset=True))
+        await role.save()
+
         logger.success(f"Роль {role_id} успешно обновлена")
-        return {"role_id": role_id}
+        return UserRoleResponseSchema(role_id=role.role_id)
     except Exception as e:
         logger.exception("Ошибка при обновлении роли")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
@@ -75,15 +83,22 @@ async def delete_role(
 ):
     logger.info(f"Удаление роли {role_id}")
     try:
-        deleted_count = await UserRole.filter(role_id=role_id).delete()
-        if not deleted_count:
+        role = await UserRole.filter(role_id=role_id).first()
+        if not role:
             logger.warning(f"Роль {role_id} не найдена")
             raise HTTPException(status_code=404, detail="Роль не найдена")
 
+        if role.role_system_name:
+            raise HTTPException(
+                status_code=403, detail="Нельзя удалить системную роль")
+
+        await role.delete()
+
         logger.success(f"Роль {role_id} успешно удалена")
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
     except Exception as e:
-        logger.exception("Ошибка при удалении роли")
+        logger.exception(f"Ошибка при удалении роли {role_id}")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -145,7 +160,8 @@ async def get_role(
 
         role_schema = UserRoleSchema(
             role_id=role.role_id,
-            role_name=role.role_name
+            role_name=role.role_name,
+            role_system_name=role.role_system_name
         )
         logger.success(f"Роль найдена: {role_schema}")
         return role_schema

@@ -1,0 +1,12 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"legal_entities\" DROP CONSTRAINT \"legal_entities_inn_key\"",
+    "ALTER TABLE \"legal_entities\" ADD CONSTRAINT \"uid_legal_entit_inn_06a077\" UNIQUE (\"inn\", \"kpp\")",
+    "ALTER TABLE \"user_roles\" ADD \"role_system_name\" VARCHAR(50) UNIQUE"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"legal_entities\" DROP CONSTRAINT \"uid_legal_entit_inn_06a077\"",
+    "ALTER TABLE \"legal_entities\" ADD CONSTRAINT \"legal_entities_inn_key\" UNIQUE (\"inn\")",
+    "ALTER TABLE \"user_roles\" DROP COLUMN \"role_system_name\""
+  ]
+}
