@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Contract, ContractStatus, LegalEntity
+from app.database.models import Contract, ContractStatus, LegalEntity, EntityCompanyRelation
 from app.pydantic_models.contract_models import (
     ContractCreateSchema,
     ContractResponseSchema,
@@ -11,7 +11,9 @@ from app.pydantic_models.contract_models import (
     ContractSchema,
     ContractListResponseSchema
 )
-from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
+from app.dependencies.permissions import with_permission_and_seller_company_check
+from app.utils.permissions_get import ensure_seller_belongs_to_company
 from app.s3.s3_manager import AsyncS3Manager
 
 contract_router = APIRouter()
@@ -25,42 +27,44 @@ contract_router = APIRouter()
 )
 async def add_contract(
     data: ContractCreateSchema = Depends(ContractCreateSchema.as_form),
-    username: str = Depends(get_current_user)
+    context=Depends(require_permission_in_context("add_contract"))
 ):
     try:
-        logger.debug(f"[{username}] Полученные данные: {data.model_dump()}")
+        logger.debug(f"Полученные данные: {data.model_dump()}")
 
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
         status_obj = await ContractStatus.get_or_none(contract_status_id=data.status)
 
         if not buyer:
-            logger.warning(f"[{username}] Покупатель не найден: {data.buyer}")
+            logger.warning(f"Покупатель не найден: {data.buyer}")
         if not seller:
-            logger.warning(f"[{username}] Продавец не найден: {data.seller}")
+            logger.warning(f"Продавец не найден: {data.seller}")
         if not status_obj:
-            logger.warning(f"[{username}] Статус не найден: {data.status}")
+            logger.warning(f"Статус не найден: {data.status}")
 
         if not buyer or not seller or not status_obj:
             raise HTTPException(
                 status_code=400,
                 detail="Покупатель, продавец или статус не найдены"
             )
+        if not context.get("is_superadmin"):
+            await ensure_seller_belongs_to_company(seller, context["company"])
 
         s3_key = None
         if data.file:
-            logger.debug(f"[{username}] Обработка файла: {data.file.filename}")
+            logger.debug(f"Обработка файла: {data.file.filename}")
 
             file_bytes = await data.file.read()
             if not file_bytes:
-                logger.warning(f"[{username}] Файл пустой или не прочитан.")
+                logger.warning("Файл пустой или не прочитан.")
                 raise HTTPException(
                     status_code=400,
                     detail="Не удалось загрузить данные файла"
                 )
 
             logger.info(
-                f"[{username}] Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт"
+                f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт"
             )
 
             filename = data.file.filename
@@ -72,7 +76,7 @@ async def add_contract(
                 entity="contract"
             )
             logger.info(
-                f"[{username}] Файл успешно загружен в S3, ключ: {s3_key}")
+                f"Файл успешно загружен в S3, ключ: {s3_key}")
 
         contract = await Contract.create(
             contract_name=data.contract_name,
@@ -85,16 +89,16 @@ async def add_contract(
         )
 
         logger.info(
-            f"[{username}] Контракт успешно создан: {contract.contract_id}")
+            f"Контракт успешно создан: {contract.contract_id}")
         return {"contract_id": str(contract.contract_id)}
 
     except HTTPException as http_exc:
         logger.warning(
-            f"[{username}] HTTP ошибка при создании контракта: {http_exc.detail}")
+            f"HTTP ошибка при создании контракта: {http_exc.detail}")
         raise http_exc
 
     except Exception as e:
-        logger.exception(f"[{username}] Ошибка при создании контракта")
+        logger.exception("Ошибка при создании контракта")
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
@@ -103,7 +107,14 @@ async def add_contract(
     response_model=ContractResponseSchema,
     summary="Изменить контракт"
 )
-async def update_contract(contract_id: UUID, data: ContractEditSchema = Depends(ContractEditSchema.as_form), username: str = Depends(get_current_user)):
+async def update_contract(
+        contract_id: UUID,
+        data: ContractEditSchema = Depends(ContractEditSchema.as_form),
+        check_contract_access=with_permission_and_seller_company_check(
+            permission="edit_contract",
+            model=Contract,
+            model_name="contract"
+        )):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -160,7 +171,13 @@ async def update_contract(contract_id: UUID, data: ContractEditSchema = Depends(
     summary="Удалить контракт",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_contract(contract_id: UUID, username: str = Depends(get_current_user)):
+async def delete_contract(
+        contract_id: UUID,
+        check_contract_access=with_permission_and_seller_company_check(
+            permission="delete_contract",
+            model=Contract,
+            model_name="contract"
+        )):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -174,9 +191,17 @@ async def delete_contract(contract_id: UUID, username: str = Depends(get_current
     response_model=ContractListResponseSchema,
     summary="Получение списка контрактов"
 )
-async def get_contracts(filters: dict = Depends(contract_filter_params), username: str = Depends(get_current_user)):
+async def get_contracts(filters: dict = Depends(contract_filter_params), context=Depends(require_permission_in_context("get_all_contracts"))):
     try:
+
         query = Q()
+        if not context.get("is_superadmin"):
+            seller_entity_ids = await EntityCompanyRelation.filter(
+                company_id=context["company"],
+                relation_type="seller"
+            ).values_list("legal_entity_id", flat=True)
+            query &= Q(seller_id__in=seller_entity_ids)
+
         if filters.get("buyer"):
             query &= Q(buyer_id=filters["buyer"])
         if filters.get("seller"):
@@ -261,7 +286,13 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), usernam
     "/{contract_id}/download",
     summary="Скачивание файла контракта"
 )
-async def download_contract(contract_id: UUID, username: str = Depends(get_current_user)):
+async def download_contract(
+        contract_id: UUID,
+        check_contract_access=with_permission_and_seller_company_check(
+            permission="download_contract",
+            model=Contract,
+            model_name="contract"
+        )):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -275,7 +306,13 @@ async def download_contract(contract_id: UUID, username: str = Depends(get_curre
     response_model=ContractSchema,
     summary="Просмотр одного контракта"
 )
-async def get_contract(contract_id: UUID, username: str = Depends(get_current_user)):
+async def get_contract(
+        contract_id: UUID,
+        check_contract_access=with_permission_and_seller_company_check(
+            permission="view_contract",
+            model=Contract,
+            model_name="contract"
+        )):
     contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status").first()
 
     if not contract:

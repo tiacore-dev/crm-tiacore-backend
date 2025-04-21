@@ -1,9 +1,10 @@
-from typing import Dict, List
+from typing import Dict, List, Type
 from uuid import UUID
+from tortoise.models import Model
 from loguru import logger
 from fastapi import HTTPException, Depends, Path
 from app.handlers.depends import require_permission_in_context
-from app.database.models import User, UserCompanyRelation, Permissions, LegalEntity
+from app.database.models import User, UserCompanyRelation, Permissions, EntityCompanyRelation
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
@@ -82,15 +83,54 @@ def with_permission_and_entity_company_check(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        entity = await LegalEntity.get_or_none(legal_entity_id=legal_entity_id).prefetch_related("company")
-        if not entity:
-            raise HTTPException(
-                status_code=404, detail="Юридическое лицо не найдено")
+        # Проверка, связано ли это юр. лицо с компанией пользователя
+        is_related = await EntityCompanyRelation.exists(
+            legal_entity_id=legal_entity_id,
+            company_id=context["company"]
+        )
 
-        if str(entity.company.company_id) != str(context["company"]):
+        if not is_related:
             raise HTTPException(
                 status_code=403,
                 detail="Вы не можете изменять юридические лица другой компании"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_and_seller_company_check(
+    permission: str,
+    model: Type[Model],
+    model_name: str,
+):
+
+    def factory():
+        return Path(..., description=f"ID {model_name}")
+
+    async def dependency(
+        context: dict = Depends(require_permission_in_context(permission)),
+        model_id: UUID = Depends(factory)  # 👈 FastAPI сам свяжет с path
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        instance = await model.get_or_none(**{f"{model_name}_id": model_id}).prefetch_related("seller")
+        if not instance:
+            raise HTTPException(
+                status_code=404, detail=f"{model_name.capitalize()} не найден")
+
+        is_seller = await EntityCompanyRelation.exists(
+            company_id=context["company"],
+            legal_entity=instance.seller,
+            relation_type="seller"
+        )
+
+        if not is_seller:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Вы не можете управлять {model_name} с чужим продавцом"
             )
 
         return context

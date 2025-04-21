@@ -1,6 +1,9 @@
 from typing import Dict, List
+from uuid import UUID
 from collections import defaultdict
-from app.database.models import User, UserCompanyRelation, RolePermissionRelation
+from loguru import logger
+from fastapi import HTTPException
+from app.database.models import User, UserCompanyRelation, RolePermissionRelation, LegalEntity, EntityCompanyRelation
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
@@ -32,3 +35,19 @@ async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
         company_permissions[company_id] = perms
 
     return company_permissions
+
+
+async def ensure_seller_belongs_to_company(seller: LegalEntity, company_id: UUID):
+    is_seller = await EntityCompanyRelation.exists(
+        legal_entity=seller,
+        company_id=company_id,
+        relation_type="seller"
+    )
+    if not is_seller:
+        logger.warning(
+            f"Попытка использовать чужого продавца: {seller.legal_entity_id}"
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Вы не можете действовать от имени юрлица, не связанного с вашей компанией как продавец"
+        )

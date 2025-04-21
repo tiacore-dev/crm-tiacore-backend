@@ -25,7 +25,7 @@ async def get_current_context(
                 status_code=403, detail="Пользователь не является суперадмином")
 
         return {
-            "user": user,
+            "user": user.user_id,
             "company": company,  # может быть None — это ок
             "role": "superadmin",
             "permissions": ["*"],
@@ -38,7 +38,7 @@ async def get_current_context(
 
     raw_permissions = permissions_map.get(str(company), [])
     return {
-        "user": user,
+        "user": user.user_id,
         "company": company,
         "role": None,
         "permissions": raw_permissions,
