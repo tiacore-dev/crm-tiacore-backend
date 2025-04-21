@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import ActDetails, Acts, Service
+from app.database.models import ActDetails, Acts, Service, EntityCompanyRelation
 from app.pydantic_models.act_detail_models import (
     ActDetailCreateSchema,
     ActDetailResponseSchema,
@@ -11,8 +11,8 @@ from app.pydantic_models.act_detail_models import (
     ActDetailSchema,
     ActDetailListResponseSchema
 )
-from app.handlers.auth import get_current_user
-
+from app.dependencies.permissions import with_permission_through_act
+from app.handlers.depends import require_permission_in_context
 
 act_detail_router = APIRouter()
 
@@ -23,9 +23,27 @@ act_detail_router = APIRouter()
     summary="Добавить детали акта",
     status_code=status.HTTP_201_CREATED
 )
-async def add_act_detail(data: ActDetailCreateSchema, username: str = Depends(get_current_user)):
+async def add_act_detail(
+    data: ActDetailCreateSchema,
+    context=Depends(require_permission_in_context("add_act_detail"))
+):
+    act = await Acts.get_or_none(act_id=data.act).prefetch_related("seller")
+    if not act:
+        raise HTTPException(status_code=400, detail="Акт не найден")
+
+    if not context.get("is_superadmin"):
+        is_seller = await EntityCompanyRelation.exists(
+            company_id=context["company"],
+            legal_entity=act.seller,
+            relation_type="seller"
+        )
+        if not is_seller:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не можете добавлять детали к акту другой компании"
+            )
+
     try:
-        act = await Acts.get_or_none(act_id=data.act)
         service = await Service.get_or_none(service_id=data.service)
 
         if not act or not service:
@@ -54,7 +72,16 @@ async def add_act_detail(data: ActDetailCreateSchema, username: str = Depends(ge
     response_model=ActDetailResponseSchema,
     summary="Изменить детали акта"
 )
-async def update_act_detail(act_detail_id: UUID, data: ActDetailEditSchema, username: str = Depends(get_current_user)):
+@act_detail_router.patch(
+    "/{act_detail_id}",
+    response_model=ActDetailResponseSchema,
+    summary="Изменить детали акта"
+)
+async def update_act_detail(
+    act_detail_id: UUID,
+    data: ActDetailEditSchema,
+    context=with_permission_through_act("edit_act_detail")
+):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -84,7 +111,7 @@ async def update_act_detail(act_detail_id: UUID, data: ActDetailEditSchema, user
     summary="Удалить детали акта",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_act_detail(act_detail_id: UUID, username: str = Depends(get_current_user)):
+async def delete_act_detail(act_detail_id: UUID, context=with_permission_through_act("delete_act_detail")):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -98,15 +125,26 @@ async def delete_act_detail(act_detail_id: UUID, username: str = Depends(get_cur
     response_model=ActDetailListResponseSchema,
     summary="Получение списка деталей акта"
 )
-async def get_act_details(filters: dict = Depends(act_detail_filter_params), username: str = Depends(get_current_user)):
+async def get_act_details(
+    filters: dict = Depends(act_detail_filter_params),
+    context=Depends(require_permission_in_context("get_all_act_details"))
+):
     try:
         query = Q()
+
+        if not context.get("is_superadmin"):
+            allowed_act_ids = await Acts.filter(
+                seller__entity_company_relations__company_id=context["company"],
+                seller__entity_company_relations__relation_type="seller"
+            ).values_list("act_id", flat=True)
+
+            query &= Q(act_id__in=allowed_act_ids)
+
         if filters.get("act"):
             query &= Q(act_id=filters["act"])
         if filters.get("service"):
             query &= Q(service_id=filters["service"])
 
-        # ✅ Общее число записей
         total_count = await ActDetails.filter(query).count()
 
         page = filters.get("page", 1)
@@ -122,8 +160,8 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params), use
             act_details=[
                 ActDetailSchema(
                     act_detail_id=act_detail.act_detail_id,
-                    act=act_detail.act.act_id,  # ✅ Теперь передаем UUID акта
-                    service=act_detail.service.service_id,  # ✅ Теперь передаем UUID услуги
+                    act=act_detail.act.act_id,
+                    service=act_detail.service.service_id,
                     quantity=act_detail.quantity,
                     summ=act_detail.summ
                 )
@@ -144,7 +182,7 @@ async def get_act_details(filters: dict = Depends(act_detail_filter_params), use
     response_model=ActDetailSchema,
     summary="Просмотр одной детали акта"
 )
-async def get_act_detail(act_detail_id: UUID, username: str = Depends(get_current_user)):
+async def get_act_detail(act_detail_id: UUID, context=with_permission_through_act("view_act_detail")):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).prefetch_related("act", "service").first()
 
     if not act_detail:

@@ -4,7 +4,7 @@ from tortoise.models import Model
 from loguru import logger
 from fastapi import HTTPException, Depends, Path
 from app.handlers.depends import require_permission_in_context
-from app.database.models import User, UserCompanyRelation, Permissions, EntityCompanyRelation
+from app.database.models import User, UserCompanyRelation, Permissions, EntityCompanyRelation, ActDetails, BillDetails
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
@@ -131,6 +131,66 @@ def with_permission_and_seller_company_check(
             raise HTTPException(
                 status_code=403,
                 detail=f"Вы не можете управлять {model_name} с чужим продавцом"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_through_act(permission: str):
+    async def dependency(
+        act_detail_id: UUID = Path(...),
+        context=Depends(require_permission_in_context(permission))
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        detail = await ActDetails.get_or_none(act_detail_id=act_detail_id).prefetch_related("act__seller")
+        if not detail:
+            raise HTTPException(
+                status_code=404, detail="Деталь акта не найдена")
+
+        is_seller = await EntityCompanyRelation.exists(
+            company_id=context["company"],
+            legal_entity=detail.act.seller,
+            relation_type="seller"
+        )
+
+        if not is_seller:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не можете работать с деталями акта чужой компании"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_through_bill(permission: str):
+    async def dependency(
+        bill_detail_id: UUID = Path(...),
+        context=Depends(require_permission_in_context(permission))
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        detail = await BillDetails.get_or_none(bill_detail_id=bill_detail_id).prefetch_related("bill__seller")
+        if not detail:
+            raise HTTPException(
+                status_code=404, detail="Деталь акта не найдена")
+
+        is_seller = await EntityCompanyRelation.exists(
+            company_id=context["company"],
+            legal_entity=detail.bill.seller,
+            relation_type="seller"
+        )
+
+        if not is_seller:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не можете работать с деталями акта чужой компании"
             )
 
         return context
