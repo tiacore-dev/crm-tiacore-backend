@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Depends
 from jose import JWTError
 from loguru import logger
 from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token
 from app.utils.permissions_get import get_company_permissions_for_user
+from app.handlers.depends import get_current_context
 from app.database.models import User
 from app.pydantic_models.auth_models import TokenResponse, LoginRequest
 
@@ -61,3 +62,8 @@ async def refresh_access_token(data: dict = Body(...)):
         raise HTTPException(
             status_code=401, detail="Неверный или просроченный токен"
         ) from exc
+
+
+@auth_router.get("/superadmin", response_model=bool, summary="Проверка, является ли пользователь суперадмином")
+async def is_superadmin(context=Depends(get_current_context)):
+    return bool(context['is_superadmin'])
