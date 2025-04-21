@@ -12,13 +12,13 @@ import pytest
 #     assert response.json()["message"] == "Доступ разрешён"
 
 
-@pytest.mark.usefixtures("seed_user")
+@pytest.mark.usefixtures("seed_other_user")
 @pytest.mark.asyncio
 async def test_login_success(test_app):
     """Проверяем успешную аутентификацию."""
     response = test_app.post(
         "/api/auth/token",
-        json={"username": "test_user", "password": "qweasdzcx"}
+        json={"username": "Test User", "password": "123"}
     )
 
     assert response.status_code == 200
@@ -28,10 +28,10 @@ async def test_login_success(test_app):
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_success(test_app, jwt_token_user):
+async def test_refresh_token_success(test_app, jwt_token_admin):
     """Проверяем, что refresh-токен можно обменять на новый access-токен."""
     response = test_app.post(
-        "/api/auth/refresh", data=json.dumps({"refresh_token": jwt_token_user["refresh_token"]}))
+        "/api/auth/refresh", data=json.dumps({"refresh_token": jwt_token_admin["refresh_token"]}))
 
     assert response.status_code == 200
     json_data = response.json()

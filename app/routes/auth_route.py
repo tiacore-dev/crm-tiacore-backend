@@ -28,7 +28,8 @@ async def login(data: LoginRequest):
             "permissions": company_permissions
         }),
         refresh_token=create_refresh_token({"sub": user.username}),
-        token_type="bearer"
+        permissions=None if user.is_superadmin else company_permissions,
+        is_superadmin=user.is_superadmin
     )
 
 
@@ -55,7 +56,8 @@ async def refresh_access_token(data: dict = Body(...)):
                 "permissions": company_permissions
             }),
             refresh_token=create_refresh_token({"sub": username}),
-            token_type="bearer"
+            permissions=None if user.is_superadmin else company_permissions,
+            is_superadmin=user.is_superadmin
         )
 
     except JWTError as exc:
