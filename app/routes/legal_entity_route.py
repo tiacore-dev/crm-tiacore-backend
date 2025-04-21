@@ -25,6 +25,13 @@ entity_router = APIRouter()
 @entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо", status_code=status.HTTP_201_CREATED)
 async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(require_permission_in_context("add_legal_entity"))):
     try:
+        # Проверяем, что пользователь действительно связан с этой компанией
+        is_related = await UserCompanyRelation.exists(user_id=context["user"], company_id=data.company)
+        if not is_related:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не имеете доступа к этой компании"
+            )
         entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
         company = await Company.get_or_none(company_id=data.company)
 
@@ -32,10 +39,21 @@ async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(requir
             raise HTTPException(
                 status_code=400, detail="Компания или тип юр. лица не найдены")
 
+        if data.relation_type == "seller":
+            existing_seller = await EntityCompanyRelation.filter(
+                company=company,
+                relation_type="seller"
+            ).first()
+            if existing_seller:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Это юридическое лицо уже является продавцом в другой компании"
+                )
         if data.kpp:
             existing_entity = await LegalEntity.get_or_none(inn=data.inn, kpp=data.kpp)
         else:
             existing_entity = await LegalEntity.get_or_none(inn=data.inn)
+
         if existing_entity:
             logger.warning(
                 f"Юрлицо с ИНН {data.inn} уже существует")
