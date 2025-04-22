@@ -125,7 +125,8 @@ async def delete_legal_entity(legal_entity_id: UUID,  context=with_permission_an
 )
 async def get_legal_entities(
     filters: dict = Depends(legal_entity_filter_params),
-    context: dict = Depends(require_permission_in_context("get_all_entities"))
+    context: dict = Depends(
+        require_permission_in_context("get_all_legal_entities"))
 ):
     try:
         query = Q()
