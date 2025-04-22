@@ -163,7 +163,7 @@ async def get_legal_entities(
         else:
             # Обычный пользователь — получаем его компании
             user_company_ids = await UserCompanyRelation.filter(
-                user_id=context["user_id"]
+                user_id=context["user"]
             ).values_list("company_id", flat=True)
 
             if not user_company_ids:
