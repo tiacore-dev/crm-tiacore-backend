@@ -27,7 +27,7 @@ async def add_company(data: CompanyCreateSchema = Body(), context=Depends(requir
         logger.success(f"Компания создана: {company.company_id}")
         role = await UserRole.get_or_none(role_system_name="admin")
         if role and context['user']:
-            await UserCompanyRelation.create(role=role, company=company, user=context['user'])
+            await UserCompanyRelation.create(role=role, company=company, user_id=context['user'])
         return {"company_id": str(company.company_id)}
 
     except HTTPException as http_exc:
