@@ -22,8 +22,16 @@ from app.handlers.depends import require_permission_in_context
 entity_router = APIRouter()
 
 
-@entity_router.post("/add", response_model=LegalEntityResponseSchema, summary="Добавить юридическое лицо", status_code=status.HTTP_201_CREATED)
-async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(require_permission_in_context("add_legal_entity"))):
+@entity_router.post(
+    "/add",
+    response_model=LegalEntityResponseSchema,
+    summary="Добавить юридическое лицо",
+    status_code=status.HTTP_201_CREATED
+)
+async def add_legal_entity(
+    data: LegalEntityCreateSchema,
+    context=Depends(require_permission_in_context("add_legal_entity"))
+):
     try:
         # Проверяем, что пользователь действительно связан с этой компанией
         if not context.get("is_superadmin"):
@@ -85,8 +93,16 @@ async def add_legal_entity(data: LegalEntityCreateSchema, context=Depends(requir
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@entity_router.patch("/{legal_entity_id}", response_model=LegalEntityResponseSchema, summary="Изменить юридическое лицо")
-async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema, context=with_permission_and_entity_company_check("edit_legal_entity")):
+@entity_router.patch(
+    "/{legal_entity_id}",
+    response_model=LegalEntityResponseSchema,
+    summary="Изменить юридическое лицо"
+)
+async def update_legal_entity(
+        legal_entity_id: UUID,
+        data: LegalEntityEditSchema,
+        context=with_permission_and_entity_company_check("edit_legal_entity")
+):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(
@@ -107,8 +123,15 @@ async def update_legal_entity(legal_entity_id: UUID, data: LegalEntityEditSchema
     return {"legal_entity_id": str(entity.legal_entity_id)}
 
 
-@entity_router.delete("/{legal_entity_id}", summary="Удалить юридическое лицо", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_legal_entity(legal_entity_id: UUID,  context=with_permission_and_entity_company_check("delete_legal_entity")):
+@entity_router.delete(
+    "/{legal_entity_id}",
+    summary="Удалить юридическое лицо",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_legal_entity(
+    legal_entity_id: UUID,
+    context=with_permission_and_entity_company_check("delete_legal_entity")
+):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id).first()
     if not entity:
         raise HTTPException(
@@ -200,7 +223,7 @@ async def get_legal_entities(
 async def get_legal_entity_by_inn_kpp(
     filters: dict[str, Optional[str]] = Depends(inn_kpp_filter_params),
     context: dict = Depends(
-        require_permission_in_context("get_entity_by_inn_kpp"))
+        require_permission_in_context("get_legal_entity_by_inn_kpp"))
 ):
     try:
 
@@ -225,7 +248,7 @@ async def get_legal_entity_by_inn_kpp(
 )
 async def get_legal_entity(
     legal_entity_id: UUID,
-    context: dict = Depends(require_permission_in_context("view_entity"))
+    context: dict = Depends(require_permission_in_context("view_legal_entity"))
 ):
     entity = await LegalEntity.filter(legal_entity_id=legal_entity_id) \
         .prefetch_related("entity_company_relations", "entity_type") \
