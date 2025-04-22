@@ -1,5 +1,6 @@
 from uuid import UUID
 from typing import Optional
+from pydantic import ValidationError
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
@@ -87,6 +88,10 @@ async def add_legal_entity(
 
     except HTTPException as http_exc:
         raise http_exc
+    except ValidationError as e:
+        logger.warning(f"Ошибка валидации: {e}")
+        raise HTTPException(
+            status_code=400, detail="Ошибка валидации данных") from e
 
     except Exception as e:
         logger.exception("Ошибка при создании юридического лица")
@@ -209,6 +214,10 @@ async def get_legal_entities(
 
     except HTTPException as http_exc:
         raise http_exc
+    except ValidationError as e:
+        logger.warning(f"Ошибка валидации: {e}")
+        raise HTTPException(
+            status_code=400, detail="Ошибка валидации данных") from e
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")
@@ -235,6 +244,10 @@ async def get_legal_entity_by_inn_kpp(
             legal_entity_id=entity.legal_entity_id,
             legal_entity_name=entity.legal_entity_name,
         )
+    except ValidationError as e:
+        logger.warning(f"Ошибка валидации: {e}")
+        raise HTTPException(
+            status_code=400, detail="Ошибка валидации данных") from e
 
     except Exception as e:
         logger.exception("Ошибка при получении организации по инн и кпп")

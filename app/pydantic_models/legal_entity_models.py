@@ -60,6 +60,11 @@ class LegalEntitySchema(CleanableBaseModel):
     signer: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
 
+    @field_validator("kpp", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        return v or None
+
     class Config:
         from_attributes = True
 
