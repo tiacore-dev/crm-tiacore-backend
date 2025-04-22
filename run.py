@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from app import create_app
+from app.database.add_permissions import add_initial_permissions
 
 load_dotenv()
 
@@ -36,6 +37,7 @@ app = create_app(config_name=CONFIG_NAME)
 @app.on_event("startup")
 async def startup_event():
     # Создаем администратора при запуске
+    await add_initial_permissions()
     await create_admin_user()
     await create_test_data()
 

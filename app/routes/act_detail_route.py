@@ -72,11 +72,6 @@ async def add_act_detail(
     response_model=ActDetailResponseSchema,
     summary="Изменить детали акта"
 )
-@act_detail_router.patch(
-    "/{act_detail_id}",
-    response_model=ActDetailResponseSchema,
-    summary="Изменить детали акта"
-)
 async def update_act_detail(
     act_detail_id: UUID,
     data: ActDetailEditSchema,
