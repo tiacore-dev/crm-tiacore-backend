@@ -8,10 +8,10 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     legal_entity_name: str = Field(..., min_length=3, max_length=255)
     inn: str = Field(..., min_length=10, max_length=12)
     kpp: Optional[str] = Field(None, min_length=9, max_length=9)
-    vat_rate: int = Field(..., ge=0, le=100)
+    vat_rate: Optional[int] = Field(0, ge=0, le=100)
     address: str = Field(..., min_length=5, max_length=255)
-    entity_type: str = Field(...,
-                             description="ID типа юр. лица (внешний ключ)")
+    entity_type: Optional[str] = Field(None,
+                                       description="ID типа юр. лица (внешний ключ)")
     signer: Optional[str] = Field(None, min_length=3, max_length=255)
     company: UUID4 = Field(...,
                            description="ID компании (внешний ключ), UUID4")
@@ -51,13 +51,13 @@ class LegalEntityCreateSchema(CleanableBaseModel):
 
 class LegalEntitySchema(CleanableBaseModel):
     legal_entity_id: UUID4
-    legal_entity_name: str = Field(..., max_length=255)
-    inn: str = Field(..., min_length=10, max_length=12)
-    kpp: Optional[str] = Field(None, min_length=9, max_length=9)
+    legal_entity_name: str
+    inn: str
+    kpp: Optional[str] = None
     vat_rate: int
-    address: str = Field(..., max_length=255)
-    entity_type: str  # Теперь хранит ID, а не строку
-    signer: Optional[str] = Field(None, max_length=255)
+    address: str
+    entity_type: Optional[str] = None
+    signer: Optional[str]
 
     @field_validator("kpp", mode="before")
     @classmethod

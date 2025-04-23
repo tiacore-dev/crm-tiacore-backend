@@ -42,12 +42,16 @@ async def add_legal_entity(
                     status_code=403,
                     detail="Вы не имеете доступа к этой компании"
                 )
-        entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
+        if data.entity_type is not None:
+            entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=data.entity_type)
+            if not entity_type:
+                raise HTTPException(
+                    status_code=400, detail="Тип юр. лица не найден")
         company = await Company.get_or_none(company_id=data.company)
 
-        if not entity_type or not company:
+        if not company:
             raise HTTPException(
-                status_code=400, detail="Компания или тип юр. лица не найдены")
+                status_code=400, detail="Компания не найдена")
 
         if data.relation_type == "seller":
             existing_seller = await EntityCompanyRelation.filter(
@@ -82,7 +86,7 @@ async def add_legal_entity(
             signer=data.signer,
         )
 
-        await EntityCompanyRelation.create(company=company, legal_entity=entity, relation_type=data.relation_type)
+        await EntityCompanyRelation.create(company=company, legal_entity=entity, relation_type=data.relation_type, description=data.description)
         return {"legal_entity_id": str(entity.legal_entity_id)}
 
     except HTTPException as http_exc:

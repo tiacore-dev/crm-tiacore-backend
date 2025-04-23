@@ -13,7 +13,8 @@ from app.database.models import (
     ActDetails,
     BillDetails,
     Service,
-    BankAccount
+    BankAccount,
+    Templates
 )
 
 
@@ -268,6 +269,28 @@ def with_permission_and_entity_company_check_for_bank(
             raise HTTPException(
                 status_code=403,
                 detail="Вы не можете управлять банковским счетом с чужим продавцом"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_and_template_check(permission: str):
+    async def dependency(
+        template_id: UUID = Path(..., description="ID услуги"),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        # Проверка принадлежности услуги компании
+        template = await Templates.get_or_none(template_id=template_id)
+
+        if not template or str(template.company_id) != str(context['company']):
+            raise HTTPException(
+                status_code=403,
+                detail="Услуга не принадлежит указанной компании или не найдена"
             )
 
         return context

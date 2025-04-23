@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Templates, Company
+from app.database.models import Templates, Company, UserCompanyRelation
 from app.pydantic_models.template_models import (
     TemplateCreateSchema,
     TemplateEditSchema,
@@ -17,7 +17,8 @@ from app.pydantic_models.template_models import (
     TemplateListResponseSchema,
     GenerateFileSchema
 )
-from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
+from app.dependencies.permissions import with_permission_and_template_check
 from app.handlers.template_handler import handle_acts, handle_bills
 from app.config import Settings
 from app.s3.s3_manager import AsyncS3Manager
@@ -35,13 +36,21 @@ template_router = APIRouter()
 )
 async def add_template(
         data: TemplateCreateSchema = Depends(TemplateCreateSchema.as_form),
-        username: str = Depends(get_current_user)):
+        context: dict = Depends(require_permission_in_context("add_template"))):
     try:
         company_obj = await Company.get_or_none(company_id=data.company)
         if not company_obj:
             raise HTTPException(
                 status_code=400, detail="Компания не найдена"
             )
+
+        if not context.get("is_superadmin"):
+            is_related = await UserCompanyRelation.exists(user_id=context["user"], company=company_obj)
+            if not is_related:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Вы не имеете доступа к этой компании"
+                )
 
         file_bytes = await data.file.read()
         if not file_bytes:
@@ -78,7 +87,7 @@ async def add_template(
 async def update_template(
     template_id: UUID,
     data: TemplateEditSchema = Depends(TemplateEditSchema.as_form),
-    username: str = Depends(get_current_user)
+    context=with_permission_and_template_check("edit_template")
 ):
     template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
     if not template:
@@ -129,7 +138,10 @@ async def update_template(
     summary="Удалить шаблон",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_template(template_id: UUID, username: str = Depends(get_current_user)):
+async def delete_template(
+    template_id: UUID,
+    context=with_permission_and_template_check("delete_template")
+):
     template = await Templates.filter(template_id=template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
@@ -144,13 +156,20 @@ async def delete_template(template_id: UUID, username: str = Depends(get_current
 @template_router.get(
     "/all",
     response_model=TemplateListResponseSchema,
-    summary="Получение списка счетов"
+    summary="Получение списка шаблонов"
 )
-async def get_templates(filters: dict = Depends(template_filter_params), username: str = Depends(get_current_user)):
+async def get_templates(
+    filters: dict = Depends(template_filter_params),
+    context=Depends(require_permission_in_context("get_all_templates"))
+):
     try:
         query = Q()
-        if filters.get("company"):
-            query &= Q(company_id=filters["company"])
+        if context["is_superadmin"]:
+            company_filter = filters.get("company")
+            if company_filter:
+                query &= Q(company_id=company_filter)
+        else:
+            query &= Q(company_id=context['company'])
         if filters.get("entity"):
             query &= Q(entity=filters["entity"])
 
@@ -192,7 +211,7 @@ async def get_templates(filters: dict = Depends(template_filter_params), usernam
     "/{template_id}/download",
     summary="Скачивание шаблона"
 )
-async def download_template(template_id: UUID, username: str = Depends(get_current_user)):
+async def download_template(template_id: UUID, context=Depends(require_permission_in_context("download_template"))):
     template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
     if not template:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -206,7 +225,7 @@ async def download_template(template_id: UUID, username: str = Depends(get_curre
     response_model=TemplateSchema,
     summary="Просмотр одного счета"
 )
-async def get_template(template_id: UUID, username: str = Depends(get_current_user)):
+async def get_template(template_id: UUID, context=Depends(require_permission_in_context("view_template"))):
     template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
     if not template:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -227,9 +246,9 @@ MEDIA_TYPES = {
 
 
 @template_router.post("/generate")
-async def genereate_file(data: GenerateFileSchema, username: str = Depends(get_current_user)):
+async def genereate_file(data: GenerateFileSchema, context=Depends(require_permission_in_context("generate_template"))):
     logger.info(
-        f"🔧 Генерация файла запрошена пользователем: {username}, шаблон: {data.template_id}, PDF: {data.is_pdf}")
+        f"🔧 Генерация файла запрошена пользователем: , шаблон: {data.template_id}, PDF: {data.is_pdf}")
 
     template = await Templates.get_or_none(template_id=data.template_id)
     if not template:

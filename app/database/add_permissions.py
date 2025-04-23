@@ -2,6 +2,15 @@ async def add_initial_permissions():
     from app.database.models import Permissions
 
     permissions = [
+        # Templates
+        ("add_template", "Добавление шаблона"),
+        ("edit_template", "Редактирование шаблона"),
+        ("delete_template", "Удаление шаблона"),
+        ("view_template", "Просмотр шаблона"),
+        ("download_template", "Скачивание шаблона"),
+        ("generate_template", "Генерация документа по шаблону"),
+        ("get_all_templates", "Просмотр всех шаблонов"),
+
         # Bank Accounts
         ("add_bank_account", "Добавление банковского счета"),
         ("edit_bank_account", "Редкатирование банковского счета"),
@@ -36,6 +45,7 @@ async def add_initial_permissions():
         ("delete_contract", "Удаление договора"),
         ("view_contract", "Просмотр договора"),
         ("get_all_contracts", "Просмотр всех договоров"),
+        ("download_contract", "Скачивание договора"),
 
         # Legal Entities
         ("add_legal_entity", "Добавление юридического лица"),
