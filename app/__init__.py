@@ -13,7 +13,7 @@ from app.config import Settings
 
 
 def create_app(config_name) -> FastAPI:
-    app = FastAPI()
+    app = FastAPI(title="CRM")
     settings = Settings()
     # Разрешаем запросы через прокси
     # app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
