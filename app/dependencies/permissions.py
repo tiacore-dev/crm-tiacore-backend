@@ -5,7 +5,15 @@ from loguru import logger
 from fastapi import HTTPException, Depends, Path
 from app.handlers.depends import require_permission_in_context
 from app.handlers.auth import get_current_user
-from app.database.models import User, UserCompanyRelation, Permissions, EntityCompanyRelation, ActDetails, BillDetails
+from app.database.models import (
+    User,
+    UserCompanyRelation,
+    Permissions,
+    EntityCompanyRelation,
+    ActDetails,
+    BillDetails,
+    Service
+)
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
@@ -200,6 +208,28 @@ def with_permission_through_bill(permission: str):
             raise HTTPException(
                 status_code=403,
                 detail="Вы не можете работать с деталями акта чужой компании"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_and_service_check(permission: str):
+    async def dependency(
+        service_id: UUID = Path(..., description="ID услуги"),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        # Проверка принадлежности услуги компании
+        service = await Service.get_or_none(service_id=service_id)
+
+        if not service or str(service.company_id) != str(context['company']):
+            raise HTTPException(
+                status_code=403,
+                detail="Услуга не принадлежит указанной компании или не найдена"
             )
 
         return context

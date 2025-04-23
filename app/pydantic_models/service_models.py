@@ -1,12 +1,12 @@
 from typing import Optional, List
-from pydantic import Field, field_validator, UUID4
+from pydantic import Field, UUID4
 from fastapi import Query
-from app.utils.validate_helpers import sanitize_input
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class ServiceCreateSchema(CleanableBaseModel):
     service_name: str = Field(..., min_length=3, max_length=100)
+    company: UUID4 = Field(...)
 
 
 class ServiceResponseSchema(CleanableBaseModel):
@@ -16,11 +16,11 @@ class ServiceResponseSchema(CleanableBaseModel):
 class ServiceSchema(CleanableBaseModel):
     service_id: UUID4
     service_name: str
+    company: UUID4
 
 
 class ServiceListResponseSchema(CleanableBaseModel):
     total: int  # 🔥 Количество услуг по фильтру
-    # ✅ Используем `list`, а не `List[ServiceSchema]`
     services: List[ServiceSchema]
 
     class Config:
@@ -29,17 +29,13 @@ class ServiceListResponseSchema(CleanableBaseModel):
 
 
 class ServiceEditSchema(CleanableBaseModel):
-    service_name: str = Field(..., min_length=3, max_length=100)
-
-    @field_validator("service_name")
-    @classmethod
-    def validate_service_name(cls, value: str) -> str:
-        """Фильтрация входных данных от XSS и других инъекций"""
-        return sanitize_input(value)
+    service_name: Optional[str] = Field(None, min_length=3, max_length=100)
+    company: Optional[UUID4] = Field(None)
 
 
 def service_filter_params(
     search: Optional[str] = Query(None, description="Фильтр по названию"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     sort_by: Optional[str] = Query(
         "service_name", description="Поле сортировки"),
     order: Optional[str] = Query(
@@ -50,6 +46,7 @@ def service_filter_params(
 ):
     return {
         "search": search,
+        "company": company,
         "sort_by": sort_by,
         "order": order,
         "page": page,

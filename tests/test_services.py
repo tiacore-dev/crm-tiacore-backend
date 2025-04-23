@@ -4,11 +4,12 @@ from app.database.models import Service
 
 
 @pytest.mark.asyncio
-async def test_add_service(test_app: AsyncClient, jwt_token_admin):
+async def test_add_service(test_app: AsyncClient, jwt_token_admin, seed_company):
     """Тест добавления новой услуги."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
-        "service_name": "Test Service"
+        "service_name": "Test Service",
+        "company": seed_company['company_id']
     }
 
     response = test_app.post("/api/services/add", headers=headers, json=data)

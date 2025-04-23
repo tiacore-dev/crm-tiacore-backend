@@ -124,15 +124,16 @@ async def jwt_token_admin(seed_admin):
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_service():
+async def seed_service(seed_company):
     """Добавляет тестового пользователя в базу перед тестом."""
     service = await Service.create(
-        service_name="Test Service"
+        service_name="Test Service",
+        company_id=seed_company['company_id']
     )
     return {
         "service_id": str(service.service_id),
-        "service_name": service.service_name
-
+        "service_name": service.service_name,
+        "company": str(service.company)
     }
 
 

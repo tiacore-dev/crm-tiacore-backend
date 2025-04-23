@@ -2,8 +2,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import get_current_user
-from app.database.models import Service
+from app.handlers.depends import require_permission_in_context
+from app.dependencies.permissions import with_permission_and_service_check
+from app.database.models import Service, Company, UserCompanyRelation
 from app.pydantic_models.service_models import (
     ServiceCreateSchema, ServiceEditSchema, service_filter_params, ServiceResponseSchema, ServiceListResponseSchema, ServiceSchema
 )
@@ -13,10 +14,24 @@ service_router = APIRouter()
 
 
 @service_router.post("/add", response_model=ServiceResponseSchema, summary="Добавление новой услуги", status_code=status.HTTP_201_CREATED)
-async def add_service(data: ServiceCreateSchema = Body(...), username: str = Depends(get_current_user)):
-    logger.info(f"Создание услуги: {data.dict()}")
+async def add_service(data: ServiceCreateSchema = Body(...), context: dict = Depends(require_permission_in_context("add_service"))):
+    logger.info(f"Создание услуги: {data.model_dump()}")
     try:
-        service = await Service.create(service_name=data.service_name)
+        company = await Company.get_or_none(company_id=data.company)
+        if not company:
+            logger.warning(
+                f"Попытка создать услугу с несуществующей компанией: {data.company}")
+            raise HTTPException(status_code=400, detail="Компания не найдена")
+
+        if not context.get("is_superadmin"):
+            is_related = await UserCompanyRelation.exists(user_id=context["user"], company=company)
+            if not is_related:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Вы не имеете доступа к этой компании"
+                )
+
+        service = await Service.create(service_name=data.service_name, company=company)
         if not service:
             logger.error("Не удалось создать услугу")
             raise HTTPException(
@@ -32,24 +47,41 @@ async def add_service(data: ServiceCreateSchema = Body(...), username: str = Dep
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.patch("/{service_id}", response_model=ServiceResponseSchema, summary="Изменение услуги")
+@service_router.patch(
+    "/{service_id}",
+    response_model=ServiceResponseSchema,
+    summary="Изменение услуги"
+)
 async def edit_service(
         service_id: UUID = Path(..., title="ID услуги",
                                 description="ID изменяемой услуги"),
         data: ServiceEditSchema = Body(...),
-        username: str = Depends(get_current_user)):
+        context=with_permission_and_service_check("edit_service")
+):
     """
     Обновление услуги по ID, переданному в URL.
     """
     logger.info(
         f"Обновление услуги {service_id}: {data.dict(exclude_unset=True)}")
     try:
-        updated_rows = await Service.filter(service_id=service_id).update(**data.dict(exclude_unset=True))
 
-        if not updated_rows:
+        # update(**data.dict(exclude_unset=True))
+        service = await Service.filter(service_id=service_id).first()
+
+        if not service:
             logger.warning(f"Услуга {service_id} не найдена")
             raise HTTPException(status_code=404, detail="Услуга не найдена")
-
+        if data.company is not None:
+            company = await Company.get_or_none(company_id=data.company)
+            if not company:
+                logger.warning(
+                    f"Попытка создать услугу с несуществующей компанией: {data.company}")
+                raise HTTPException(
+                    status_code=400, detail="Компания не найдена")
+            service.company = company
+        if data.service_name:
+            service.service_name = data.service_name
+        await service.save()
         logger.success(f"Услуга {service_id} успешно обновлена")
         return {"service_id": str(service_id)}
     except HTTPException as http_exc:
@@ -59,11 +91,14 @@ async def edit_service(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.delete("/{service_id}", summary="Удаление услуги", status_code=status.HTTP_204_NO_CONTENT)
+@service_router.delete(
+    "/{service_id}",
+    summary="Удаление услуги",
+    status_code=status.HTTP_204_NO_CONTENT)
 async def delete_service(
         service_id: UUID = Path(..., title="ID услуги",
                                 description="ID удаляемой услуги"),
-        username: str = Depends(get_current_user)):
+        context=with_permission_and_service_check("delete_service")):
     logger.info(f"Удаление услуги {service_id}")
     try:
         deleted_count = await Service.filter(service_id=service_id).delete()
@@ -87,12 +122,29 @@ async def delete_service(
 )
 async def get_services(
     filters: dict = Depends(service_filter_params),
-    username: str = Depends(get_current_user)
+    context=Depends(require_permission_in_context("get_all_services"))
 ):
     logger.info(f"Запрос на список услуг: {filters}")
 
     try:
         query = Q()
+        if context["is_superadmin"]:
+            company_filter = filters.get("company")
+            if company_filter:
+                # супер-админ может фильтровать по компании
+                query &= Q(company_id=company_filter)
+            # иначе — без ограничений
+        else:
+            # Обычный пользователь — получаем его компании
+            user_company_ids = await UserCompanyRelation.filter(
+                user_id=context["user"]
+            ).values_list("company_id", flat=True)
+
+            if not user_company_ids:
+                return ServiceListResponseSchema(total=0, services=[])
+
+            query &= Q(company_id__in=user_company_ids)
+
         search_value = filters.get("search")
         if search_value:
             query &= Q(service_name__icontains=search_value)
@@ -107,11 +159,17 @@ async def get_services(
         services = await Service.filter(query).order_by(order_by).offset(
             (page - 1) * page_size
             # ✅ Достаём сразу в виде словарей
-        ).limit(page_size).values("service_id", "service_name")
+        ).limit(page_size).values("service_id", "service_name", "company_id")
+
         return ServiceListResponseSchema(
             total=total_count,
-            # ✅ Создаём Pydantic-модели
-            services=[ServiceSchema(**service) for service in services]
+            services=[
+                ServiceSchema(
+                    service_id=service["service_id"],
+                    service_name=service["service_name"],
+                    company=service["company_id"]
+                ) for service in services
+            ]
         )
 
     except HTTPException as http_exc:
@@ -122,15 +180,18 @@ async def get_services(
         raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
-@service_router.get("/{service_id}", response_model=ServiceSchema, summary="Просмотр услуги")
+@service_router.get(
+    "/{service_id}",
+    response_model=ServiceSchema,
+    summary="Просмотр услуги")
 async def get_service(
     service_id: UUID = Path(..., title="ID услуги",
                             description="ID просматриваемой услуги"),
-    username: str = Depends(get_current_user)
+    context=with_permission_and_service_check("view_service")
 ):
     logger.info(f"Запрос на просмотр услуги: {service_id}")
     try:
-        service = await Service.get_or_none(service_id=service_id)
+        service = await Service.get_or_none(service_id=service_id).prefetch_related("company")
         if service is None:
             logger.warning(f"Услуга {service_id} не найдена")
             raise HTTPException(status_code=404, detail="Услуга не найдена")
@@ -138,7 +199,8 @@ async def get_service(
         # ✅ Создаём Pydantic-схему из ORM-модели
         service_schema = ServiceSchema(
             service_id=service.service_id,
-            service_name=service.service_name
+            service_name=service.service_name,
+            company=service.company.company_id
         )
         logger.success(f"Услуга найдена: {service_schema}")
         return service_schema

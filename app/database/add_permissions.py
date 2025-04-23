@@ -2,6 +2,13 @@ async def add_initial_permissions():
     from app.database.models import Permissions
 
     permissions = [
+        # Services
+        ("add_service", "Добавление услуги"),
+        ("edit_service", "Редкатирование услуги"),
+        ("delete_service", "Удаление услуги"),
+        ("view_service", "Просмотр услуги"),
+        ("get_all_services", "Просмотр всех услуг"),
+
         # Users
         ("add_user", "Добавление пользователя"),
         ("edit_user", "Редактирование пользователя"),
