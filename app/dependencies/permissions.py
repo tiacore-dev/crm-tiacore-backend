@@ -70,10 +70,15 @@ def with_exact_company_permission(permission: str):
         company_id: UUID = Path(..., description="ID компании"),
         user_data: dict = Depends(get_current_user),
     ):
-        if user_data.get("is_superadmin"):
+        permissions = user_data.get("permissions")
+
+        is_superadmin = permissions == {'*': ['*']}
+        user_data["is_superadmin"] = is_superadmin
+
+        if is_superadmin:
             return user_data
 
-        if permission not in user_data.get("permissions", []):
+        if permission not in permissions:
             raise HTTPException(status_code=403, detail="Недостаточно прав")
 
         username = user_data["username"]

@@ -4,7 +4,7 @@ from app.database.models import Company
 
 
 @pytest.mark.asyncio
-async def test_add_company(test_app: AsyncClient, jwt_token_admin, seed_company, seed_role_admin):
+async def test_add_company(test_app: AsyncClient, jwt_token_admin):
     """Тест добавления новой компании."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
@@ -13,7 +13,7 @@ async def test_add_company(test_app: AsyncClient, jwt_token_admin, seed_company,
     }
 
     response = test_app.post(
-        f"/api/companies/add?company={seed_company['company_id']}", headers=headers, json=data)
+        "/api/companies/add", headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     data = response.json()
@@ -31,7 +31,7 @@ async def test_edit_company(test_app: AsyncClient, jwt_token_admin, seed_company
     }
 
     response = test_app.patch(
-        f"/api/companies/{seed_company['company_id']}?company={seed_company['company_id']}",
+        f"/api/companies/{seed_company['company_id']}",
         headers=headers,
         json=data
     )
@@ -69,7 +69,7 @@ async def test_delete_company(test_app: AsyncClient, jwt_token_admin, seed_compa
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = test_app.delete(
-        f"/api/companies/{seed_company['company_id']}?company={seed_company['company_id']}",
+        f"/api/companies/{seed_company['company_id']}",
         headers=headers
     )
 
