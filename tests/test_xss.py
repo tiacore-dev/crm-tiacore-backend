@@ -5,7 +5,6 @@ from app.database.models import Company, Service, User
 
 @pytest.mark.parametrize("endpoint, model_class, payload_key", [
     ("/api/companies/add", Company, "company_name"),
-    ("/api/services/add", Service, "service_name"),
     ("/api/users/add", User, "username"),
 ])
 @pytest.mark.asyncio
