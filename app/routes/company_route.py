@@ -2,9 +2,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
-from app.dependencies.permissions import with_permission_and_exact_company
-from app.handlers.depends import require_permission_in_context
-from app.database.models import Company, UserCompanyRelation,  UserRole
+from app.dependencies.permissions import with_exact_company_permission
+from app.handlers.auth import get_current_user
+from app.database.models import Company, UserCompanyRelation,  UserRole, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
 )
@@ -15,7 +15,7 @@ company_router = APIRouter()
 
 # ✅ 1. Добавление компании
 @company_router.post("/add", response_model=CompanyResponseSchema, summary="Добавление новой компании", status_code=status.HTTP_201_CREATED)
-async def add_company(data: CompanyCreateSchema = Body(), context=Depends(require_permission_in_context("add_company"))):
+async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depends(get_current_user)):
     logger.info(f"Создание компании: {data.model_dump()}")
     try:
         company = await Company.create(company_name=data.company_name, description=data.description)
@@ -26,8 +26,9 @@ async def add_company(data: CompanyCreateSchema = Body(), context=Depends(requir
 
         logger.success(f"Компания создана: {company.company_id}")
         role = await UserRole.get_or_none(role_system_name="admin")
-        if role and context['user']:
-            await UserCompanyRelation.create(role=role, company=company, user_id=context['user'])
+        user = await User.get_or_none(username=user_data['username'])
+        if role and user:
+            await UserCompanyRelation.create(role=role, company=company, user=user)
         return {"company_id": str(company.company_id)}
 
     except HTTPException as http_exc:
@@ -44,7 +45,7 @@ async def edit_company(
     company_id: UUID = Path(..., title="ID компании",
                             description="ID изменяемой компании"),
     data: CompanyEditSchema = Body(),
-        context=with_permission_and_exact_company("edit_company")):
+        context=with_exact_company_permission("edit_company")):
     logger.info(
         f"Обновление компании {company_id}: {data.model_dump(exclude_unset=True)}")
     try:
@@ -69,7 +70,7 @@ async def edit_company(
 async def delete_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID удаляемой компании"),
-        context=with_permission_and_exact_company("delete_company")):
+        context=with_exact_company_permission("delete_company")):
     logger.info(f"Удаление компании: {company_id}")
     try:
         deleted_count = await Company.filter(company_id=company_id).delete()
@@ -94,16 +95,18 @@ async def delete_company(
 )
 async def get_companies(
     filters: dict = Depends(company_filter_params),
-    context: dict = Depends(
-        require_permission_in_context("get_all_companies"))
+    user_data: dict = Depends(get_current_user)
 ):
     logger.info(f"Запрос списка компаний: {filters}")
     try:
         query = Q()
 
-        user = context["user"]
+        user = await User.get_or_none(username=user_data['username'])
+        if not user:
+            raise HTTPException(
+                status_code=500, detail="Пользователь не найден в базе")
 
-        if not context["is_superadmin"]:
+        if not user.is_superadmin:
             # 🔍 Получаем список компаний, к которым у пользователя есть доступ
             related_company_ids = await UserCompanyRelation.filter(
                 user=user
@@ -154,7 +157,7 @@ async def get_companies(
 async def get_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID просматриваемой компании"),
-        context: dict = Depends(require_permission_in_context("view_company"))
+        context: dict = with_exact_company_permission("view_user")
 ):
     logger.info(f"Запрос на просмотр компании: {company_id}")
     try:

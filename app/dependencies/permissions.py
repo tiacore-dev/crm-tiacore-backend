@@ -4,6 +4,7 @@ from tortoise.models import Model
 from loguru import logger
 from fastapi import HTTPException, Depends, Path
 from app.handlers.depends import require_permission_in_context
+from app.handlers.auth import get_current_user
 from app.database.models import User, UserCompanyRelation, Permissions, EntityCompanyRelation, ActDetails, BillDetails
 
 
@@ -56,21 +57,29 @@ def with_permission_and_company_check(permission: str):
     return Depends(dependency)
 
 
-def with_permission_and_exact_company(permission: str):
+def with_exact_company_permission(permission: str):
     async def dependency(
         company_id: UUID = Path(..., description="ID компании"),
-        context: dict = Depends(require_permission_in_context(permission)),
+        user_data: dict = Depends(get_current_user),
     ):
-        if context.get("is_superadmin"):
-            return context
+        if user_data.get("is_superadmin"):
+            return user_data
 
-        if str(context["company"]) != str(company_id):
+        if permission not in user_data.get("permissions", []):
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+
+        username = user_data["username"]
+
+        relation_exists = await UserCompanyRelation.filter(
+            user__username=username,
+            company__company_id=company_id
+        ).exists()
+
+        if not relation_exists:
             raise HTTPException(
-                status_code=403,
-                detail="Вы не можете редактировать или удалять другие компании"
-            )
+                status_code=403, detail="Нет доступа к компании")
 
-        return context
+        return user_data
 
     return Depends(dependency)
 
