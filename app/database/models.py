@@ -127,6 +127,7 @@ class EntityCompanyRelation(Model):
     legal_entity = fields.ForeignKeyField(
         "models.LegalEntity", related_name="entity_company_relations", on_delete=fields.CASCADE)
     relation_type = fields.CharField(max_length=10)
+    description = fields.TextField(null=True)
 
     class Meta:
         table = "entity_company_relations"
@@ -136,15 +137,14 @@ class LegalEntity(Model):
     legal_entity_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     legal_entity_name = fields.CharField(max_length=255)
     inn = fields.CharField(max_length=12)
-    # КПП не всегда есть (ИП его не имеют)
     kpp = fields.CharField(max_length=9, null=True)
-    vat_rate = fields.IntField()
-    address = fields.CharField(max_length=255)
+    # от 0 до ста и может не передаваться
+    vat_rate = fields.IntField(default=0)
+    address = fields.CharField(max_length=255, null=True)
     entity_type = fields.ForeignKeyField(
         "models.LegalEntityType", related_name="entities"
     )
     signer = fields.CharField(max_length=255, null=True)
-    description = fields.TextField(null=True)
 
     class Meta:
         table = "legal_entities"
@@ -216,6 +216,7 @@ class Bills(Model):
 class Service(Model):
     service_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     service_name = fields.CharField(max_length=255)
+    company = fields.ForeignKeyField("models.Company", related_name="services")
 
     class Meta:
         table = "services"
