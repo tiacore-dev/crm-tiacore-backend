@@ -16,8 +16,7 @@ async def test_add_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_com
         "entity_type": seed_legal_entity_type["legal_entity_type_id"],
         "signer": "Test Signer",
         "company": seed_company["company_id"],
-        "relation_type": "seller",
-        "description": "Описание тестового юр. лица"
+        "relation_type": "seller"
     }
 
     response = test_app.post(f"/api/legal-entities/add?company={seed_company['company_id']}",
@@ -51,7 +50,6 @@ async def test_edit_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_le
     updated_legal_entity = await LegalEntity.filter(legal_entity_id=seed_legal_entity["legal_entity_id"]).first()
     assert updated_legal_entity is not None
     assert updated_legal_entity.legal_entity_name == "Updated Legal Entity Name"
-    assert updated_legal_entity.description == "Обновленное описание"
     assert updated_legal_entity.address == "Updated Address"
 
 
@@ -71,7 +69,6 @@ async def test_view_legal_entity(test_app: AsyncClient, jwt_token_admin, seed_le
     assert response_data["legal_entity_id"] == str(
         seed_legal_entity["legal_entity_id"])
     assert response_data["legal_entity_name"] == seed_legal_entity["legal_entity_name"]
-    assert response_data["description"] == seed_legal_entity["description"]
     assert response_data["address"] == seed_legal_entity["address"]
 
 

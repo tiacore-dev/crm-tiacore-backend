@@ -58,7 +58,6 @@ class LegalEntitySchema(CleanableBaseModel):
     address: str = Field(..., max_length=255)
     entity_type: str  # Теперь хранит ID, а не строку
     signer: Optional[str] = Field(None, max_length=255)
-    description: Optional[str] = None
 
     @field_validator("kpp", mode="before")
     @classmethod
@@ -141,7 +140,6 @@ class LegalEntityEditSchema(CleanableBaseModel):
     address: Optional[str] = None
     entity_type: Optional[str] = None
     signer: Optional[str] = None
-    description: Optional[str] = None
 
     class Config:
         from_attributes = True

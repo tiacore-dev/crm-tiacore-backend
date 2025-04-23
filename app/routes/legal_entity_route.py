@@ -80,7 +80,6 @@ async def add_legal_entity(
             address=data.address,
             entity_type=entity_type,
             signer=data.signer,
-            description=data.description,
         )
 
         await EntityCompanyRelation.create(company=company, legal_entity=entity, relation_type=data.relation_type)
@@ -206,7 +205,6 @@ async def get_legal_entities(
                     address=entity.address,
                     entity_type=entity.entity_type.legal_entity_type_id,
                     signer=entity.signer,
-                    description=entity.description
                 )
                 for entity in entities
             ]
@@ -289,5 +287,4 @@ async def get_legal_entity(
         entity_type=entity.entity_type.legal_entity_type_id,
         signer=entity.signer,
         company=related_company_ids[0] if related_company_ids else None,
-        description=entity.description
     )

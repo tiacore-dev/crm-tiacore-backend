@@ -21,7 +21,6 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
         address="Test Address",
         entity_type=entity_type,
         signer="Test Signer",
-        description="Описание тестового юр. лица"
     )
 
     # Создаем связь entity ↔ company
@@ -40,7 +39,7 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
         "address": legal_entity.address,
         "signer": legal_entity.signer,
         "entity_type": str(entity_type.legal_entity_type_id),
-        "description": legal_entity.description
+
     }
 
 
@@ -67,7 +66,6 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
         address="Test Address",
         entity_type=entity_type,
         signer="Test Signer",
-        description="Описание тестового юр. лица"
     )
 
     await EntityCompanyRelation.create(legal_entity=legal_entity, company=company, relation_type="buyer")
@@ -81,5 +79,4 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
         "address": legal_entity.address,
         "signer": legal_entity.signer,
         "entity_type": str(legal_entity.entity_type.legal_entity_type_id),
-        "description": legal_entity.description
     }
