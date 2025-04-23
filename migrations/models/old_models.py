@@ -120,7 +120,7 @@ class UserCompanyRelation(Model):
 
 
 class EntityCompanyRelation(Model):
-    entity_company_relation = fields.UUIDField(pk=True, default=uuid.uuid4)
+    entity_company_relation_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     company = fields.ForeignKeyField(
         "diff_models.Company", related_name="entity_company_relations",
         on_delete=fields.CASCADE)

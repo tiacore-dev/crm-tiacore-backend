@@ -1,0 +1,8 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"entity_company_relations\" RENAME COLUMN \"entity_company_relation\" TO \"entity_company_relation_id\""
+  ],
+  "downgrade": [
+    "ALTER TABLE \"entity_company_relations\" RENAME COLUMN \"entity_company_relation_id\" TO \"entity_company_relation\""
+  ]
+}

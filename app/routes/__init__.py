@@ -16,6 +16,7 @@ from .easter_route import easter_router
 from .role_route import role_router
 from .permissions_route import permissions_router
 from .role_permission_relation_route import role_relation_router
+from .entity_company_relation_route import entity_relation_router
 # Функция для регистрации всех маршрутов
 
 
@@ -50,3 +51,5 @@ def register_routes(app):
                        prefix='/api/permissions', tags=["Permissions"])
     app.include_router(role_relation_router,
                        prefix='/api/role-permission-relations', tags=["RolePermissionRelations"])
+    app.include_router(entity_relation_router,
+                       prefix='/api/entity-company-relations', tags=["EntityCompanyRelations"])

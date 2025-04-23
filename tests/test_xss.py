@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient
-from app.database.models import Company, Service, User
+from app.database.models import Company,  User
 
 
 @pytest.mark.parametrize("endpoint, model_class, payload_key", [
