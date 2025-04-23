@@ -25,7 +25,10 @@ act_router = APIRouter()
     summary="Добавить акт",
     status_code=status.HTTP_201_CREATED
 )
-async def add_act(data: ActCreateSchema, context=Depends(require_permission_in_context("add_act"))):
+async def add_act(
+    data: ActCreateSchema,
+    context=Depends(require_permission_in_context("add_act"))
+):
     try:
         contract = None
         if data.contract:

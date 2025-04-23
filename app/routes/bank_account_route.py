@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import BankAccount, LegalEntity
+from app.database.models import BankAccount, LegalEntity, EntityCompanyRelation
 from app.pydantic_models.bank_account_models import (
     BankAccountCreateSchema,
     BankAccountResponseSchema,
@@ -11,7 +11,9 @@ from app.pydantic_models.bank_account_models import (
     BankAccountSchema,
     BankAccountListResponseSchema
 )
-from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
+from app.dependencies.permissions import with_permission_and_entity_company_check_for_bank
+from app.utils.permissions_get import ensure_seller_belongs_to_company
 
 
 bank_account_router = APIRouter()
@@ -23,13 +25,18 @@ bank_account_router = APIRouter()
     summary="Добавить банковский счет",
     status_code=status.HTTP_201_CREATED
 )
-async def add_bank_account(data: BankAccountCreateSchema, username: str = Depends(get_current_user)):
+async def add_bank_account(
+        data: BankAccountCreateSchema,
+        context=Depends(require_permission_in_context("add_act"))):
     try:
         legal_entity = await LegalEntity.get_or_none(legal_entity_id=data.legal_entity)
 
         if not legal_entity:
             raise HTTPException(
                 status_code=400, detail="Юридическое лицо не найдено")
+
+        if not context.get("is_superadmin"):
+            await ensure_seller_belongs_to_company(legal_entity, context["company"])
 
         bank_account = await BankAccount.create(
             account_number=data.account_number,
@@ -53,7 +60,10 @@ async def add_bank_account(data: BankAccountCreateSchema, username: str = Depend
     response_model=BankAccountResponseSchema,
     summary="Изменить банковский счет"
 )
-async def update_bank_account(bank_account_id: UUID, data: BankAccountEditSchema, username: str = Depends(get_current_user)):
+async def update_bank_account(
+        bank_account_id: UUID,
+        data: BankAccountEditSchema,
+        context=with_permission_and_entity_company_check_for_bank("edit_bank_account")):
     bank_account = await BankAccount.filter(bank_account_id=bank_account_id).first()
     if not bank_account:
         raise HTTPException(
@@ -79,7 +89,11 @@ async def update_bank_account(bank_account_id: UUID, data: BankAccountEditSchema
     summary="Удалить банковский счет",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_bank_account(bank_account_id: UUID):
+async def delete_bank_account(
+    bank_account_id: UUID,
+    context=with_permission_and_entity_company_check_for_bank(
+        "delete_bank_account")
+):
     bank_account = await BankAccount.filter(bank_account_id=bank_account_id).first()
     if not bank_account:
         raise HTTPException(
@@ -94,11 +108,21 @@ async def delete_bank_account(bank_account_id: UUID):
     response_model=BankAccountListResponseSchema,
     summary="Получение списка банковских счетов"
 )
-async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params), username: str = Depends(get_current_user)):
+async def get_bank_accounts(
+        filters: dict = Depends(bank_account_filter_params),
+        context=Depends(require_permission_in_context("get_all_bank_accounts"))
+):
     try:
         query = Q()
-        if filters.get("legal_entity"):
-            query &= Q(legal_entity_id=filters["legal_entity"])
+        if not context.get("is_superadmin"):
+            related_entity_ids = await EntityCompanyRelation.filter(
+                company_id=context["company"],
+                relation_type="seller"
+            ).values_list("legal_entity_id", flat=True)
+            query &= Q(legal_entity_id__in=related_entity_ids)
+        else:
+            if filters.get("legal_entity"):
+                query &= Q(legal_entity_id=filters["legal_entity"])
         if filters.get("bank_name"):
             query &= Q(bank_name__icontains=filters["bank_name"])
 
@@ -142,7 +166,11 @@ async def get_bank_accounts(filters: dict = Depends(bank_account_filter_params),
     response_model=BankAccountSchema,
     summary="Просмотр одного банковского счета"
 )
-async def get_bank_account(bank_account_id: UUID, username: str = Depends(get_current_user)):
+async def get_bank_account(
+    bank_account_id: UUID,
+    context=with_permission_and_entity_company_check_for_bank(
+        "view_bank_account")
+):
     bank_account = await BankAccount.filter(bank_account_id=bank_account_id).prefetch_related("legal_entity").first()
 
     if not bank_account:

@@ -2,6 +2,13 @@ async def add_initial_permissions():
     from app.database.models import Permissions
 
     permissions = [
+        # Bank Accounts
+        ("add_bank_account", "Добавление банковского счета"),
+        ("edit_bank_account", "Редкатирование банковского счета"),
+        ("delete_bank_account", "Удаление банковского счета"),
+        ("view_bank_account", "Просмотр банковского счета"),
+        ("get_all_bank_accounts", "Просмотр всех банковских счетов"),
+
         # Services
         ("add_service", "Добавление услуги"),
         ("edit_service", "Редкатирование услуги"),

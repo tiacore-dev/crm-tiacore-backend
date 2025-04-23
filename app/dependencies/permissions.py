@@ -12,7 +12,8 @@ from app.database.models import (
     EntityCompanyRelation,
     ActDetails,
     BillDetails,
-    Service
+    Service,
+    BankAccount
 )
 
 
@@ -235,6 +236,38 @@ def with_permission_and_service_check(permission: str):
             raise HTTPException(
                 status_code=403,
                 detail="Услуга не принадлежит указанной компании или не найдена"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_and_entity_company_check_for_bank(
+    permission: str,
+):
+    async def dependency(
+        bank_account_id: UUID = Path(...),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        account = await BankAccount.get_or_none(bank_account_id=bank_account_id).prefetch_related("legal_entity")
+        if not account:
+            raise HTTPException(
+                status_code=404, detail=f"BankAccount {bank_account_id} не найден")
+
+        is_seller = await EntityCompanyRelation.exists(
+            company_id=context["company"],
+            legal_entity=account.legal_entity,
+            relation_type="seller"
+        )
+
+        if not is_seller:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не можете управлять банковским счетом с чужим продавцом"
             )
 
         return context
