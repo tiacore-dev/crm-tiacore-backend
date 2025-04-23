@@ -157,7 +157,7 @@ async def get_companies(
 async def get_company(
         company_id: UUID = Path(..., title="ID компании",
                                 description="ID просматриваемой компании"),
-        context: dict = with_exact_company_permission("view_user")
+        user_data: dict = Depends(get_current_user)
 ):
     logger.info(f"Запрос на просмотр компании: {company_id}")
     try:
@@ -165,9 +165,10 @@ async def get_company(
         if company is None:
             logger.warning(f"Компания {company_id} не найдена")
             raise HTTPException(status_code=404, detail="Компания не найдена")
+        user = await User.get_or_none(username=user_data['username'])
+        relation = await UserCompanyRelation.filter(user=user, company_id=company_id).exists()
+        if not user or (not user.is_superadmin and not relation):
 
-        # 🔐 Проверка доступа
-        if not context["is_superadmin"] and company.company_id != context["company"]:
             raise HTTPException(
                 status_code=403, detail="Нет доступа к этой компании")
 
