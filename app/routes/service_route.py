@@ -135,15 +135,16 @@ async def get_services(
                 query &= Q(company_id=company_filter)
             # иначе — без ограничений
         else:
-            # Обычный пользователь — получаем его компании
-            user_company_ids = await UserCompanyRelation.filter(
-                user_id=context["user"]
-            ).values_list("company_id", flat=True)
+            # # Обычный пользователь — получаем его компании
+            # user_company_ids = await UserCompanyRelation.filter(
+            #     user_id=context["user"]
+            # ).values_list("company_id", flat=True)
 
-            if not user_company_ids:
-                return ServiceListResponseSchema(total=0, services=[])
+            # if not user_company_ids:
+            #     return ServiceListResponseSchema(total=0, services=[])
 
-            query &= Q(company_id__in=user_company_ids)
+            # query &= Q(company_id__in=user_company_ids)
+            query &= Q(company_id=context['company'])
 
         search_value = filters.get("search")
         if search_value:
