@@ -8,8 +8,7 @@ from tortoise import fields
 
 class LegalEntityType(Model):
     legal_entity_type_id = fields.CharField(
-        pk=True, max_length=255)  # Исправлено на UUID
-    # Добавил уникальность
+        pk=True, max_length=255)
     entity_name = fields.CharField(max_length=255)
 
     class Meta:
@@ -142,7 +141,7 @@ class LegalEntity(Model):
     vat_rate = fields.IntField(default=0)
     address = fields.CharField(max_length=255, null=True)
     entity_type = fields.ForeignKeyField(
-        "diff_models.LegalEntityType", related_name="entities"
+        "diff_models.LegalEntityType", related_name="entities", null=True
     )
     signer = fields.CharField(max_length=255, null=True)
 

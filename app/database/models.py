@@ -141,7 +141,7 @@ class LegalEntity(Model):
     vat_rate = fields.IntField(default=0)
     address = fields.CharField(max_length=255, null=True)
     entity_type = fields.ForeignKeyField(
-        "models.LegalEntityType", related_name="entities"
+        "models.LegalEntityType", related_name="entities", null=True
     )
     signer = fields.CharField(max_length=255, null=True)
 
