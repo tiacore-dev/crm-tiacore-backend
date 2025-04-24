@@ -12,13 +12,20 @@ from app.pydantic_models.role_permission_relation_models import (
     RolePermissionRelationListResponseSchema,
     role_permission_filter_params
 )
-from app.handlers.auth import get_current_user
+from app.handlers.auth import require_superadmin
 
 role_relation_router = APIRouter()
 
 
-@role_relation_router.post("/add", response_model=RolePermissionRelationResponseSchema, summary="Добавить связь роль-разрешение", status_code=status.HTTP_201_CREATED)
-async def add_role_permission_relation(data: RolePermissionRelationCreateSchema, username: str = Depends(get_current_user)):
+@role_relation_router.post(
+    "/add",
+    response_model=RolePermissionRelationResponseSchema,
+    summary="Добавить связь роль-разрешение", status_code=status.HTTP_201_CREATED
+)
+async def add_role_permission_relation(
+    data: RolePermissionRelationCreateSchema,
+    user_data: dict = Depends(require_superadmin)
+):
     try:
         role = await UserRole.get_or_none(role_id=data.role)
         permission = await Permissions.get_or_none(permission_id=data.permission)
@@ -35,8 +42,16 @@ async def add_role_permission_relation(data: RolePermissionRelationCreateSchema,
             status_code=400, detail="Некорректные данные") from e
 
 
-@role_relation_router.patch("/{role_permission_id}", response_model=RolePermissionRelationResponseSchema, summary="Изменить связь роль-разрешение")
-async def update_role_permission_relation(role_permission_id: UUID, data: RolePermissionRelationEditSchema, username: str = Depends(get_current_user)):
+@role_relation_router.patch(
+    "/{role_permission_id}",
+    response_model=RolePermissionRelationResponseSchema,
+    summary="Изменить связь роль-разрешение"
+)
+async def update_role_permission_relation(
+    role_permission_id: UUID,
+    data: RolePermissionRelationEditSchema,
+    user_data: dict = Depends(require_superadmin)
+):
     relation = await RolePermissionRelation.filter(role_permission_id=role_permission_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -62,8 +77,15 @@ async def update_role_permission_relation(role_permission_id: UUID, data: RolePe
     return {"role_permission_id": str(relation.role_permission_id)}
 
 
-@role_relation_router.delete("/{role_permission_id}", summary="Удалить связь роль-разрешение", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_role_permission_relation(role_permission_id: UUID, username: str = Depends(get_current_user)):
+@role_relation_router.delete(
+    "/{role_permission_id}",
+    summary="Удалить связь роль-разрешение",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_role_permission_relation(
+    role_permission_id: UUID,
+    user_data: dict = Depends(require_superadmin)
+):
     relation = await RolePermissionRelation.filter(role_permission_id=role_permission_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -71,8 +93,15 @@ async def delete_role_permission_relation(role_permission_id: UUID, username: st
     await relation.delete()
 
 
-@role_relation_router.get("/all", response_model=RolePermissionRelationListResponseSchema, summary="Получение списка связей")
-async def get_role_permission_relations(filters: dict = Depends(role_permission_filter_params), username: str = Depends(get_current_user)):
+@role_relation_router.get(
+    "/all",
+    response_model=RolePermissionRelationListResponseSchema,
+    summary="Получение списка связей"
+)
+async def get_role_permission_relations(
+    filters: dict = Depends(role_permission_filter_params),
+    user_data: dict = Depends(require_superadmin)
+):
     try:
         query = Q()
         if filters.get("role"):
@@ -103,8 +132,15 @@ async def get_role_permission_relations(filters: dict = Depends(role_permission_
             status_code=400, detail="Некорректные данные") from e
 
 
-@role_relation_router.get("/{role_permission_id}", response_model=RolePermissionRelationSchema, summary="Просмотр одной связи")
-async def get_role_permission_relation(role_permission_id: UUID, username: str = Depends(get_current_user)):
+@role_relation_router.get(
+    "/{role_permission_id}",
+    response_model=RolePermissionRelationSchema,
+    summary="Просмотр одной связи"
+)
+async def get_role_permission_relation(
+    role_permission_id: UUID,
+    uuser_data: dict = Depends(require_superadmin)
+):
     relation = await RolePermissionRelation.filter(role_permission_id=role_permission_id) \
         .prefetch_related("role", "permission") \
         .first()

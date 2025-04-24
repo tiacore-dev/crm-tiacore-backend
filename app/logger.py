@@ -64,11 +64,11 @@ class InterceptHandler(logging.Handler):
 def setup_logger():
     logger.remove()
 
-    # 🎯 STDOUT для Loki (можно включить serialize=True)
+    # 🎯 STDOUT для Loki
     logger.add(
         sys.stdout,
         level="DEBUG",
-        format="{time:YYYY-MM-DDTHH:mm:ss.SSSZ} | {level} | {name}:{function}:{line} - {message}",
+        format="{time:YYYY-MM-DDTHH:mm:ss.SSSZ} | {level} | trace_id={extra[trace_id]:-} | {name}:{function}:{line} - {message}",
         enqueue=True,
         backtrace=True,
         diagnose=True,
@@ -81,7 +81,7 @@ def setup_logger():
         level="DEBUG",
         rotation="10 MB",
         retention="7 days",
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name}:{function}:{line} - {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | trace_id={extra[trace_id]:-} | {name}:{function}:{line} - {message}",
         enqueue=True,
     )
 

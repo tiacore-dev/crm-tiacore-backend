@@ -74,3 +74,35 @@ async def login_handler(username: str, password: str):
     company_permissions = await get_company_permissions_for_user(user)
 
     return user, company_permissions
+
+
+async def require_superadmin(
+    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)
+) -> dict:
+    if not credentials or not credentials.credentials.strip():
+        logger.warning("❌ Отсутствует или пустой токен Authorization")
+        raise HTTPException(status_code=401, detail="Missing or empty token")
+
+    token = credentials.credentials.strip()
+    user_data = verify_token(token)
+
+    username = user_data.get("username")
+    if not username:
+        logger.warning("❌ Токен не содержит имя пользователя")
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = await User.get_or_none(username=username)
+    if not user:
+        logger.warning(f"❌ Пользователь {username} не найден в базе")
+        raise HTTPException(status_code=401, detail="User not found")
+
+    if not user.is_superadmin:
+        logger.warning(f"🚫 Пользователь {username} не является суперадмином")
+        raise HTTPException(status_code=403, detail="Только для суперадминов")
+
+    logger.info(f"✅ Суперадмин авторизован: {username}")
+    return {
+        "user": user.id,  # или user.username, что тебе удобно
+        "username": username,
+        "is_superadmin": True,
+    }

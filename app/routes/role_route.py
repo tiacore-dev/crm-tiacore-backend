@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status, Response
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import get_current_user
+from app.handlers.auth import require_superadmin, get_current_user
 from app.database.models import UserRole, RolePermissionRelation
 from app.pydantic_models.roles_models import (
     UserRoleCreateSchema,
@@ -26,7 +26,7 @@ role_router = APIRouter()
 )
 async def add_role(
     data: UserRoleCreateSchema = Body(...),
-    username: str = Depends(get_current_user)
+    user_data: dict = Depends(require_superadmin)
 ):
     logger.info(f"Создание роли: {data.dict()}")
     try:
@@ -48,7 +48,7 @@ async def add_role(
 )
 async def add_many_roles(
     data: UserRoleCreateManySchema = Body(...),
-    username: str = Depends(get_current_user)
+    user_data: dict = Depends(require_superadmin)
 ):
     logger.info(f"Создание роли: {data.dict()}")
     try:
@@ -76,7 +76,7 @@ async def edit_role(
     role_id: UUID = Path(..., title="ID роли",
                          description="ID изменяемой роли"),
     data: UserRoleEditSchema = Body(...),
-    username: str = Depends(get_current_user)
+    user_data: dict = Depends(require_superadmin)
 ):
     logger.info(f"Обновление роли {role_id}: {data.dict(exclude_unset=True)}")
     try:
@@ -109,7 +109,7 @@ async def edit_role(
 async def delete_role(
     role_id: UUID = Path(..., title="ID роли",
                          description="ID удаляемой роли"),
-    username: str = Depends(get_current_user)
+    user_data: dict = Depends(require_superadmin)
 ):
     logger.info(f"Удаление роли {role_id}")
     try:
@@ -140,7 +140,7 @@ async def delete_role(
 )
 async def get_roles(
     filters: Annotated[dict, Depends(role_filter_params)],
-    username: str = Depends(get_current_user)
+    user_data: dict = Depends(get_current_user)
 ):
     logger.info(f"Запрос на список ролей: {filters}")
 

@@ -8,16 +8,13 @@ from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
-
+from app.middleware.trace import TraceIDMiddleware
 # Определяем OAuth2 (аналогично Flask)
 
 
 def create_app(config_name) -> FastAPI:
     app = FastAPI(title="CRM")
     settings = Settings()
-    # Разрешаем запросы через прокси
-    # app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
-    # app.add_middleware(GZipMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -25,17 +22,16 @@ def create_app(config_name) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
     )
+    app.add_middleware(TraceIDMiddleware)
     app.mount("/metrics", make_asgi_app())
     if config_name == "Production":
         from app.tracer import init_tracer
         init_tracer(app)
-    # Подключаем конфигурацию
 
     if config_name == 'Test':
         db_url = settings.TEST_DATABASE_URL
     else:
         db_url = settings.DATABASE_URL
-    # Настройка базы для тестов/разработки/прода
     register_tortoise(
         app,
         db_url=db_url,
