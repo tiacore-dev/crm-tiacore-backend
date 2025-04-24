@@ -8,7 +8,7 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     legal_entity_name: str = Field(..., min_length=3, max_length=255)
     inn: str = Field(..., min_length=10, max_length=12)
     kpp: Optional[str] = Field(None, min_length=9, max_length=9)
-    vat_rate: Optional[int] = Field(0, ge=0, le=100)
+    vat_rate: Optional[int] = Field(None, ge=0, le=100)
     address: str = Field(..., min_length=5, max_length=255)
     entity_type: Optional[str] = Field(None,
                                        description="ID типа юр. лица (внешний ключ)")
@@ -20,20 +20,6 @@ class LegalEntityCreateSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "legal_entity_name": "ООО Ромашка",
-                "inn": "1234567890",
-                "kpp": "123456789",
-                "vat_rate": 20,
-                "address": "г. Москва, ул. Пушкина, д. 1",
-                "entity_type": "string-id-type",
-                "signer": "Иванов И.И.",
-                "company": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                "relation_type": "seller",
-                "description": "Юр. лицо для контрактов"
-            }
-        }
 
 
 class LegalEntitySchema(CleanableBaseModel):
@@ -110,13 +96,12 @@ class LegalEntityResponseSchema(CleanableBaseModel):
 
 
 class LegalEntityListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Количество записей по фильтру
-    # ✅ Используем `list`, а не `List[LegalEntitySchema]`
+    total: int
     entities: List[LegalEntitySchema]
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 class LegalEntityEditSchema(CleanableBaseModel):

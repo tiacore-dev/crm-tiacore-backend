@@ -17,6 +17,7 @@ from app.pydantic_models.legal_entity_models import (
 )
 from app.dependencies.permissions import with_permission_and_entity_company_check
 from app.handlers.depends import require_permission_in_context
+from app.handlers.auth import get_current_user
 
 
 entity_router = APIRouter()
@@ -224,8 +225,7 @@ async def get_legal_entities(
 )
 async def get_legal_entity_by_inn_kpp(
     filters: dict[str, Optional[str]] = Depends(inn_kpp_filter_params),
-    context: dict = Depends(
-        require_permission_in_context("get_legal_entity_by_inn_kpp"))
+    username: dict = Depends(get_current_user)
 ):
     try:
         kpp = filters.get('kpp')
