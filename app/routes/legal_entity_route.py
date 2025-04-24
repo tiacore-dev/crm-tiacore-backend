@@ -46,6 +46,7 @@ async def add_legal_entity(
             if not entity_type:
                 raise HTTPException(
                     status_code=400, detail="Тип юр. лица не найден")
+
         company = await Company.get_or_none(company_id=data.company)
 
         if not company:
@@ -92,10 +93,6 @@ async def add_legal_entity(
         logger.warning(f"Ошибка данных: {e}")
         raise HTTPException(
             status_code=400, detail="Некорректные данные") from e
-
-    except Exception as e:
-        logger.exception("Ошибка при создании юридического лица")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
 @entity_router.patch(
@@ -219,10 +216,6 @@ async def get_legal_entities(
         raise HTTPException(
             status_code=400, detail="Некорректные данные") from e
 
-    except Exception as e:
-        logger.exception("Ошибка при получении списка юридических лиц")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
-
 
 @entity_router.get(
     "/inn-kpp",
@@ -235,8 +228,11 @@ async def get_legal_entity_by_inn_kpp(
         require_permission_in_context("get_legal_entity_by_inn_kpp"))
 ):
     try:
-
-        entity = await LegalEntity.filter(inn=filters["inn"], kpp=filters["kpp"]).first()
+        kpp = filters.get('kpp')
+        if not kpp:
+            entity = await LegalEntity.filter(inn=filters["inn"]).first()
+        else:
+            entity = await LegalEntity.filter(inn=filters["inn"], kpp=kpp).first()
         if not entity:
             raise HTTPException(
                 status_code=404, detail="Организация не найдена")
@@ -248,10 +244,6 @@ async def get_legal_entity_by_inn_kpp(
         logger.warning(f"Ошибка данных: {e}")
         raise HTTPException(
             status_code=400, detail="Некорректные данные") from e
-
-    except Exception as e:
-        logger.exception("Ошибка при получении организации по инн и кпп")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
 
 
 @entity_router.get(
