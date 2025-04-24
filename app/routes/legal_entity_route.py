@@ -279,7 +279,7 @@ async def get_legal_entity(
         kpp=entity.kpp,
         vat_rate=entity.vat_rate,
         address=entity.address,
-        entity_type=entity.entity_type.legal_entity_type_id,
+        entity_type=entity.entity_type.legal_entity_type_id if entity.entity_type else None,
         signer=entity.signer,
         company=related_company_ids[0] if related_company_ids else None,
     )
