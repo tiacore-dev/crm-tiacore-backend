@@ -12,7 +12,7 @@ from app.pydantic_models.bill_models import (
     BillListResponseSchema
 )
 from app.handlers.depends import require_permission_in_context
-from app.dependencies.permissions import with_permission_and_seller_company_check
+from app.dependencies.permissions import with_permission_and_seller_bill_check
 from app.utils.permissions_get import ensure_seller_belongs_to_company
 
 
@@ -72,11 +72,10 @@ async def add_bill(data: BillCreateSchema, context=Depends(require_permission_in
     response_model=BillResponseSchema,
     summary="Изменить счет"
 )
-async def update_bill(bill_id: UUID, data: BillEditSchema, check_bill_access=with_permission_and_seller_company_check(
-    permission="edit_bill",
-    model=Bills,
-    model_name="bill"
-)):
+async def update_bill(
+    bill_id: UUID, data: BillEditSchema,
+    check_bill_access=with_permission_and_seller_bill_check("edit_bill")
+):
     bill = await Bills.filter(bill_id=bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -119,11 +118,10 @@ async def update_bill(bill_id: UUID, data: BillEditSchema, check_bill_access=wit
     summary="Удалить счет",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_bill(bill_id: UUID, check_bill_access=with_permission_and_seller_company_check(
-    permission="delete_bill",
-    model=Bills,
-    model_name="bill"
-)):
+async def delete_bill(
+    bill_id: UUID,
+    check_bill_access=with_permission_and_seller_bill_check("delete_bill")
+):
     bill = await Bills.filter(bill_id=bill_id).first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
@@ -212,11 +210,10 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
     response_model=BillSchema,
     summary="Просмотр одного счета"
 )
-async def get_bill(bill_id: UUID, check_bill_access=with_permission_and_seller_company_check(
-    permission="view_bill",
-    model=Bills,
-    model_name="bill"
-)):
+async def get_bill(
+    bill_id: UUID,
+    check_bill_access=with_permission_and_seller_bill_check("view_bill")
+):
     bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")

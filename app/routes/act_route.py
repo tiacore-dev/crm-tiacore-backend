@@ -12,7 +12,7 @@ from app.pydantic_models.act_models import (
     ActListResponseSchema
 )
 from app.handlers.depends import require_permission_in_context
-from app.dependencies.permissions import with_permission_and_seller_company_check
+from app.dependencies.permissions import with_permission_and_seller_act_check
 from app.utils.permissions_get import ensure_seller_belongs_to_company
 
 
@@ -69,11 +69,10 @@ async def add_act(
     response_model=ActResponseSchema,
     summary="Изменить акт"
 )
-async def update_act(act_id: UUID, data: ActEditSchema, check_act_access=with_permission_and_seller_company_check(
-    permission="edit_act",
-    model=Acts,
-    model_name="act"
-)):
+async def update_act(
+    act_id: UUID, data: ActEditSchema,
+    check_act_access=with_permission_and_seller_act_check("edit_act")
+):
     act = await Acts.filter(act_id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
@@ -109,11 +108,7 @@ async def update_act(act_id: UUID, data: ActEditSchema, check_act_access=with_pe
     summary="Удалить акт",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_act(act_id: UUID, check_act_access=with_permission_and_seller_company_check(
-    permission="delete_act",
-    model=Acts,
-    model_name="act"
-)):
+async def delete_act(act_id: UUID, check_act_access=with_permission_and_seller_act_check("delete_act")):
     act = await Acts.filter(act_id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
@@ -126,7 +121,10 @@ async def delete_act(act_id: UUID, check_act_access=with_permission_and_seller_c
     response_model=ActListResponseSchema,
     summary="Получение списка актов"
 )
-async def get_acts(filters: dict = Depends(act_filter_params), context=Depends(require_permission_in_context("get_all_acts"))):
+async def get_acts(
+    filters: dict = Depends(act_filter_params),
+    context=Depends(require_permission_in_context("get_all_acts"))
+):
     try:
         query = Q()
         if not context.get("is_superadmin"):
@@ -196,11 +194,10 @@ async def get_acts(filters: dict = Depends(act_filter_params), context=Depends(r
     response_model=ActSchema,
     summary="Просмотр одного акта"
 )
-async def get_act(act_id: UUID, check_act_access=with_permission_and_seller_company_check(
-    permission="view_act",
-    model=Acts,
-    model_name="act"
-)):
+async def get_act(
+    act_id: UUID,
+    check_act_access=with_permission_and_seller_act_check("view_act")
+):
     act = await Acts.filter(act_id=act_id).prefetch_related("contract", "buyer", "seller").first()
 
     if not act:

@@ -14,7 +14,10 @@ from app.database.models import (
     BillDetails,
     Service,
     BankAccount,
-    Templates
+    Templates,
+    Contract,
+    Acts,
+    Bills
 )
 
 
@@ -124,37 +127,64 @@ def with_permission_and_entity_company_check(permission: str):
     return Depends(dependency)
 
 
-def with_permission_and_seller_company_check(
-    permission: str,
+async def context_maker(
+    context: dict,
     model: Type[Model],
     model_name: str,
+    model_id: UUID
 ):
+    instance = await model.get_or_none(**{f"{model_name}_id": model_id}).prefetch_related("seller")
+    if not instance:
+        raise HTTPException(
+            status_code=404, detail=f"{model_name.capitalize()} не найден")
 
+    is_seller = await EntityCompanyRelation.exists(
+        company_id=context["company"],
+        legal_entity=instance.seller,
+        relation_type="seller"
+    )
+
+    if not is_seller:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Вы не можете управлять {model_name} с чужим продавцом"
+        )
+
+    return context
+
+
+def with_permission_and_seller_contract_check(permission: str):
     async def dependency(
-        context: dict = Depends(require_permission_in_context(permission)),
-        model_id: UUID = Path(..., description=f"ID {model_name}")
+        contract_id: UUID = Path(..., description="ID контракта"),
+        context: dict = Depends(require_permission_in_context(permission))
     ):
         if context.get("is_superadmin"):
             return context
+        return await context_maker(context, Contract, "contract", contract_id)
 
-        instance = await model.get_or_none(**{f"{model_name}_id": model_id}).prefetch_related("seller")
-        if not instance:
-            raise HTTPException(
-                status_code=404, detail=f"{model_name.capitalize()} не найден")
+    return Depends(dependency)
 
-        is_seller = await EntityCompanyRelation.exists(
-            company_id=context["company"],
-            legal_entity=instance.seller,
-            relation_type="seller"
-        )
 
-        if not is_seller:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Вы не можете управлять {model_name} с чужим продавцом"
-            )
+def with_permission_and_seller_act_check(permission: str):
+    async def dependency(
+        act_id: UUID = Path(..., description="ID акта"),
+        context: dict = Depends(require_permission_in_context(permission))
+    ):
+        if context.get("is_superadmin"):
+            return context
+        return await context_maker(context, Acts, "act", act_id)
 
-        return context
+    return Depends(dependency)
+
+
+def with_permission_and_seller_bill_check(permission: str):
+    async def dependency(
+        bill_id: UUID = Path(..., description="ID счёта"),
+        context: dict = Depends(require_permission_in_context(permission))
+    ):
+        if context.get("is_superadmin"):
+            return context
+        return await context_maker(context, Bills, "bill", bill_id)
 
     return Depends(dependency)
 

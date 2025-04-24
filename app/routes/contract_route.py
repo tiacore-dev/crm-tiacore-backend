@@ -12,7 +12,7 @@ from app.pydantic_models.contract_models import (
     ContractListResponseSchema
 )
 from app.handlers.depends import require_permission_in_context
-from app.dependencies.permissions import with_permission_and_seller_company_check
+from app.dependencies.permissions import with_permission_and_seller_contract_check
 from app.utils.permissions_get import ensure_seller_belongs_to_company
 from app.s3.s3_manager import AsyncS3Manager
 
@@ -106,11 +106,8 @@ async def add_contract(
 async def update_contract(
         contract_id: UUID,
         data: ContractEditSchema = Depends(ContractEditSchema.as_form),
-        check_contract_access=with_permission_and_seller_company_check(
-            permission="edit_contract",
-            model=Contract,
-            model_name="contract"
-        )):
+        check_access=with_permission_and_seller_contract_check("edit_contract")
+):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -169,11 +166,9 @@ async def update_contract(
 )
 async def delete_contract(
         contract_id: UUID,
-        check_contract_access=with_permission_and_seller_company_check(
-            permission="delete_contract",
-            model=Contract,
-            model_name="contract"
-        )):
+        check_access=with_permission_and_seller_contract_check(
+            "delete_contract")
+):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -281,11 +276,9 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
 )
 async def download_contract(
         contract_id: UUID,
-        check_contract_access=with_permission_and_seller_company_check(
-            permission="download_contract",
-            model=Contract,
-            model_name="contract"
-        )):
+        check_access=with_permission_and_seller_contract_check(
+            "download_contract")
+):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -301,11 +294,8 @@ async def download_contract(
 )
 async def get_contract(
         contract_id: UUID,
-        check_contract_access=with_permission_and_seller_company_check(
-            permission="view_contract",
-            model=Contract,
-            model_name="contract"
-        )):
+        check_access=with_permission_and_seller_contract_check("view_contract")
+):
     contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status").first()
 
     if not contract:
