@@ -1,6 +1,5 @@
 from uuid import UUID
 from typing import Optional
-from pydantic import ValidationError
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
@@ -89,12 +88,10 @@ async def add_legal_entity(
         await EntityCompanyRelation.create(company=company, legal_entity=entity, relation_type=data.relation_type, description=data.description)
         return {"legal_entity_id": str(entity.legal_entity_id)}
 
-    except HTTPException as http_exc:
-        raise http_exc
-    except ValidationError as e:
-        logger.warning(f"Ошибка валидации: {e}")
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
         raise HTTPException(
-            status_code=400, detail="Ошибка валидации данных") from e
+            status_code=400, detail="Некорректные данные") from e
 
     except Exception as e:
         logger.exception("Ошибка при создании юридического лица")
@@ -216,10 +213,11 @@ async def get_legal_entities(
 
     except HTTPException as http_exc:
         raise http_exc
-    except ValidationError as e:
-        logger.warning(f"Ошибка валидации: {e}")
+
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
         raise HTTPException(
-            status_code=400, detail="Ошибка валидации данных") from e
+            status_code=400, detail="Некорректные данные") from e
 
     except Exception as e:
         logger.exception("Ошибка при получении списка юридических лиц")
@@ -246,10 +244,10 @@ async def get_legal_entity_by_inn_kpp(
             legal_entity_id=entity.legal_entity_id,
             legal_entity_name=entity.legal_entity_name,
         )
-    except ValidationError as e:
-        logger.warning(f"Ошибка валидации: {e}")
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
         raise HTTPException(
-            status_code=400, detail="Ошибка валидации данных") from e
+            status_code=400, detail="Некорректные данные") from e
 
     except Exception as e:
         logger.exception("Ошибка при получении организации по инн и кпп")

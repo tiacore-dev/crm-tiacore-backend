@@ -18,19 +18,6 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     relation_type: Literal["seller", "buyer"] = Field(...)
     description: Optional[str] = Field(None, max_length=500)
 
-    @field_validator(
-        "legal_entity_name", "inn", "vat_rate", "address", "entity_type", "company"
-    )
-    @classmethod
-    def validate_required_fields(cls, value: str, info):
-        """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
-        if value in [None, "", " "]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Поле {info.field_name} обязательно для заполнения.",
-            )
-        return value
-
     class Config:
         from_attributes = True
         json_schema_extra = {
