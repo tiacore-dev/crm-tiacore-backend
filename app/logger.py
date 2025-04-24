@@ -2,7 +2,6 @@ import sys
 import logging
 from loguru import logger
 from prometheus_client import Counter
-from app.logger_context import trace_id_var
 
 # 📊 Prometheus метрики
 error_counter = Counter("fastapi_errors_total",
@@ -61,26 +60,15 @@ class InterceptHandler(logging.Handler):
             level, message)
 
 
-def formatter(record):
-    trace_id = trace_id_var.get("-")
-    record["extra"]["trace_id"] = trace_id  # 💡 добавляем если нет
-    return (
-        f"{record['time']:YYYY-MM-DDTHH:mm:ss.SSSZ} | "
-        f"{record['level']} | trace_id={trace_id} | "
-        f"{record['name']}:{record['function']}:{record['line']} - {record['message']}"
-    )
-
 # 🛠 Настройка логгера
-
-
 def setup_logger():
     logger.remove()
 
-    # 🎯 STDOUT для Loki
+    # 🎯 STDOUT для Loki (можно включить serialize=True)
     logger.add(
         sys.stdout,
         level="DEBUG",
-        format=formatter,
+        format="{time:YYYY-MM-DDTHH:mm:ss.SSSZ} | {level} | {name}:{function}:{line} - {message}",
         enqueue=True,
         backtrace=True,
         diagnose=True,
@@ -93,7 +81,7 @@ def setup_logger():
         level="DEBUG",
         rotation="10 MB",
         retention="7 days",
-        format=formatter,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name}:{function}:{line} - {message}",
         enqueue=True,
     )
 

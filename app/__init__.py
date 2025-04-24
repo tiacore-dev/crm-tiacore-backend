@@ -8,7 +8,7 @@ from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
-from app.middleware.trace import TraceIDMiddleware
+# from app.middleware.trace import TraceIDMiddleware
 # Определяем OAuth2 (аналогично Flask)
 
 
@@ -22,7 +22,7 @@ def create_app(config_name) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
     )
-    app.add_middleware(TraceIDMiddleware)
+    # app.add_middleware(TraceIDMiddleware)
     app.mount("/metrics", make_asgi_app())
     if config_name == "Production":
         from app.tracer import init_tracer
