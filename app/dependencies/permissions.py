@@ -130,12 +130,9 @@ def with_permission_and_seller_company_check(
     model_name: str,
 ):
 
-    def factory():
-        return Path(..., description=f"ID {model_name}")
-
     async def dependency(
         context: dict = Depends(require_permission_in_context(permission)),
-        model_id: UUID = Depends(factory)  # 👈 FastAPI сам свяжет с path
+        model_id: UUID = Path(..., description=f"ID {model_name}")
     ):
         if context.get("is_superadmin"):
             return context
