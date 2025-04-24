@@ -102,7 +102,7 @@ async def require_superadmin(
 
     logger.info(f"✅ Суперадмин авторизован: {username}")
     return {
-        "user": user.id,  # или user.username, что тебе удобно
+        "user": user.user_id,  # или user.username, что тебе удобно
         "username": username,
         "is_superadmin": True,
     }
