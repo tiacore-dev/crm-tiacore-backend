@@ -40,11 +40,10 @@ async def get_legal_entity_types(filters: FilterParams = Depends(), username: st
             ]
         }
 
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при получении типов юридических лиц")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @get_router.get(
@@ -74,8 +73,7 @@ async def get_contract_statuses(filters: FilterParams = Depends(), username: str
             ]
         }
 
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при получении списка статусов контрактов")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e

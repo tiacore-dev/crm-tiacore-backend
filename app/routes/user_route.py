@@ -49,11 +49,10 @@ async def add_user(data: UserCreateSchema = Body(...),
         if role and company:
             await UserCompanyRelation.create(user=user, company=company, role=role)
         return {"user_id": str(user.user_id)}
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.exception(f"Ошибка при создании пользователя: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @user_router.patch(
@@ -72,8 +71,6 @@ async def edit_user(
     logger.info(
         f"Обновление пользователя {user_id}: {data.dict(exclude_unset=True)}")
     try:
-        # Исключаем поля, которые не были переданы
-        # Исключаем поля, которые не были переданы
         update_data = data.dict(exclude_unset=True)
 
         if 'password' in update_data:  # Если передан пароль, хешируем его
@@ -90,11 +87,10 @@ async def edit_user(
 
         logger.success(f"Пользователь {user_id} успешно обновлён")
         return {"user_id": str(user_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception(f"Ошибка при обновлении пользователя: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @user_router.delete(
@@ -119,12 +115,10 @@ async def delete_user(
                 status_code=404, detail="Пользователь не найден")
 
         logger.success(f"Пользователь {user_id} успешно удален")
-        # return {"detail": "Пользователь успешно удален"}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при удалении пользователя")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @user_router.get("/all", response_model=UserListResponseSchema, summary="Просмотр пользователей")
@@ -180,12 +174,10 @@ async def get_users(
             # ✅ Преобразуем словари в Pydantic
             users=[UserSchema(**user) for user in users]
         )
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка пользователей")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @user_router.get("/{user_id}", response_model=UserSchema, summary="Просмотр пользователя")
@@ -217,9 +209,7 @@ async def get_user(
         logger.success(f"Найден пользователь: {user_schema}")
         return user_schema
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при просмотре пользователя")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e

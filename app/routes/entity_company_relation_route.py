@@ -33,11 +33,10 @@ async def add_entity_company_relation(data: EntityCompanyRelationCreateSchema, u
             description=data.description
         )
         return {"entity_company_relation_id": str(relation.entity_company_relation_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при создании связи компании и юрлица")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @entity_relation_router.patch("/{relation_id}", response_model=EntityCompanyRelationResponseSchema, summary="Изменить связь компании и юрлица")
@@ -110,11 +109,10 @@ async def get_entity_company_relations(filters: dict = Depends(entity_company_fi
                 for relation in relations
             ]
         )
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при получении списка связей")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @entity_relation_router.get(

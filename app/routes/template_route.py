@@ -72,11 +72,10 @@ async def add_template(
             entity=data.entity,
             s3_key=s3_key)
         return {"template_id": str(template.template_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при создании счета")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @template_router.patch(
@@ -150,7 +149,6 @@ async def delete_template(
     await manager.delete_file(template.s3_key)
 
     await template.delete()
-    # return {"message": "Счет удалён"}
 
 
 @template_router.get(
@@ -199,12 +197,10 @@ async def get_templates(
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка счетов")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @template_router.get(

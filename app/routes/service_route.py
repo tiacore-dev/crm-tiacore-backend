@@ -40,11 +40,10 @@ async def add_service(data: ServiceCreateSchema = Body(...), context: dict = Dep
         logger.success(
             f"Услуга {service.service_name} ({service.service_id}) успешно создана")
         return {"service_id": str(service.service_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при создании услуги")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @service_router.patch(
@@ -84,11 +83,10 @@ async def edit_service(
         await service.save()
         logger.success(f"Услуга {service_id} успешно обновлена")
         return {"service_id": str(service_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при обновлении услуги")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @service_router.delete(
@@ -107,12 +105,11 @@ async def delete_service(
             raise HTTPException(status_code=404, detail="Услуга не найдена")
 
         logger.success(f"Услуга {service_id} успешно удалена")
-        # return {"detail": "Услуга успешно удалена"}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при удалении услуги")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @service_router.get(
@@ -131,19 +128,10 @@ async def get_services(
         if context["is_superadmin"]:
             company_filter = filters.get("company")
             if company_filter:
-                # супер-админ может фильтровать по компании
+
                 query &= Q(company_id=company_filter)
-            # иначе — без ограничений
+
         else:
-            # # Обычный пользователь — получаем его компании
-            # user_company_ids = await UserCompanyRelation.filter(
-            #     user_id=context["user"]
-            # ).values_list("company_id", flat=True)
-
-            # if not user_company_ids:
-            #     return ServiceListResponseSchema(total=0, services=[])
-
-            # query &= Q(company_id__in=user_company_ids)
             query &= Q(company_id=context['company'])
 
         search_value = filters.get("search")
@@ -173,12 +161,10 @@ async def get_services(
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка услуг")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @service_router.get(
@@ -206,8 +192,7 @@ async def get_service(
         logger.success(f"Услуга найдена: {service_schema}")
         return service_schema
 
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при просмотре услуги")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e

@@ -92,14 +92,10 @@ async def add_contract(
             f"Контракт успешно создан: {contract.contract_id}")
         return {"contract_id": str(contract.contract_id)}
 
-    except HTTPException as http_exc:
-        logger.warning(
-            f"HTTP ошибка при создании контракта: {http_exc.detail}")
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при создании контракта")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @contract_router.patch(
@@ -183,7 +179,6 @@ async def delete_contract(
         raise HTTPException(status_code=404, detail="Контракт не найден")
 
     await contract.delete()
-    # return {"message": "Контракт удалён"}
 
 
 @contract_router.get(
@@ -274,12 +269,10 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка контрактов")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @contract_router.get(

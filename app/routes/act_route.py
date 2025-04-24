@@ -58,12 +58,10 @@ async def add_act(
         )
         return {"act_id": str(act.act_id)}
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при создании акта")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @act_router.patch(
@@ -187,12 +185,10 @@ async def get_acts(filters: dict = Depends(act_filter_params), context=Depends(r
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка актов")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @act_router.get(

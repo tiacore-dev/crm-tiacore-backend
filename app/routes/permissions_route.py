@@ -48,6 +48,7 @@ async def get_permissions(
             total=total_count,
             permissions=[PermissionsSchema(**p) for p in permissions]
         )
-    except Exception as e:
-        logger.exception("Ошибка при получении списка разрешений")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e

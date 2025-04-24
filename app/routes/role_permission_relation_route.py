@@ -29,11 +29,10 @@ async def add_role_permission_relation(data: RolePermissionRelationCreateSchema,
 
         relation = await RolePermissionRelation.create(role=role, permission=permission)
         return {"role_permission_id": str(relation.role_permission_id)}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при создании связи")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_relation_router.patch("/{role_permission_id}", response_model=RolePermissionRelationResponseSchema, summary="Изменить связь роль-разрешение")
@@ -98,11 +97,10 @@ async def get_role_permission_relations(filters: dict = Depends(role_permission_
                 ) for rel in relations
             ]
         )
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        logger.exception("Ошибка при получении списка связей")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_relation_router.get("/{role_permission_id}", response_model=RolePermissionRelationSchema, summary="Просмотр одной связи")

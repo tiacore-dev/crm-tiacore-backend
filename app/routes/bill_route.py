@@ -61,12 +61,10 @@ async def add_bill(data: BillCreateSchema, context=Depends(require_permission_in
         )
         return {"bill_id": str(bill.bill_id)}
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при создании счета")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @bill_router.patch(
@@ -131,7 +129,6 @@ async def delete_bill(bill_id: UUID, check_bill_access=with_permission_and_selle
         raise HTTPException(status_code=404, detail="Счет не найден")
 
     await bill.delete()
-    # return {"message": "Счет удалён"}
 
 
 @bill_router.get(
@@ -204,12 +201,10 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка счетов")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @bill_router.get(

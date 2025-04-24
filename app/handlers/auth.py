@@ -23,9 +23,6 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-
-    # logger.debug(f"🧾 Payload токена: {to_encode}")
-
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -43,7 +40,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer
         raise HTTPException(status_code=401, detail="Missing or empty token")
 
     token = credentials.credentials.strip()
-    # logger.debug(f"🔐 Получен токен ({len(token)} символов): {token}")
 
     return verify_token(token)
 
@@ -53,9 +49,6 @@ def verify_token(token: str) -> dict:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         permissions: list = payload.get("permissions", [])
-        logger.debug(
-            f"✅ Токен принят. Пользователь: {username}, разрешения: {permissions}"
-        )
         if username is None:
             logger.warning("❌ Токен не содержит 'sub'. Отказ в доступе.")
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -78,12 +71,6 @@ async def login_handler(username: str, password: str):
         logger.warning(f"🔐 Неверный пароль для пользователя '{username}'")
         return None
 
-    logger.debug(
-        f"🔑 Пользователь найден: {user.username}, is_superadmin: {getattr(user, 'is_superadmin', None)}")
-
     company_permissions = await get_company_permissions_for_user(user)
-
-    logger.debug(
-        f"🔒 Полученные права доступа для {user.username}: {company_permissions}")
 
     return user, company_permissions

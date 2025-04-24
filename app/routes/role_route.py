@@ -34,9 +34,10 @@ async def add_role(
         logger.success(
             f"Роль {role.role_name} ({role.role_id}) успешно создана")
         return {"role_id": role.role_id}
-    except Exception as e:
-        logger.exception("Ошибка при создании роли")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.post(
@@ -60,9 +61,10 @@ async def add_many_roles(
         logger.success(
             f"Роль {role.role_name} ({role.role_id}) успешно создана")
         return {"role_id": role.role_id}
-    except Exception as e:
-        logger.exception("Ошибка при создании роли")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.patch(
@@ -93,9 +95,10 @@ async def edit_role(
 
         logger.success(f"Роль {role_id} успешно обновлена")
         return UserRoleResponseSchema(role_id=role.role_id)
-    except Exception as e:
-        logger.exception("Ошибка при обновлении роли")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.delete(
@@ -124,9 +127,10 @@ async def delete_role(
         logger.success(f"Роль {role_id} успешно удалена")
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    except Exception as e:
-        logger.exception(f"Ошибка при удалении роли {role_id}")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.get(
@@ -163,9 +167,10 @@ async def get_roles(
             total=total_count,
             roles=[UserRoleSchema(**role) for role in roles]
         )
-    except Exception as e:
-        logger.exception("Ошибка при получении списка ролей")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.get(
@@ -192,6 +197,7 @@ async def get_role(
         )
         logger.success(f"Роль найдена: {role_schema}")
         return role_schema
-    except Exception as e:
-        logger.exception("Ошибка при просмотре роли")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e

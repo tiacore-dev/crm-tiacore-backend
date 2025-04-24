@@ -43,14 +43,19 @@ async def add_bill_detail(
         if not is_seller:
             raise HTTPException(
                 status_code=403, detail="Нельзя добавлять детали к счету другой компании")
+    try:
+        bill_detail = await BillDetails.create(
+            bill=bill,
+            service=service,
+            quantity=data.quantity,
+            summ=data.summ
+        )
+        return {"bill_detail_id": str(bill_detail.bill_detail_id)}
 
-    bill_detail = await BillDetails.create(
-        bill=bill,
-        service=service,
-        quantity=data.quantity,
-        summ=data.summ
-    )
-    return {"bill_detail_id": str(bill_detail.bill_detail_id)}
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 # --- Обновление существующей детали счета ---
@@ -146,12 +151,10 @@ async def get_bill_details(
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка деталей счета")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 # --- Получение одной детали счета по ID ---

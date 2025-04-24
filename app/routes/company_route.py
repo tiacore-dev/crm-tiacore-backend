@@ -31,12 +31,10 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
             await UserCompanyRelation.create(role=role, company=company, user=user)
         return {"company_id": str(company.company_id)}
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при создании компании")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 # ✅ 2. Изменение компании
@@ -57,12 +55,10 @@ async def edit_company(
         logger.success(f"Компания {company_id} успешно обновлена")
         return {"company_id": str(company_id)}
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при обновлении компании")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 # ✅ 3. Удаление компании
@@ -80,12 +76,10 @@ async def delete_company(
         logger.success(f"Компания {company_id} успешно удалена")
         # return {"detail": "Компания успешно удалена"}
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при удалении компании")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 @company_router.get(
@@ -144,12 +138,10 @@ async def get_companies(
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при получении списка компаний")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
 
 
 # ✅ 4. Просмотр компании по ID
@@ -181,9 +173,7 @@ async def get_company(
         logger.success(f"Найдена компания: {company_schema}")
         return company_schema
 
-    except HTTPException as http_exc:
-        raise http_exc
-
-    except Exception as e:
-        logger.exception("Ошибка при просмотре компании")
-        raise HTTPException(status_code=500, detail="Ошибка сервера") from e
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
