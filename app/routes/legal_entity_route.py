@@ -34,6 +34,7 @@ async def add_legal_entity(
     context=Depends(require_permission_in_context("add_legal_entity"))
 ):
     try:
+        entity_type = None
         # Проверяем, что пользователь действительно связан с этой компанией
         if not context.get("is_superadmin"):
             is_related = await UserCompanyRelation.exists(user_id=context["user"], company_id=data.company)
