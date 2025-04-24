@@ -11,13 +11,23 @@ from app.pydantic_models.user_company_relation_models import (
     UserCompanyRelationSchema,
     UserCompanyRelationListResponseSchema
 )
-from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
+from app.dependencies.permissions import with_permission_and_user_company_check
 
 relation_router = APIRouter()
 
 
-@relation_router.post("/add", response_model=UserCompanyRelationResponseSchema, summary="Добавить связь пользователя с компанией", status_code=status.HTTP_201_CREATED)
-async def add_user_company_relation(data: UserCompanyRelationCreateSchema, username: str = Depends(get_current_user)):
+@relation_router.post(
+    "/add",
+    response_model=UserCompanyRelationResponseSchema,
+    summary="Добавить связь пользователя с компанией",
+    status_code=status.HTTP_201_CREATED
+)
+async def add_user_company_relation(
+        data: UserCompanyRelationCreateSchema,
+        context: dict = Depends(
+            require_permission_in_context("add_user_company_relation"))
+):
     try:
         user = await User.get_or_none(user_id=data.user)
         company = await Company.get_or_none(company_id=data.company)
@@ -26,6 +36,13 @@ async def add_user_company_relation(data: UserCompanyRelationCreateSchema, usern
         if not user or not company:
             raise HTTPException(
                 status_code=400, detail="Пользователь или компания не найдены")
+        if not context.get("is_superadmin"):
+            is_related = await UserCompanyRelation.exists(user_id=context["user"], company=company)
+            if not is_related:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Вы не имеете доступа к этой компании"
+                )
 
         relation = await UserCompanyRelation.create(user=user, company=company, role=role)
         return {"user_company_id": str(relation.user_company_id)}
@@ -35,8 +52,17 @@ async def add_user_company_relation(data: UserCompanyRelationCreateSchema, usern
             status_code=400, detail="Некорректные данные") from e
 
 
-@relation_router.patch("/{user_company_id}", response_model=UserCompanyRelationResponseSchema, summary="Изменить связь пользователя с компанией")
-async def update_user_company_relation(user_company_id: UUID, data: UserCompanyRelationEditSchema, username: str = Depends(get_current_user)):
+@relation_router.patch(
+    "/{user_company_id}",
+    response_model=UserCompanyRelationResponseSchema,
+    summary="Изменить связь пользователя с компанией"
+)
+async def update_user_company_relation(
+    user_company_id: UUID,
+    data: UserCompanyRelationEditSchema,
+    context=with_permission_and_user_company_check(
+        "edit_user_company_relation")
+):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -70,8 +96,15 @@ async def update_user_company_relation(user_company_id: UUID, data: UserCompanyR
     return {"user_company_id": str(relation.user_company_id)}
 
 
-@relation_router.delete("/{user_company_id}", summary="Удалить связь пользователя с компанией", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_company_relation(user_company_id: UUID, username: str = Depends(get_current_user)):
+@relation_router.delete(
+    "/{user_company_id}",
+    summary="Удалить связь пользователя с компанией",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_user_company_relation(
+    user_company_id: UUID,
+    context=with_permission_and_user_company_check(
+        "delete_user_company_relation")):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
@@ -84,13 +117,21 @@ async def delete_user_company_relation(user_company_id: UUID, username: str = De
     response_model=UserCompanyRelationListResponseSchema,
     summary="Получение списка связей"
 )
-async def get_user_company_relations(filters: dict = Depends(user_company_filter_params), username: str = Depends(get_current_user)):
+async def get_user_company_relations(
+    filters: dict = Depends(user_company_filter_params),
+    context: dict = Depends(
+        require_permission_in_context("get_all_user_company_relations"))
+):
     try:
         query = Q()
         if filters.get("user"):
             query &= Q(user=filters["user"])
-        if filters.get("company"):
-            query &= Q(company=filters["company"])
+        if context["is_superadmin"]:
+            company_filter = filters.get("company")
+            if company_filter:
+                query &= Q(company_id=company_filter)
+        else:
+            query &= Q(company_id=context['company'])
         if filters.get("role"):
             query &= Q(role=filters["role"])
 
@@ -125,7 +166,11 @@ async def get_user_company_relations(filters: dict = Depends(user_company_filter
     response_model=UserCompanyRelationSchema,
     summary="Просмотр одной связи"
 )
-async def get_user_company_relation(user_company_id: UUID, username: str = Depends(get_current_user)):
+async def get_user_company_relation(
+    user_company_id: UUID,
+    context=with_permission_and_user_company_check(
+        "view_user_company_relation")
+):
     relation = await UserCompanyRelation.filter(user_company_id=user_company_id) \
         .prefetch_related("user", "company", "role") \
         .first()

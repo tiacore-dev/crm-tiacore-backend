@@ -2,6 +2,25 @@ async def add_initial_permissions():
     from app.database.models import Permissions
 
     permissions = [
+        # Legal Entity Company Relations
+        ("add_legal_entity_company_relation",
+         "Добавление legal_entity_company_relation"),
+        ("edit_legal_entity_company_relation",
+         "Редкатирование legal_entity_company_relation"),
+        ("delete_legal_entity_company_relation",
+         "Удаление legal_entity_company_relation"),
+        ("view_legal_entity_company_relation",
+         "Просмотр legal_entity_company_relation"),
+        ("get_all_legal_entity_company_relations",
+         "Просмотр всех legal_entity_company_relationов"),
+
+        # User Company Relations
+        ("add_user_company_relation", "Добавление user_company_relation"),
+        ("edit_user_company_relation", "Редкатирование user_company_relation"),
+        ("delete_user_company_relation", "Удаление user_company_relation"),
+        ("view_user_company_relation", "Просмотр user_company_relation"),
+        ("get_all_user_company_relations", "Просмотр всех user_company_relationов"),
+
         # Templates
         ("add_template", "Добавление шаблона"),
         ("edit_template", "Редактирование шаблона"),

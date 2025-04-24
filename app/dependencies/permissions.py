@@ -296,3 +296,47 @@ def with_permission_and_template_check(permission: str):
         return context
 
     return Depends(dependency)
+
+
+def with_permission_and_legal_entity_company_check(permission: str):
+    async def dependency(
+        relation_id: UUID = Path(...,
+                                 description="ID связи компании и юрлица"),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        relation = await EntityCompanyRelation.get_or_none(entity_company_relation_id=relation_id).prefetch_related("company")
+
+        if not relation or str(relation.company.company_id) != str(context["company"]):
+            raise HTTPException(
+                status_code=403,
+                detail="Связь не принадлежит компании пользователя или не найдена"
+            )
+
+        return context
+
+    return Depends(dependency)
+
+
+def with_permission_and_user_company_check(permission: str):
+    async def dependency(
+        user_company_id: UUID = Path(...,
+                                     description="ID связи пользователя с компанией"),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        relation = await UserCompanyRelation.get_or_none(user_company_id=user_company_id).prefetch_related("company")
+
+        if not relation or str(relation.company.company_id) != str(context["company"]):
+            raise HTTPException(
+                status_code=403,
+                detail="Связь пользователя с компанией не найдена или не принадлежит вашей компании"
+            )
+
+        return context
+
+    return Depends(dependency)
