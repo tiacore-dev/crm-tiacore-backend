@@ -114,8 +114,9 @@ async def update_legal_entity(
 
     update_data = data.dict(exclude_unset=True)
 
-    if "entity_type" in update_data:
-        entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=update_data["entity_type"])
+    entity_type_id = update_data.pop("entity_type", None)
+    if entity_type_id is not None:
+        entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=entity_type_id)
         if not entity_type:
             raise HTTPException(
                 status_code=400, detail="Тип юридического лица не найден")

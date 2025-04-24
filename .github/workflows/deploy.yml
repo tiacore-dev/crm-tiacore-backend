@@ -163,7 +163,7 @@ jobs:
               && echo "✅ Контейнер перезапущен" \
               || { echo "❌ Контейнер не запустился"; exit 1; }
 
-            docker image prune -f > /dev/null
+            docker system prune -af > /dev/null
           EOF
 
 
