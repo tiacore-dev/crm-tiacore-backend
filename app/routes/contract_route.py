@@ -140,7 +140,8 @@ async def update_contract(
                 status_code=400, detail="Не удалось загрузить файл")
 
         # Удаляем старый файл
-        await manager.delete_file(contract.s3_key)
+        if contract.s3_key:
+            await manager.delete_file(contract.s3_key)
 
         # Загружаем новый
         new_s3_key = await manager.upload_bytes(file_bytes, f"{data.buyer}+{data.seller}", data.file.filename, entity="contract")
