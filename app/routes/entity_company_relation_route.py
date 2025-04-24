@@ -20,12 +20,13 @@ entity_relation_router = APIRouter()
 @entity_relation_router.post(
     "/add",
     response_model=EntityCompanyRelationResponseSchema,
-    summary="Добавить связь компании и юрлица", status_code=status.HTTP_201_CREATED
+    summary="Добавить связь компании и юрлица",
+    status_code=status.HTTP_201_CREATED
 )
 async def add_entity_company_relation(
     data: EntityCompanyRelationCreateSchema,
-    context: dict = Depends(
-        require_permission_in_context("add_legal_entity_company_relation"))
+    context: dict = Depends(require_permission_in_context(
+        "add_legal_entity_company_relation"))
 ):
     try:
         company = await Company.get_or_none(company_id=data.company)
@@ -34,12 +35,25 @@ async def add_entity_company_relation(
         if not company or not legal_entity:
             raise HTTPException(
                 status_code=400, detail="Компания или юридическое лицо не найдены")
+
         if not context.get("is_superadmin"):
             is_related = await UserCompanyRelation.exists(user_id=context["user"], company=company)
             if not is_related:
                 raise HTTPException(
                     status_code=403,
                     detail="Вы не имеете доступа к этой компании"
+                )
+
+        if data.relation_type == "seller":
+            # Проверяем, не является ли юрлицо уже продавцом в другой компании
+            existing_seller_relation = await EntityCompanyRelation.filter(
+                legal_entity=legal_entity,
+                relation_type="seller"
+            ).exclude(company=company).first()
+            if existing_seller_relation:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Это юридическое лицо уже является продавцом в другой компании"
                 )
 
         relation = await EntityCompanyRelation.create(

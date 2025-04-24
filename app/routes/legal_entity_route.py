@@ -55,16 +55,6 @@ async def add_legal_entity(
             raise HTTPException(
                 status_code=400, detail="Компания не найдена")
 
-        if data.relation_type == "seller":
-            existing_seller = await EntityCompanyRelation.filter(
-                company=company,
-                relation_type="seller"
-            ).first()
-            if existing_seller:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Это юридическое лицо уже является продавцом в другой компании"
-                )
         if data.kpp:
             existing_entity = await LegalEntity.get_or_none(inn=data.inn, kpp=data.kpp)
         else:
