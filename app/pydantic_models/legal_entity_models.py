@@ -8,10 +8,10 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     legal_entity_name: str = Field(..., min_length=3, max_length=255)
     inn: str = Field(..., min_length=10, max_length=12)
     kpp: Optional[str] = Field(None, min_length=9, max_length=9)
-    vat_rate: Optional[int] = Field(None, ge=0, le=100)
+    vat_rate: Optional[int] = Field(0, ge=0, le=100)
     address: str = Field(..., min_length=5, max_length=255)
-    entity_type: Optional[str] = Field(None,
-                                       description="ID типа юр. лица (внешний ключ)")
+    entity_type: Optional[str] = Field(
+        None, description="ID типа юр. лица (внешний ключ)")
     signer: Optional[str] = Field(None, min_length=3, max_length=255)
     company: UUID4 = Field(...,
                            description="ID компании (внешний ключ), UUID4")
