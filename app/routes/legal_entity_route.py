@@ -194,8 +194,56 @@ async def get_legal_entities(
             ]
         )
 
-    except HTTPException as http_exc:
-        raise http_exc
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
+
+
+@entity_router.get(
+    "/get-sellers",
+    response_model=LegalEntityListResponseSchema,
+    summary="Получение списка sellers"
+)
+async def get_sellers(
+    context: dict = Depends(
+        require_permission_in_context("get_sellers"))
+):
+    try:
+        query = Q()
+
+        # Ищем все legal_entity_id, связанные с этими компаниями
+        related_entity_ids = await EntityCompanyRelation.filter(
+            company_id=context['company'],
+            relation_type="seller"
+        ).values_list("legal_entity_id", flat=True)
+
+        if not related_entity_ids:
+            return LegalEntityListResponseSchema(total=0, entities=[])
+
+        query &= Q(legal_entity_id__in=related_entity_ids)
+
+        total_count = await LegalEntity.filter(query).count()
+
+        entities = await LegalEntity.filter(query) \
+            .prefetch_related("entity_type", "entity_company_relations").all()
+
+        return LegalEntityListResponseSchema(
+            total=total_count,
+            entities=[
+                LegalEntitySchema(
+                    legal_entity_id=entity.legal_entity_id,
+                    legal_entity_name=entity.legal_entity_name,
+                    inn=entity.inn,
+                    kpp=entity.kpp,
+                    vat_rate=entity.vat_rate,
+                    address=entity.address,
+                    entity_type=entity.entity_type.legal_entity_type_id if entity.entity_type else None,
+                    signer=entity.signer,
+                )
+                for entity in entities
+            ]
+        )
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
