@@ -117,10 +117,21 @@ async def get_bank_accounts(
                 company_id=context["company"],
                 relation_type="seller"
             ).values_list("legal_entity_id", flat=True)
-            query &= Q(legal_entity_id__in=related_entity_ids)
+
+            # ✅ если фильтр legal_entity есть — проверим, входит ли он в разрешённые
+            if filters.get("legal_entity"):
+                legal_entity = filters["legal_entity"]
+                if legal_entity in related_entity_ids:
+                    query &= Q(legal_entity_id=legal_entity)
+                else:
+                    # Нет доступа к указанному юрлицу
+                    return BankAccountListResponseSchema(total=0, bank_accounts=[])
+            else:
+                query &= Q(legal_entity_id__in=related_entity_ids)
         else:
             if filters.get("legal_entity"):
                 query &= Q(legal_entity_id=filters["legal_entity"])
+
         if filters.get("bank_name"):
             query &= Q(bank_name__icontains=filters["bank_name"])
 
@@ -140,7 +151,6 @@ async def get_bank_accounts(
             bank_accounts=[
                 BankAccountSchema(
                     bank_account_id=bank_account.bank_account_id,
-                    # ✅ Теперь передаем UUID юр. лица
                     legal_entity=bank_account.legal_entity.legal_entity_id,
                     bank_name=bank_account.bank_name,
                     account_number=bank_account.account_number,
