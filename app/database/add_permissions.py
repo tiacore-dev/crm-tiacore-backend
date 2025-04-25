@@ -73,6 +73,7 @@ async def add_initial_permissions():
         ("view_legal_entity", "Просмотр юридического лица"),
         ("get_all_legal_entities", "Просмотр всех юридических лиц"),
         ("get_sellers", "Просмотр всех юридических лиц типа seller компании"),
+        ("get_buyers", "Просмотр всех юридических лиц типа buyer компании"),
         ("get_legal_entity_by_inn_kpp", "Получение юр. лиц по инн, кпп"),
 
         # Bills
