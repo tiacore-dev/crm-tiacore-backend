@@ -1,6 +1,6 @@
 from uuid import UUID
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from tortoise.expressions import Q
 from loguru import logger
 from app.database.models import LegalEntity, LegalEntityType, Company, EntityCompanyRelation, UserCompanyRelation
@@ -210,8 +210,6 @@ async def get_buyers(
         require_permission_in_context("get_buyers"))
 ):
     try:
-        query = Q()
-
         # Ищем все legal_entity_id, связанные с этими компаниями
         related_entity_ids = await EntityCompanyRelation.filter(
             company_id=context['company'],
@@ -221,11 +219,8 @@ async def get_buyers(
         if not related_entity_ids:
             return LegalEntityListResponseSchema(total=0, entities=[])
 
-        query &= Q(legal_entity_id__in=related_entity_ids)
-
-        total_count = await LegalEntity.filter(query).count()
-
-        entities = await LegalEntity.filter(query) \
+        total_count = await LegalEntity.filter(legal_entity_id__in=related_entity_ids).count()
+        entities = await LegalEntity.filter(legal_entity_id__in=related_entity_ids) \
             .prefetch_related("entity_type", "entity_company_relations").all()
 
         return LegalEntityListResponseSchema(
@@ -261,7 +256,6 @@ async def get_sellers(
         require_permission_in_context("get_sellers"))
 ):
     try:
-        query = Q()
 
         # Ищем все legal_entity_id, связанные с этими компаниями
         related_entity_ids = await EntityCompanyRelation.filter(
@@ -272,11 +266,54 @@ async def get_sellers(
         if not related_entity_ids:
             return LegalEntityListResponseSchema(total=0, entities=[])
 
-        query &= Q(legal_entity_id__in=related_entity_ids)
+        total_count = await LegalEntity.filter(legal_entity_id__in=related_entity_ids).count()
+        entities = await LegalEntity.filter(legal_entity_id__in=related_entity_ids) \
+            .prefetch_related("entity_type", "entity_company_relations").all()
 
-        total_count = await LegalEntity.filter(query).count()
+        return LegalEntityListResponseSchema(
+            total=total_count,
+            entities=[
+                LegalEntitySchema(
+                    legal_entity_id=entity.legal_entity_id,
+                    legal_entity_name=entity.legal_entity_name,
+                    inn=entity.inn,
+                    kpp=entity.kpp,
+                    vat_rate=entity.vat_rate,
+                    address=entity.address,
+                    entity_type=entity.entity_type.legal_entity_type_id if entity.entity_type else None,
+                    signer=entity.signer,
+                )
+                for entity in entities
+            ]
+        )
 
-        entities = await LegalEntity.filter(query) \
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"Ошибка данных: {e}")
+        raise HTTPException(
+            status_code=400, detail="Некорректные данные") from e
+
+
+@entity_router.get(
+    "/get-by-company",
+    response_model=LegalEntityListResponseSchema,
+    summary="Получение списка организаций по компании"
+)
+async def get_by_company(
+    company_id: UUID = Query(..., description="ID компании"),
+    context: dict = Depends(
+        require_permission_in_context("get_by_company"))
+):
+    try:
+
+        related_entity_ids = await EntityCompanyRelation.filter(
+            company_id=company_id
+        ).values_list("legal_entity_id", flat=True)
+
+        if not related_entity_ids:
+            return LegalEntityListResponseSchema(total=0, entities=[])
+
+        total_count = await LegalEntity.filter(legal_entity_id__in=related_entity_ids).count()
+        entities = await LegalEntity.filter(legal_entity_id__in=related_entity_ids) \
             .prefetch_related("entity_type", "entity_company_relations").all()
 
         return LegalEntityListResponseSchema(
