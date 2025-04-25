@@ -30,10 +30,6 @@ def sanitize_input(value: str, max_length: int = 255, html_safe: bool = True) ->
     if len(value) > max_length:
         value = value[:max_length]
 
-    # 8. (Опционально) экранируем HTML, если нужно
-    if html_safe:
-        value = html.escape(value)
-
     return value
 
 
