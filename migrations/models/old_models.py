@@ -138,7 +138,6 @@ class LegalEntity(Model):
     legal_entity_name = fields.CharField(max_length=255)
     inn = fields.CharField(max_length=12)
     kpp = fields.CharField(max_length=9, null=True)
-    # от 0 до ста и может не передаваться
     vat_rate = fields.IntField(default=0)
     address = fields.CharField(max_length=255, null=True)
     entity_type = fields.ForeignKeyField(
@@ -163,6 +162,8 @@ class Contract(Model):
     s3_key = fields.CharField(max_length=255, null=True)
     status = fields.ForeignKeyField(
         "diff_models.ContractStatus", related_name="contracts")
+    company = fields.ForeignKeyField(
+        "diff_models.Company", related_name="contracts")
 
     class Meta:
         table = "contracts"
@@ -191,6 +192,7 @@ class Acts(Model):
         "diff_models.LegalEntity", related_name="act_buyer")
     seller = fields.ForeignKeyField(
         "diff_models.LegalEntity", related_name="act_seller")
+    company = fields.ForeignKeyField("diff_models.Company", related_name="acts")
 
     class Meta:
         table = "acts"
@@ -208,6 +210,7 @@ class Bills(Model):
         "diff_models.LegalEntity", related_name="bill_buyer")
     seller = fields.ForeignKeyField(
         "diff_models.LegalEntity", related_name="bill_seller")
+    company = fields.ForeignKeyField("diff_models.Company", related_name="bills")
 
     class Meta:
         table = "bills"
@@ -231,6 +234,7 @@ class BillDetails(Model):
         "diff_models.Service", related_name="services_in_bill")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
+    price = fields.DecimalField(max_digits=8, decimal_places=2)
 
     class Meta:
         table = "bill_details"
@@ -244,6 +248,7 @@ class ActDetails(Model):
         "diff_models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
+    price = fields.DecimalField(max_digits=8, decimal_places=2)
 
     class Meta:
         table = "act_details"
