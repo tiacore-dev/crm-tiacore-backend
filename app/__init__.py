@@ -17,11 +17,17 @@ from app.config import Settings
 
 def create_app(config_name) -> FastAPI:
     app = FastAPI(title="CRM")
+    setup_logger()
     settings = Settings()
-
+    if config_name == 'Test':
+        origin = "*"
+        db_url = settings.TEST_DATABASE_URL
+    else:
+        db_url = settings.DATABASE_URL
+        origin = settings.ORIGIN
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.ORIGIN],
+        allow_origins=[origin],
         allow_credentials=True,  # Разрешаем использование кук и авторизации
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
@@ -32,12 +38,6 @@ def create_app(config_name) -> FastAPI:
         from app.tracer import init_tracer
         init_tracer(app)
 
-    if config_name == 'Test':
-        origin = "*"
-        db_url = settings.TEST_DATABASE_URL
-    else:
-        db_url = settings.DATABASE_URL
-        origin = settings.ORIGIN
     register_tortoise(
         app,
         db_url=db_url,
@@ -47,7 +47,7 @@ def create_app(config_name) -> FastAPI:
         generate_schemas=(config_name == 'Test')
     )
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
-    setup_logger()
+
     register_routes(app)
 
     @app.exception_handler(HTTPException)
