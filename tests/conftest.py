@@ -70,6 +70,8 @@ async def seed_user():
         position="user",
         full_name="Test User"
     )
+    user.is_verified = True
+    await user.save()
     return {
         "user_id": str(user.user_id),
         "email": user.email,

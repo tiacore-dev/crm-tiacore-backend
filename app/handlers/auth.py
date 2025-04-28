@@ -104,10 +104,6 @@ async def verify_token(token: str) -> dict:
 async def login_handler(email: str, password: str):
     user = await User.get_or_none(email=email)
 
-    if not user.is_verified and not user.is_superadmin:
-        raise HTTPException(
-            status_code=403, detail="Необходимо верифицировать email")
-
     if not user:
         logger.warning(f"🔐 Пользователь '{email}' не найден")
         return None
@@ -115,6 +111,10 @@ async def login_handler(email: str, password: str):
     if not user.check_password(password):
         logger.warning(f"🔐 Неверный пароль для пользователя '{email}'")
         return None
+
+    if not user.is_verified and not user.is_superadmin:
+        raise HTTPException(
+            status_code=403, detail="Необходимо верифицировать email")
 
     company_permissions = await get_company_permissions_for_user(user)
 
