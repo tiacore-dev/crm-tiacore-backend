@@ -4,8 +4,8 @@ from loguru import logger
 from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token
 from app.utils.permissions_get import get_company_permissions_for_user
 from app.handlers.depends import get_current_context
-from app.database.models import User
-from app.pydantic_models.auth_models import TokenResponse, LoginRequest
+from app.database.models import User, create_user
+from app.pydantic_models.auth_models import TokenResponse, LoginRequest, RegisterRequest
 
 
 auth_router = APIRouter()
@@ -26,6 +26,20 @@ async def login(data: LoginRequest):
         refresh_token=create_refresh_token({"sub": user.email}),
         permissions=None if user.is_superadmin else company_permissions,
         is_superadmin=user.is_superadmin,
+        user_id=user.user_id
+    )
+
+
+@auth_router.post("/register", response_model=TokenResponse)
+async def register(data: RegisterRequest):
+    user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
+    return TokenResponse(
+        access_token=create_access_token({
+            "sub": user.email
+        }),
+        refresh_token=create_refresh_token({"sub": user.email}),
+        permissions={},
+        is_superadmin=False,
         user_id=user.user_id
     )
 

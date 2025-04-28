@@ -29,3 +29,5 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    full_name: str
+    position: Optional[str] = None
