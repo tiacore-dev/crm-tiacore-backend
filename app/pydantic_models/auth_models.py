@@ -11,10 +11,14 @@ class TokenResponse(BaseModel):
 
     @model_validator(mode="after")
     def check_permissions_for_non_superadmin(self) -> "TokenResponse":
-        if not self.is_superadmin and self.permissions is None:
-            raise ValueError(
-                "permissions must be provided if user is not a superadmin"
-            )
+        if not self.is_superadmin:
+            if self.permissions is not None:
+                # Если есть компании, проверяем, что у них есть права
+                if any(len(perms) == 0 for perms in self.permissions.values()):
+                    raise ValueError(
+                        "permissions must be provided if user is not a superadmin"
+                    )
+        return self
 
 
 class LoginRequest(BaseModel):

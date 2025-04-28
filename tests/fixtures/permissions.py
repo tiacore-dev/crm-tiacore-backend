@@ -15,6 +15,11 @@ async def permission_edit_user():
 
 
 @pytest.fixture
+async def permission_view_user():
+    return await Permissions.create(permission_id="view_user", permission_name="Просмотр пользователя")
+
+
+@pytest.fixture
 async def role_with_edit_user(permission_edit_user):
     role = await UserRole.create(role_name="editor", role_system_name='admin')
     await RolePermissionRelation.create(role=role, permission=permission_edit_user)
@@ -22,8 +27,9 @@ async def role_with_edit_user(permission_edit_user):
 
 
 @pytest.fixture
-async def other_role():
+async def other_role(permission_view_user):
     role = await UserRole.create(role_name="no_permission", role_system_name='user')
+    await RolePermissionRelation.create(role=role, permission=permission_view_user)
     return role
 
 

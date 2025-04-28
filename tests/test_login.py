@@ -2,16 +2,6 @@ import json
 import pytest
 
 
-# @pytest.mark.asyncio
-# async def test_protected_endpoint(test_app, jwt_token_user):
-#     """Проверяем доступ к защищенному эндпоинту."""
-#     headers = {"Authorization": f"Bearer {jwt_token_user['access_token']}"}
-#     response = test_app.get("/api/auth/protected", headers=headers)
-
-#     assert response.status_code == 200
-#     assert response.json()["message"] == "Доступ разрешён"
-
-
 @pytest.mark.usefixtures("seed_other_user")
 @pytest.mark.asyncio
 async def test_login_success(test_app):
