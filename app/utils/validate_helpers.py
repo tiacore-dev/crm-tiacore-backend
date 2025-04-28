@@ -20,7 +20,7 @@ def sanitize_input(value: str, max_length: int = 255, html_safe: bool = True) ->
     value = value.replace("alert", "")
 
     # 4. Unicode нормализация (на всякий случай)
-    value = unicodedata.normalize("NFKC", value)
+    value = unicodedata.normalize("NFC", value)
 
     # 5. Удаление невидимых символов (например, управляющие)
     value = ''.join(c for c in value if unicodedata.category(c)
