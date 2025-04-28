@@ -49,9 +49,14 @@ def create_app(config_name) -> FastAPI:
         from loguru import logger
         logger.error(
             f"HTTPException: {exc.status_code} - {exc.detail} на {request.url}")
-        return JSONResponse(
+
+        response = JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
         )
+        # Принудительно вставляем CORS заголовки
+        response.headers["Access-Control-Allow-Origin"] = "https://crm-dev.tiacore.com"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
     return app
