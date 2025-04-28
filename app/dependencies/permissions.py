@@ -133,21 +133,16 @@ async def context_maker(
     model_name: str,
     model_id: UUID
 ):
-    instance = await model.get_or_none(**{f"{model_name}_id": model_id}).prefetch_related("seller")
+    instance = await model.filter(**{f"{model_name}_id": model_id}).prefetch_related("company").first()
     if not instance:
         raise HTTPException(
             status_code=404, detail=f"{model_name.capitalize()} не найден")
 
-    is_seller = await EntityCompanyRelation.exists(
-        company_id=context["company"],
-        legal_entity=instance.seller,
-        relation_type="seller"
-    )
-
+    is_seller = instance.company.company_id == context['company']
     if not is_seller:
         raise HTTPException(
             status_code=403,
-            detail=f"Вы не можете управлять {model_name} с чужим продавцом"
+            detail=f"Вы не можете управлять {model_name} с чужой компанией"
         )
 
     return context
