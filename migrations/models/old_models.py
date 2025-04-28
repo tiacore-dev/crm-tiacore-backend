@@ -76,6 +76,7 @@ class User(Model):
     full_name = fields.CharField(max_length=255)
     position = fields.CharField(max_length=255, null=True)
     is_superadmin = fields.BooleanField(default=False)
+    is_verified = fields.BooleanField(default=False)
 
     class Meta:
         table = "users"

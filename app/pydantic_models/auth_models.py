@@ -31,3 +31,7 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     position: Optional[str] = None
+
+
+class RegisterResponse(BaseModel):
+    user_id: UUID4

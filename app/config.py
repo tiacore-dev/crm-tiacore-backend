@@ -12,13 +12,15 @@ class Settings:
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret")
     ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv(
         "ACCESS_TOKEN_EXPIRE_MINUTES")
+    JWT_EXPIRATION_HOURS = os.getenv("JWT_EXPIRATION_HOURS", '2')
     REFRESH_TOKEN_EXPIRE_DAYS = os.getenv('REFRESH_TOKEN_EXPIRE_DAYS')
     # LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     LOG_LEVEL = "DEBUG"
     ALGORITHM = "HS256"
     PORT = os.getenv('PORT')
     ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "").split(",")
-    ORIGIN = os.getenv("ORIGIN")
+    FRONT_ORIGIN = os.getenv("FRONT_ORIGIN")
+    BACK_ORIGIN = os.getenv("BACK_ORIGIN")
     ENDPOINT_URL = os.getenv('ENDPOINT_URL')
     REGION_NAME = os.getenv('REGION_NAME')
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
@@ -26,3 +28,7 @@ class Settings:
     BUCKET_NAME = os.getenv('BUCKET_NAME')
     OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT")
     TEMPLATE_SERVICE_URL = os.getenv('TEMPLATE_SERVICE_URL')
+    SMTP_SERVER = os.getenv('SMTP_SERVER')
+    SMTP_PORT = os.getenv('SMTP_PORT')
+    SMTP_USERNAME = os.getenv('SMTP_USERNAME')
+    SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')

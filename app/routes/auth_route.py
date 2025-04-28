@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Body, HTTPException, Depends
+from fastapi import APIRouter, Body, HTTPException, Query
 from jose import JWTError
 from loguru import logger
-from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token
+from app.handlers.auth import login_handler, create_refresh_token, create_access_token, verify_token, verify_email_token, generate_email_token
 from app.utils.permissions_get import get_company_permissions_for_user
-from app.handlers.depends import get_current_context
+from app.utils.verification import send_verification_email
 from app.database.models import User, create_user
-from app.pydantic_models.auth_models import TokenResponse, LoginRequest, RegisterRequest
+from app.pydantic_models.auth_models import TokenResponse, LoginRequest, RegisterRequest, RegisterResponse
 
 
 auth_router = APIRouter()
@@ -33,15 +33,9 @@ async def login(data: LoginRequest):
 @auth_router.post("/register", response_model=TokenResponse)
 async def register(data: RegisterRequest):
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
-    return TokenResponse(
-        access_token=create_access_token({
-            "sub": user.email
-        }),
-        refresh_token=create_refresh_token({"sub": user.email}),
-        permissions={},
-        is_superadmin=False,
-        user_id=user.user_id
-    )
+    token = generate_email_token(user.user_id)
+    send_verification_email(user.email, token)
+    return RegisterResponse(user_id=user.user_id)
 
 
 @auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
@@ -77,6 +71,21 @@ async def refresh_access_token(data: dict = Body(...)):
         ) from exc
 
 
-@auth_router.get("/superadmin", response_model=bool, summary="Проверка, является ли пользователь суперадмином")
-async def is_superadmin(context=Depends(get_current_context)):
-    return bool(context['is_superadmin'])
+@auth_router.get("/verify-email")
+async def verify_email(token: str = Query(...)):
+    payload = verify_email_token(token)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Проблема с токеном")
+
+    user = await User.get_or_none(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=400, detail="Пользователь не найден")
+
+    if user.is_verified:
+        return {"message": "Почта уже подтверждена"}
+
+    user.is_verified = True
+    await user.save()
+
+    return {"message": "Почта успешно подтверждена!"}

@@ -15,6 +15,27 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
+JWT_EXPIRATION_HOURS = int(settings.JWT_EXPIRATION_HOURS)
+
+
+def generate_email_token(user_id: str) -> str:
+    payload = {
+        "sub": str(user_id),
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+
+def verify_email_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        logger.warning(f"❌ Ошибка при декодировании токена: {str(e)}")
+        raise HTTPException(
+            status_code=401, detail="Invalid or expired token"
+        ) from e
 
 
 @cache(expire=300)  # кэш на 5 минут
@@ -82,6 +103,10 @@ async def verify_token(token: str) -> dict:
 
 async def login_handler(email: str, password: str):
     user = await User.get_or_none(email=email)
+
+    if not user.is_verified and not user.is_superadmin:
+        raise HTTPException(
+            status_code=403, detail="Необходимо верифицировать email")
 
     if not user:
         logger.warning(f"🔐 Пользователь '{email}' не найден")

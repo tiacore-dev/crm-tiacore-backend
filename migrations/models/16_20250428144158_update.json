@@ -1,0 +1,8 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"users\" ADD \"is_verified\" BOOL NOT NULL DEFAULT False"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"users\" DROP COLUMN \"is_verified\""
+  ]
+}

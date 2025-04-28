@@ -24,7 +24,7 @@ def create_app(config_name) -> FastAPI:
         db_url = settings.TEST_DATABASE_URL
     else:
         db_url = settings.DATABASE_URL
-        origin = settings.ORIGIN
+        origin = settings.FRONT_ORIGIN
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[origin],
