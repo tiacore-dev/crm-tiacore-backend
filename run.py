@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from app import create_app
 from app.database.add_permissions import add_initial_permissions
 
@@ -14,9 +16,9 @@ CONFIG_NAME = os.getenv('CONFIG_NAME')
 async def create_admin_user():
     from app.database.models import create_user, User
     # Проверяем, существует ли пользователь "admin"
-    admin = await User.filter(username="admin").first()
+    admin = await User.filter(email="admin").first()
     if not admin:
-        await create_user(username="admin", password=PASSWORD, position='admin', full_name='Поликанова Виктория Сергеевна')
+        await create_user(email="admin", password=PASSWORD, position='admin', full_name='Поликанова Виктория Сергеевна')
 
 
 async def create_test_data():
@@ -41,6 +43,7 @@ async def startup_event():
     await add_initial_permissions()
     await create_admin_user()
     await create_test_data()
+    FastAPICache.init(InMemoryBackend())
 
 if __name__ == "__main__":
     import uvicorn

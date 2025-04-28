@@ -39,14 +39,14 @@ async def other_company():
 
 @pytest.fixture
 async def seed_other_user(seed_company_new, other_role):
-    user = await create_user(username='Test User', password='123', full_name="User", position='user')
+    user = await create_user(email='Test User', password='123', full_name="User", position='user')
     await UserCompanyRelation.create(user=user, company=seed_company_new, role=other_role)
     return user
 
 
 @pytest.fixture
 async def seed_other_user_wrong(other_company, other_role):
-    user = await create_user(username='Test User', password='123', full_name="User", position='user')
+    user = await create_user(email='Test User', password='123', full_name="User", position='user')
     await UserCompanyRelation.create(user=user, company=other_company, role=other_role)
     return user
 
@@ -55,7 +55,7 @@ async def seed_other_user_wrong(other_company, other_role):
 
 @pytest.fixture
 async def user_no_permission(seed_company_new, other_role):
-    user = await create_user(username="noperm", full_name="No Perm", position="Dev", password='123')
+    user = await create_user(email="noperm", full_name="No Perm", position="Dev", password='123')
     await UserCompanyRelation.create(user=user, company=seed_company_new, role=other_role)
     return user
 
@@ -64,7 +64,7 @@ async def user_no_permission(seed_company_new, other_role):
 
 @pytest.fixture
 async def user_wrong_company(role_with_edit_user, seed_company_new):
-    user = await create_user(username="wrongco", full_name="Wrong Co", position="Dev", password="123")
+    user = await create_user(email="wrongco", full_name="Wrong Co", position="Dev", password="123")
     await UserCompanyRelation.create(user=user, company=seed_company_new, role=role_with_edit_user)
     return user
 
@@ -73,6 +73,6 @@ async def user_wrong_company(role_with_edit_user, seed_company_new):
 
 @pytest.fixture
 async def user_with_access(role_with_edit_user, seed_company_new):
-    user = await create_user(username="withaccess", full_name="With Access", position="Dev", password="123")
+    user = await create_user(email="withaccess", full_name="With Access", position="Dev", password="123")
     await UserCompanyRelation.create(user=user, company=seed_company_new, role=role_with_edit_user)
     return user

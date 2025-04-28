@@ -7,6 +7,7 @@ class TokenResponse(BaseModel):
     refresh_token: str
     permissions: Optional[Dict[UUID4, List[str]]] = None
     is_superadmin: bool
+    user_id: UUID4
 
     @model_validator(mode="after")
     def check_permissions_for_non_superadmin(self) -> "TokenResponse":
@@ -17,5 +18,5 @@ class TokenResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
+    email: str
     password: str

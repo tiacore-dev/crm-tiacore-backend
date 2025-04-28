@@ -26,7 +26,7 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
 
         logger.success(f"Компания создана: {company.company_id}")
         role = await UserRole.get_or_none(role_system_name="admin")
-        user = await User.get_or_none(username=user_data['username'])
+        user = await User.get_or_none(email=user_data['email'])
         if role and user:
             await UserCompanyRelation.create(role=role, company=company, user=user)
         return {"company_id": str(company.company_id)}
@@ -95,7 +95,7 @@ async def get_companies(
     try:
         query = Q()
 
-        user = await User.get_or_none(username=user_data['username'])
+        user = await User.get_or_none(email=user_data['email'])
         if not user:
             raise HTTPException(
                 status_code=500, detail="Пользователь не найден в базе")
@@ -157,7 +157,7 @@ async def get_company(
         if company is None:
             logger.warning(f"Компания {company_id} не найдена")
             raise HTTPException(status_code=404, detail="Компания не найдена")
-        user = await User.get_or_none(username=user_data['username'])
+        user = await User.get_or_none(email=user_data['email'])
         relation = await UserCompanyRelation.filter(user=user, company_id=company_id).exists()
         if not user or (not user.is_superadmin and not relation):
 

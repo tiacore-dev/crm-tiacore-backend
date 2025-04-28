@@ -18,7 +18,7 @@ async def test_login_success(test_app):
     """Проверяем успешную аутентификацию."""
     response = test_app.post(
         "/api/auth/token",
-        json={"username": "Test User", "password": "123"}
+        json={"email": "Test User", "password": "123"}
     )
 
     assert response.status_code == 200
@@ -44,7 +44,7 @@ async def test_login_failure(test_app):
     """Проверяем неудачную аутентификацию с неправильным паролем."""
     response = test_app.post(
         "/api/auth/token",
-        json={"username": "test_user", "password": "wrongpassword"}
+        json={"email": "test_user", "password": "wrongpassword"}
     )
 
     assert response.status_code == 401

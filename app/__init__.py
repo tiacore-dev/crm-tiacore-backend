@@ -28,9 +28,9 @@ def create_app(config_name) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[origin],
-        allow_credentials=True,  # Разрешаем использование кук и авторизации
+        allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"],  # Разрешаем все заголовки
+        allow_headers=["*"],
     )
     # app.add_middleware(TraceIDMiddleware)
     app.mount("/metrics", make_asgi_app())

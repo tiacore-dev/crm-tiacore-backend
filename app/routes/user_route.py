@@ -24,15 +24,15 @@ async def add_user(data: UserCreateSchema = Body(...),
     # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
-        existing_user = await User.get_or_none(username=data.username)
+        existing_user = await User.get_or_none(email=data.email)
         if existing_user:
             logger.warning(
-                f"Пользователь с логином {data.username} уже существует")
+                f"Пользователь с логином {data.email} уже существует")
             raise HTTPException(
                 status_code=400, detail="Имя пользователя занято")
-        logger.debug(f"Попытка создать пользователя {data.username}")
+        logger.debug(f"Попытка создать пользователя {data.email}")
         user = await create_user(
-            username=data.username,
+            email=data.email,
             full_name=data.full_name,
             position=data.position,
             password=data.password
@@ -43,7 +43,7 @@ async def add_user(data: UserCreateSchema = Body(...),
             raise HTTPException(
                 status_code=500, detail="Не удалось создать пользователя")
         logger.success(
-            f"Пользователь {user.username} ({user.user_id}) успешно создан")
+            f"Пользователь {user.email} ({user.user_id}) успешно создан")
         role = await UserRole.get_or_none(role_system_name='user')
         company = await Company.get_or_none(company_id=context['company'])
         if role and company:
@@ -105,7 +105,7 @@ async def delete_user(
     logger.info(f"Удаление пользователя {user_id}")
     try:
         deleted_count = await User.filter(user_id=user_id).first()
-        if deleted_count.username == "admin":
+        if deleted_count.email == "admin":
             raise HTTPException(
                 status_code=403, detail="вы не можете удалить администратора.")
         await deleted_count.delete()
@@ -130,7 +130,7 @@ async def get_users(
         query = Q()
         search_value = filters.get("search")
         if search_value:
-            query &= Q(username__icontains=search_value)
+            query &= Q(email__icontains=search_value)
 
         company_filter = filters.get("company")
 
@@ -157,7 +157,7 @@ async def get_users(
             else:
                 return UserListResponseSchema(total=0, users=[])
 
-        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'username')}"
+        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'email')}"
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
@@ -167,7 +167,7 @@ async def get_users(
         # ✅ Достаём сразу в виде словарей (ускоряет работу)
         users = await User.filter(query).order_by(order_by).offset(
             (page - 1) * page_size
-        ).limit(page_size).values("user_id", "username", "full_name", "position")
+        ).limit(page_size).values("user_id", "email", "full_name", "position")
 
         return UserListResponseSchema(
             total=total_count,

@@ -1,5 +1,7 @@
-import pytest
 from datetime import timedelta
+import pytest
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi.testclient import TestClient
 from tortoise import Tortoise
 from app import create_app
@@ -14,6 +16,9 @@ settings = Settings()
 def test_app():
     """Фикстура для тестового приложения."""
     app = create_app(config_name="Test")
+
+    # ✨ ИНИЦИАЛИЗИРУЕМ КЭШ ЯВНО
+    FastAPICache.init(InMemoryBackend())
 
     client = TestClient(app)
 
@@ -60,14 +65,14 @@ pytest_plugins = [
 async def seed_user():
     """Добавляет тестового пользователя в базу перед тестом."""
     user = await create_user(
-        username="test_user",
+        email="test_user",
         password="qweasdzcx",
         position="user",
         full_name="Test User"
     )
     return {
         "user_id": str(user.user_id),
-        "username": user.username,
+        "email": user.email,
         "position": user.position,
         "full_name": user.full_name
     }
@@ -79,7 +84,7 @@ async def seed_user():
 async def seed_admin():
     """Добавляет тестового администратора в базу перед тестом."""
     admin = await create_user(
-        username="test_admin",
+        email="test_admin",
         password="adminpass",
         position="admin",
         full_name="Test Admin"
@@ -88,7 +93,7 @@ async def seed_admin():
     await admin.save()
     return {
         "user_id": str(admin.user_id),
-        "username": admin.username,
+        "email": admin.email,
         "position": admin.position,
         "full_name": admin.full_name
     }
@@ -99,7 +104,7 @@ async def seed_admin():
 async def jwt_token_user(seed_user):
     """Генерирует JWT токен для обычного пользователя."""
     token_data = {
-        "sub": seed_user["username"]
+        "sub": seed_user["email"]
     }
     return {
         "access_token": create_access_token(token_data),
@@ -112,8 +117,7 @@ async def jwt_token_user(seed_user):
 async def jwt_token_admin(seed_admin):
     """Генерирует JWT токен для администратора."""
     token_data = {
-        "sub": seed_admin["username"],
-        "permissions": {"*": ["*"]}
+        "sub": seed_admin["email"]
     }
     return {
         "access_token": create_access_token(token_data),
@@ -141,19 +145,15 @@ async def seed_service(seed_company):
 def get_token_for_user():
     # по умолчанию пароль фиксированный
     async def _get_token(user, password="123"):
-        auth_result = await login_handler(user.username, password)
+        auth_result = await login_handler(user.email, password)
         if not auth_result:
             raise Exception(
-                f"Не удалось залогиниться для пользователя {user.username}")
+                f"Не удалось залогиниться для пользователя {user.email}")
 
         user_obj, company_permissions = auth_result
 
         token_data = {
-            "sub": user_obj.username,
-            "username": user_obj.username,  # 💡 важно!
-            "user_id": str(user_obj.user_id),
-            "is_superadmin": user_obj.is_superadmin,
-            "permissions": company_permissions,  # 💡 ключ должен называться так
+            "sub": user_obj.email,
         }
 
         token = create_access_token(

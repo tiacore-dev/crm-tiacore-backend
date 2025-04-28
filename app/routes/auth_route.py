@@ -12,7 +12,7 @@ auth_router = APIRouter()
 
 @auth_router.post("/token", response_model=TokenResponse)
 async def login(data: LoginRequest):
-    result = await login_handler(data.username, data.password)
+    result = await login_handler(data.email, data.password)
     if not result:
         raise HTTPException(status_code=401, detail="Неверные учетные данные")
 
@@ -20,12 +20,13 @@ async def login(data: LoginRequest):
 
     return TokenResponse(
         access_token=create_access_token({
-            "sub": user.username,
-            "permissions": company_permissions
+            "sub": user.email,
+            # "permissions": company_permissions
         }),
-        refresh_token=create_refresh_token({"sub": user.username}),
+        refresh_token=create_refresh_token({"sub": user.email}),
         permissions=None if user.is_superadmin else company_permissions,
-        is_superadmin=user.is_superadmin
+        is_superadmin=user.is_superadmin,
+
     )
 
 
@@ -37,10 +38,10 @@ async def refresh_access_token(data: dict = Body(...)):
             raise HTTPException(
                 status_code=400, detail="Refresh token is required")
 
-        payload = verify_token(refresh_token)
-        username = payload["username"]
+        payload = await verify_token(refresh_token)
+        email = payload["email"]
 
-        user = await User.get_or_none(username=username)
+        user = await User.get_or_none(email=email)
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
 
@@ -48,12 +49,12 @@ async def refresh_access_token(data: dict = Body(...)):
 
         return TokenResponse(
             access_token=create_access_token({
-                "sub": username,
-                "permissions": company_permissions
+                "sub": email,
             }),
-            refresh_token=create_refresh_token({"sub": username}),
+            refresh_token=create_refresh_token({"sub": email}),
             permissions=None if user.is_superadmin else company_permissions,
-            is_superadmin=user.is_superadmin
+            is_superadmin=user.is_superadmin,
+            user_id=user.user_id
         )
 
     except JWTError as exc:

@@ -5,7 +5,7 @@ from app.database.models import Company,  User
 
 @pytest.mark.parametrize("endpoint, model_class, payload_key", [
     ("/api/companies/add", Company, "company_name"),
-    ("/api/users/add", User, "username"),
+    ("/api/users/add", User, "email"),
 ])
 @pytest.mark.asyncio
 async def test_xss_injection(test_app: AsyncClient, jwt_token_admin, endpoint, model_class, payload_key, seed_company):
@@ -14,7 +14,7 @@ async def test_xss_injection(test_app: AsyncClient, jwt_token_admin, endpoint, m
     data = {payload_key: "<script>alert('XSS')</script>"}
     endpoint += f"?company={seed_company['company_id']}"
     # Если тестируем пользователя, добавляем пароль и имя
-    if payload_key == "username":
+    if payload_key == "email":
         data["password"] = "SecurePass123"
         data["full_name"] = "Test User"
 

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
+from fastapi_cache.decorator import cache
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
@@ -16,7 +17,21 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
 
-# Создание токена
+@cache(expire=300)  # кэш на 5 минут
+async def get_cached_user_data(email: str) -> dict:
+    user = await User.get_or_none(email=email)
+    if not user:
+        raise HTTPException(
+            status_code=500, detail="Пользователь не найден в базе")
+
+    permissions = await get_company_permissions_for_user(user)
+
+    return {
+        "email": email,
+        "permissions": permissions,
+        "is_superadmin": user.is_superadmin,
+        "user_id": user.user_id
+    }
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -34,25 +49,30 @@ def create_refresh_token(data: dict):
     return create_access_token(data, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> dict:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)) -> dict:
     if not credentials or not credentials.credentials or credentials.credentials.strip() == "":
         logger.warning("❌ Отсутствует или пустой токен Authorization")
         raise HTTPException(status_code=401, detail="Missing or empty token")
 
     token = credentials.credentials.strip()
 
-    return verify_token(token)
+    token_data = await verify_token(token)
+    return token_data
 
 
-def verify_token(token: str) -> dict:
+async def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        permissions: list = payload.get("permissions", [])
-        if username is None:
+        email: str = payload.get("sub")
+
+        if email is None:
             logger.warning("❌ Токен не содержит 'sub'. Отказ в доступе.")
             raise HTTPException(status_code=401, detail="Invalid token")
-        return {"username": username, "permissions": permissions}
+
+        token_data = await get_cached_user_data(email)  # 💥 БЕРЕМ ИЗ КЭША
+
+        return token_data
+
     except JWTError as e:
         logger.warning(f"❌ Ошибка при декодировании токена: {str(e)}")
         raise HTTPException(
@@ -60,15 +80,15 @@ def verify_token(token: str) -> dict:
         ) from e
 
 
-async def login_handler(username: str, password: str):
-    user = await User.get_or_none(username=username)
+async def login_handler(email: str, password: str):
+    user = await User.get_or_none(email=email)
 
     if not user:
-        logger.warning(f"🔐 Пользователь '{username}' не найден")
+        logger.warning(f"🔐 Пользователь '{email}' не найден")
         return None
 
     if not user.check_password(password):
-        logger.warning(f"🔐 Неверный пароль для пользователя '{username}'")
+        logger.warning(f"🔐 Неверный пароль для пользователя '{email}'")
         return None
 
     company_permissions = await get_company_permissions_for_user(user)
@@ -84,25 +104,20 @@ async def require_superadmin(
         raise HTTPException(status_code=401, detail="Missing or empty token")
 
     token = credentials.credentials.strip()
-    user_data = verify_token(token)
+    user_data = await verify_token(token)
 
-    username = user_data.get("username")
-    if not username:
+    email = user_data.get("email")
+    if not email:
         logger.warning("❌ Токен не содержит имя пользователя")
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    user = await User.get_or_none(username=username)
-    if not user:
-        logger.warning(f"❌ Пользователь {username} не найден в базе")
-        raise HTTPException(status_code=401, detail="User not found")
-
-    if not user.is_superadmin:
-        logger.warning(f"🚫 Пользователь {username} не является суперадмином")
+    if not user_data['is_superadmin']:
+        logger.warning(f"🚫 Пользователь {email} не является суперадмином")
         raise HTTPException(status_code=403, detail="Только для суперадминов")
 
-    logger.info(f"✅ Суперадмин авторизован: {username}")
+    logger.info(f"✅ Суперадмин авторизован: {email}")
     return {
-        "user": user.user_id,  # или user.username, что тебе удобно
-        "username": username,
+        "user": user_data['user_id'],
+        "email": email,
         "is_superadmin": True,
     }

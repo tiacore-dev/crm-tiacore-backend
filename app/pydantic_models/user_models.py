@@ -5,8 +5,8 @@ from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class UserCreateSchema(CleanableBaseModel):
-    username: str = Field(..., min_length=3, max_length=50,
-                          description="Уникальное имя пользователя")
+    email: str = Field(..., min_length=3, max_length=50,
+                       description="Уникальное имя пользователя")
     password: str = Field(..., min_length=6,
                           description="Пароль (не менее 6 символов)")
     full_name: str = Field(..., min_length=3, max_length=100,
@@ -19,7 +19,7 @@ class UserCreateSchema(CleanableBaseModel):
 
 
 class UserEditSchema(CleanableBaseModel):
-    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[str] = Field(None, min_length=3, max_length=50)
     password: Optional[str] = Field(None, min_length=6)
     full_name: Optional[str] = Field(None, min_length=3, max_length=100)
     position: Optional[str] = Field(None, max_length=50)
@@ -27,7 +27,7 @@ class UserEditSchema(CleanableBaseModel):
 
 class UserSchema(CleanableBaseModel):
     user_id: UUID4
-    username: str
+    email: str
     full_name: str
     position: str
 
@@ -48,7 +48,7 @@ class UserResponseSchema(CleanableBaseModel):
 def user_filter_params(
     search: Optional[str] = Query(None, description="Фильтр по названию"),
     company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
-    sort_by: Optional[str] = Query("username", description="Поле сортировки"),
+    sort_by: Optional[str] = Query("email", description="Поле сортировки"),
     order: Optional[str] = Query(
         "asc", description="Порядок сортировки: asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),

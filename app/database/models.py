@@ -61,17 +61,17 @@ class ContractStatus(Model):
         table = "contract_statuses"
 
 
-async def create_user(username: str, password: str, full_name: str, position: str):
+async def create_user(email: str, password: str, full_name: str, position: str):
     # Хэшируем пароль
     hashed_password = bcrypt.hashpw(
         password.encode(), bcrypt.gensalt()).decode()
-    user = await User.create(username=username, password_hash=hashed_password, position=position, full_name=full_name)
+    user = await User.create(email=email, password_hash=hashed_password, position=position, full_name=full_name)
     return user
 
 
 class User(Model):
     user_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    username = fields.CharField(max_length=255, unique=True)
+    email = fields.CharField(max_length=255, unique=True)
     password_hash = fields.CharField(max_length=255)
     full_name = fields.CharField(max_length=255)
     position = fields.CharField(max_length=255, null=True)

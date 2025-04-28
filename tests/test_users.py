@@ -8,7 +8,7 @@ async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, ot
     """Тест добавления нового пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
-        "username": "testuser",
+        "email": "testuser",
         "full_name": "Test User",
         "position": "Developer",
         "password": "securepassword123"
@@ -20,7 +20,7 @@ async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, ot
 
     # Проверяем, что пользователь добавлен в базу
     response_data = response.json()
-    user = await User.filter(username="testuser").first()
+    user = await User.filter(email="testuser").first()
     relation = await UserCompanyRelation.filter(user=user).prefetch_related("company").first()
 
     assert user is not None, "Пользователь не был сохранён в БД"
@@ -71,7 +71,7 @@ async def test_view_user(test_app: AsyncClient, jwt_token_admin, seed_user):
     print(response_data)  # Посмотрим, какие поля реально пришли
 
     assert response_data["user_id"] == str(seed_user["user_id"])
-    assert response_data["username"] == seed_user["username"]
+    assert response_data["email"] == seed_user["email"]
     assert response_data["full_name"] == seed_user["full_name"]
 
 

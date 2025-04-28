@@ -86,10 +86,10 @@ def with_exact_company_permission(permission: str):
         if permission not in permissions:
             raise HTTPException(status_code=403, detail="Недостаточно прав")
 
-        username = user_data["username"]
+        email = user_data["email"]
 
         relation_exists = await UserCompanyRelation.filter(
-            user__username=username,
+            user__email=email,
             company__company_id=company_id
         ).exists()
 
