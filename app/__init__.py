@@ -55,7 +55,7 @@ def create_app(config_name) -> FastAPI:
             content={"detail": exc.detail},
         )
         # Принудительно вставляем CORS заголовки
-        response.headers["Access-Control-Allow-Origin"] = "https://crm-dev.tiacore.com"
+        response.headers["Access-Control-Allow-Origin"] = settings.ORIGIN
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
