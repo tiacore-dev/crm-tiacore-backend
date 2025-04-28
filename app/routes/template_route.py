@@ -203,44 +203,6 @@ async def get_templates(
             status_code=400, detail="Некорректные данные") from e
 
 
-@template_router.get(
-    "/{template_id}/download",
-    summary="Скачивание шаблона"
-)
-async def download_template(template_id: UUID, context=Depends(require_permission_in_context("download_template"))):
-    template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
-    if not template:
-        raise HTTPException(status_code=404, detail="Счет не найден")
-    manager = AsyncS3Manager()
-    url = await manager.generate_presigned_url(template.s3_key)
-    return url
-
-
-@template_router.get(
-    "/{template_id}",
-    response_model=TemplateSchema,
-    summary="Просмотр одного счета"
-)
-async def get_template(template_id: UUID, context=Depends(require_permission_in_context("view_template"))):
-    template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
-    if not template:
-        raise HTTPException(status_code=404, detail="Счет не найден")
-    return TemplateSchema(
-        template_id=template.template_id,
-        template_name=template.template_name,
-        description=template.description or "",
-        company=template.company.company_id,
-        entity=template.entity,
-        s3_key=template.s3_key
-    )
-
-MEDIA_TYPES = {
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "pdf": "application/pdf"
-}
-
-
 @template_router.post("/generate")
 async def genereate_file(data: GenerateFileSchema, context=Depends(require_permission_in_context("generate_template"))):
     logger.info(
@@ -308,3 +270,41 @@ async def genereate_file(data: GenerateFileSchema, context=Depends(require_permi
         raise HTTPException(
             status_code=500, detail=f"Ошибка обращения к template-service: {e}"
         ) from e
+
+
+@template_router.get(
+    "/{template_id}/download",
+    summary="Скачивание шаблона"
+)
+async def download_template(template_id: UUID, context=Depends(require_permission_in_context("download_template"))):
+    template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Счет не найден")
+    manager = AsyncS3Manager()
+    url = await manager.generate_presigned_url(template.s3_key)
+    return url
+
+
+@template_router.get(
+    "/{template_id}",
+    response_model=TemplateSchema,
+    summary="Просмотр одного счета"
+)
+async def get_template(template_id: UUID, context=Depends(require_permission_in_context("view_template"))):
+    template = await Templates.filter(template_id=template_id).prefetch_related("company").first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Счет не найден")
+    return TemplateSchema(
+        template_id=template.template_id,
+        template_name=template.template_name,
+        description=template.description or "",
+        company=template.company.company_id,
+        entity=template.entity,
+        s3_key=template.s3_key
+    )
+
+MEDIA_TYPES = {
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf"
+}

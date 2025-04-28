@@ -41,8 +41,7 @@ async def build_bill_context(bill: Bills) -> dict:
             "vat_rate": entity.vat_rate,
             "address": entity.address,
             "signer": entity.signer,
-            "entity_type": getattr(entity.entity_type, "status_name", None),
-            "description": entity.description
+            "entity_type": getattr(entity.entity_type, "status_name", None)
         }
 
     return {
@@ -90,8 +89,7 @@ async def build_act_context(act: Acts) -> dict:
             "vat_rate": entity.vat_rate,
             "address": entity.address,
             "signer": entity.signer,
-            "entity_type": getattr(entity.entity_type, "status_name", None),
-            "description": entity.description
+            "entity_type": getattr(entity.entity_type, "status_name", None)
         }
 
     return {
