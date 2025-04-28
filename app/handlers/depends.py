@@ -34,10 +34,10 @@ async def get_current_context(
         }
 
     # 🔐 Не суперадмин — без company не пущу
-    # if not company:
-    #     logger.warning(
-    #         f"Отказ в доступе: не указана компания для пользователя {username}")
-    #     raise HTTPException(status_code=400, detail="Не указана компания")
+    if not company:
+        logger.warning(
+            f"Отказ в доступе: не указана компания для пользователя {username}")
+        raise HTTPException(status_code=400, detail="Не указана компания")
 
     raw_permissions = permissions_map.get(str(company), [])
     return {
