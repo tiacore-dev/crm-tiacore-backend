@@ -8,7 +8,6 @@ from app.database.models import User, UserCompanyRelation, RolePermissionRelatio
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
     if user.is_superadmin:
-        # 💎 Достаточно одного универсального маркера
         return {"*": ["*"]}
 
     # 1. Получаем все связи юзера с компаниями и ролями
@@ -26,7 +25,6 @@ async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
         role_to_permissions[str(rp.role_id)].append(
             rp.permission.permission_id)
 
-    # 3. Собираем мапу: company_id -> permissions
     company_permissions: Dict[str, List[str]] = {}
     for rel in relations:
         company_id = str(rel.company.company_id)

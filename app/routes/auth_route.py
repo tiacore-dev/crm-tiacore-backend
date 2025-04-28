@@ -17,11 +17,9 @@ async def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Неверные учетные данные")
 
     user, company_permissions = result
-
     return TokenResponse(
         access_token=create_access_token({
-            "sub": user.email,
-            # "permissions": company_permissions
+            "sub": user.email
         }),
         refresh_token=create_refresh_token({"sub": user.email}),
         permissions=None if user.is_superadmin else company_permissions,
