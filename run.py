@@ -22,12 +22,13 @@ async def create_admin_user():
 async def create_test_data():
     from app.database.models import ContractStatus, LegalEntityType, UserRole
     try:
-        await UserRole.create(role_name="Администратор", role_system_name="admin")
-        await UserRole.create(role_name="Пользователь", role_system_name="user")
-        await LegalEntityType.create(legal_entity_type_id="ip", entity_name="Индивидуальный предприниматель")
-        await LegalEntityType.create(legal_entity_type_id="organization", entity_name="Организация")
-        await ContractStatus.create(contract_status_id="active", status_name="Активен")
-        await ContractStatus.create(contract_status_id="waiting", status_name="Ожидание")
+        await UserRole.get_or_create(role_name="Администратор", role_system_name="admin")
+        await UserRole.get_or_create(role_name="Пользователь", role_system_name="user")
+        await LegalEntityType.get_or_create(legal_entity_type_id="ip", entity_name="Индивидуальный предприниматель")
+        await LegalEntityType.get_or_create(legal_entity_type_id="organization", entity_name="Организация")
+        await ContractStatus.get_or_create(contract_status_id="active", status_name="Активен")
+        await ContractStatus.get_or_create(contract_status_id="waiting", status_name="Ожидание")
+        await ContractStatus.get_or_create(contract_status_id="completed", status_name="Завершен")
     except Exception as e:
         print(f"Exception: {e}")
 

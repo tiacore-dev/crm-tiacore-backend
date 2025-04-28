@@ -17,7 +17,7 @@ def create_app(config_name) -> FastAPI:
     settings = Settings()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=[f"{settings.ORIGIN}"],
         allow_credentials=True,  # Разрешаем использование кук и авторизации
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки

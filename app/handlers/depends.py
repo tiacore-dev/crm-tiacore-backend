@@ -1,5 +1,6 @@
 from uuid import UUID
 from typing import Optional
+from loguru import logger
 from fastapi import Depends, Query, HTTPException
 from app.database.models import User
 from app.handlers.auth import get_current_user
@@ -34,6 +35,8 @@ async def get_current_context(
 
     # 🔐 Не суперадмин — без company не пущу
     if not company:
+        logger.warning(
+            f"Отказ в доступе: не указана компания для пользователя {username}")
         raise HTTPException(status_code=400, detail="Не указана компания")
 
     raw_permissions = permissions_map.get(str(company), [])
