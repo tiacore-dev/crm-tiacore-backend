@@ -4,14 +4,15 @@ from app.database.models import Bills
 
 
 @pytest.mark.asyncio
-async def test_add_bill(test_app: AsyncClient, jwt_token_admin, seed_bank_account, seed_contract):
+async def test_add_bill(test_app: AsyncClient, jwt_token_admin, seed_bank_account, seed_contract, seed_company):
     """Тест добавления нового счета."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "bank_account": seed_bank_account["bank_account_id"],
         "bill_number": "INV-2024-001",
         "bill_date": 1710000000,
-        "contract": seed_contract["contract_id"]
+        "contract": seed_contract["contract_id"],
+        "company": seed_company['company_id']
     }
 
     response = test_app.post("/api/bills/add", headers=headers, json=data)

@@ -11,7 +11,8 @@ async def test_add_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act, 
         "act": seed_act["act_id"],
         "service": seed_service["service_id"],
         "quantity": "5.500",
-        "summ": "1000.50"
+        "summ": "1000.50",
+        "price": "20"
     }
 
     response = test_app.post("/api/act-details/add",

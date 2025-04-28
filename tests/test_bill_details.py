@@ -11,7 +11,8 @@ async def test_add_bill_detail(test_app: AsyncClient, jwt_token_admin, seed_bill
         "bill": seed_bill["bill_id"],
         "service": seed_service["service_id"],
         "quantity": 2.5,
-        "summ": 1500.75
+        "summ": 1500.75,
+        "price": 20.0
     }
 
     response = test_app.post("/api/bill-details/add",

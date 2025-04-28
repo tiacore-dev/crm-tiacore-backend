@@ -5,7 +5,7 @@ from app.database.models import Bills, BillDetails, Contract,  Service, BankAcco
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_bill(seed_legal_entity, seed_legal_entity_buyer, seed_contract, seed_bank_account):
+async def seed_bill(seed_legal_entity, seed_legal_entity_buyer, seed_contract, seed_bank_account, seed_company):
     """Создает тестовый счет, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
@@ -23,7 +23,8 @@ async def seed_bill(seed_legal_entity, seed_legal_entity_buyer, seed_contract, s
         contract=contract,
         bank_account=bank_account,
         buyer=buyer,
-        seller=seller
+        seller=seller,
+        company_id=seed_company['company_id']
     )
 
     return {
@@ -33,7 +34,8 @@ async def seed_bill(seed_legal_entity, seed_legal_entity_buyer, seed_contract, s
         "contract": str(bill.contract.contract_id),
         "bank_account": str(bill.bank_account.bank_account_id),
         "buyer": str(bill.buyer.legal_entity_id),
-        "seller": str(bill.seller.legal_entity_id)
+        "seller": str(bill.seller.legal_entity_id),
+        "company": bill.company
     }
 
 
@@ -56,7 +58,8 @@ async def seed_bill_detail(seed_bill, seed_service):
         bill=bill,
         service=service,
         quantity=2,
-        summ=2000
+        summ=2000,
+        price=20
     )
 
     return {
@@ -64,5 +67,6 @@ async def seed_bill_detail(seed_bill, seed_service):
         "bill": str(bill.bill_id),  # ✅ Теперь передаем строковый UUID
         "service": str(service.service_id),  # ✅ Теперь передаем строковый UUID
         "quantity": bill_detail.quantity,
-        "summ": bill_detail.summ
+        "summ": bill_detail.summ,
+        "price": bill_detail.price
     }

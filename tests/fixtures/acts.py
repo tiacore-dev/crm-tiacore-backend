@@ -5,7 +5,7 @@ from app.database.models import Acts, ActDetails, Contract, Service, LegalEntity
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_act(seed_legal_entity, seed_legal_entity_buyer, seed_contract):
+async def seed_act(seed_legal_entity, seed_legal_entity_buyer, seed_contract, seed_company):
     """Создает тестовое юридическое лицо, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
@@ -27,7 +27,8 @@ async def seed_act(seed_legal_entity, seed_legal_entity_buyer, seed_contract):
         act_date=1700000000,
         contract=contract,
         buyer=buyer,
-        seller=seller
+        seller=seller,
+        company_id=seed_company['company_id']
     )
 
     return {
@@ -36,7 +37,8 @@ async def seed_act(seed_legal_entity, seed_legal_entity_buyer, seed_contract):
         "act_date": act.act_date,
         "contract": str(act.contract.contract_id),
         "buyer": str(act.buyer.legal_entity_id),
-        "seller": str(act.seller.legal_entity_id)
+        "seller": str(act.seller.legal_entity_id),
+        "company": act.company
     }
 
 
@@ -59,7 +61,8 @@ async def seed_act_detail(seed_act, seed_service):
         act=act,
         service=service,
         quantity=2,
-        summ=2000
+        summ=2000,
+        price=20
     )
 
     return {
@@ -67,5 +70,6 @@ async def seed_act_detail(seed_act, seed_service):
         "act": act_detail.act,
         "service": act_detail.service,
         "quantity": act_detail.quantity,
-        "summ": act_detail.summ
+        "summ": act_detail.summ,
+        "price": act_detail.price
     }

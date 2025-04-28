@@ -4,13 +4,14 @@ from app.database.models import Acts
 
 
 @pytest.mark.asyncio
-async def test_add_act(test_app: AsyncClient, jwt_token_admin, seed_contract):
+async def test_add_act(test_app: AsyncClient, jwt_token_admin, seed_contract, seed_company):
     """Тест добавления нового акта."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "act_number": "ACT-001",
         "act_date": 1700000000,  # Пример UNIX timestamp
-        "contract": seed_contract["contract_id"]
+        "contract": seed_contract["contract_id"],
+        "company": seed_company['company_id']
     }
 
     response = test_app.post("/api/acts/add", headers=headers, json=data)

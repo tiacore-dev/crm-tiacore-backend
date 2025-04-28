@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Contract, ContractStatus, LegalEntity, EntityCompanyRelation
+from app.database.models import Contract, ContractStatus, LegalEntity, EntityCompanyRelation, Company
 from app.pydantic_models.contract_models import (
     ContractCreateSchema,
     ContractResponseSchema,
@@ -35,6 +35,7 @@ async def add_contract(
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
         status_obj = await ContractStatus.get_or_none(contract_status_id=data.status)
+        company = await Company.get_or_none(company_id=data.company)
 
         if not buyer:
             logger.warning(f"Покупатель не найден: {data.buyer}")
@@ -42,8 +43,10 @@ async def add_contract(
             logger.warning(f"Продавец не найден: {data.seller}")
         if not status_obj:
             logger.warning(f"Статус не найден: {data.status}")
+        if not company:
+            logger.warning(f"Клмпания не найдена: {data.status}")
 
-        if not buyer or not seller or not status_obj:
+        if not buyer or not seller or not status_obj or not company:
             raise HTTPException(
                 status_code=400,
                 detail="Покупатель, продавец или статус не найдены"
@@ -86,6 +89,7 @@ async def add_contract(
             comment=data.comment,
             s3_key=s3_key,
             status=status_obj,
+            company=company
         )
 
         logger.info(
@@ -131,6 +135,11 @@ async def update_contract(
         if not status_obj:
             raise HTTPException(status_code=400, detail="Статус не найден")
         update_data["status"] = status_obj
+    if data.company:
+        company = await Company.get_or_none(company_id=data.company)
+        if not company:
+            raise HTTPException(status_code=400, detail="Компмания не найдена")
+        update_data['company'] = company
 
     if data.file:
         manager = AsyncS3Manager()
@@ -243,7 +252,7 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
         order_prefix = "" if order == "asc" else "-"
         total_count = await Contract.filter(query).count()
         contracts = await Contract.filter(query) \
-            .prefetch_related("buyer", "seller", "status") \
+            .prefetch_related("buyer", "seller", "status", "company") \
             .order_by(f"{order_prefix}{sort_field}") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
@@ -259,7 +268,8 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
                     seller=contract.seller.legal_entity_id,  # Теперь ID
                     status=contract.status.contract_status_id,  # Теперь ID
                     s3_key=contract.s3_key,
-                    comment=contract.comment
+                    comment=contract.comment,
+                    company=contract.company.company_id
                 )
                 for contract in contracts
             ]
@@ -297,7 +307,7 @@ async def get_contract(
         contract_id: UUID,
         check_access=with_permission_and_seller_contract_check("view_contract")
 ):
-    contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status").first()
+    contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status", "company").first()
 
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -310,5 +320,6 @@ async def get_contract(
         seller=contract.seller.legal_entity_id,
         status=contract.status.contract_status_id,
         s3_key=contract.s3_key,
-        comment=contract.comment
+        comment=contract.comment,
+        company=contract.company.company_id
     )

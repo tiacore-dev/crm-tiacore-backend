@@ -55,7 +55,8 @@ async def add_act_detail(
             act=act,
             service=service,
             quantity=data.quantity,
-            summ=data.summ
+            summ=data.summ,
+            price=data.price
         )
         return {"act_detail_id": str(act_detail.act_detail_id)}
 
@@ -156,7 +157,8 @@ async def get_act_details(
                     act=act_detail.act.act_id,
                     service=act_detail.service.service_id,
                     quantity=act_detail.quantity,
-                    summ=act_detail.summ
+                    summ=act_detail.summ,
+                    price=act_detail.price
                 )
                 for act_detail in act_details
             ]
@@ -184,5 +186,6 @@ async def get_act_detail(act_detail_id: UUID, context=with_permission_through_ac
         act=act_detail.act.act_id,  # ✅ Теперь передаем UUID
         service=act_detail.service.service_id,  # ✅ Теперь передаем UUID
         quantity=act_detail.quantity,
-        summ=act_detail.summ
+        summ=act_detail.summ,
+        price=act_detail.price
     )

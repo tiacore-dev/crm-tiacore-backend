@@ -30,7 +30,7 @@ async def login(data: LoginRequest):
     )
 
 
-@auth_router.post("/register", response_model=TokenResponse)
+@auth_router.post("/register", response_model=RegisterResponse)
 async def register(data: RegisterRequest):
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
     token = generate_email_token(user.user_id)

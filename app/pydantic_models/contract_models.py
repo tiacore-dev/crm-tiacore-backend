@@ -13,6 +13,7 @@ class ContractCreateSchema(CleanableBaseModel):
     comment: Optional[str] = None
     file: Optional[UploadFile] = None
     status: str
+    company: UUID4
 
     @field_validator(
         "contract_name", "contract_date", "buyer", "seller", "status"
@@ -36,7 +37,8 @@ class ContractCreateSchema(CleanableBaseModel):
         seller=Form(...),
         comment=Form(None),
         file=File(None),
-        status=Form(...)
+        status=Form(...),
+        company=Form(...)
     ):
         if isinstance(file, str) and file.strip() == "":
             file = None
@@ -48,7 +50,8 @@ class ContractCreateSchema(CleanableBaseModel):
             seller=seller,
             comment=comment,
             file=file,
-            status=status
+            status=status,
+            company=company
         )
 
     class Config:
@@ -64,6 +67,7 @@ class ContractSchema(CleanableBaseModel):
     s3_key: Optional[str] = None
     status: str
     comment: Optional[str] = None
+    company: UUID4
 
     class Config:
         from_attributes = True
@@ -94,6 +98,7 @@ class ContractEditSchema(CleanableBaseModel):
     comment: Optional[str] = None
     file: Optional[UploadFile] = None
     status: Optional[str] = None
+    company: Optional[UUID4] = None
 
     @classmethod
     def as_form(
@@ -105,6 +110,7 @@ class ContractEditSchema(CleanableBaseModel):
         comment: Optional[str] = Form(None),
         file: Optional[str | UploadFile] = File(None),
         status: Optional[str] = Form(None),
+        company: Optional[UUID4] = Form(None)
     ):
         return cls(
             contract_name=normalize_form_field(contract_name, str),
@@ -115,6 +121,7 @@ class ContractEditSchema(CleanableBaseModel):
             file=None if isinstance(
                 file, str) and file.strip() == "" else file,
             status=normalize_form_field(status, str),
+            company=normalize_form_field(company, UUID4)
         )
 
     class Config:
@@ -124,6 +131,7 @@ class ContractEditSchema(CleanableBaseModel):
 def contract_filter_params(
     buyer: Optional[UUID4] = Query(None, description="Фильтр по покупателю"),
     seller: Optional[UUID4] = Query(None, description="Фильтр по продавцу"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
     contract_date_to: Optional[int] = Query(
         None, description="Фильтр по дате от"),
@@ -139,6 +147,7 @@ def contract_filter_params(
     return {
         "buyer": buyer,
         "seller": seller,
+        "company": company,
         "status": status,
         "contract_date_from": contract_date_from,
         "contract_date_to": contract_date_to,

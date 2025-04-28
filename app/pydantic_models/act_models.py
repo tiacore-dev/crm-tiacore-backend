@@ -10,6 +10,7 @@ class ActCreateSchema(CleanableBaseModel):
     contract: Optional[UUID4] = Field(None)
     buyer: Optional[UUID4] = Field(None)
     seller: Optional[UUID4] = Field(None)
+    company: UUID4 = Field(...)
 
     @field_validator(
         "act_number", "act_date", "contract"
@@ -45,6 +46,7 @@ class ActSchema(CleanableBaseModel):
     contract: Optional[UUID4] = None
     buyer: UUID4
     seller: UUID4
+    company: UUID4
 
     class Config:
         from_attributes = True
@@ -72,6 +74,7 @@ class ActEditSchema(CleanableBaseModel):
     contract: Optional[UUID4] = None
     buyer: Optional[UUID4] = None
     seller: Optional[UUID4] = None
+    company: Optional[UUID4] = None
 
     class Config:
         from_attributes = True
@@ -79,6 +82,7 @@ class ActEditSchema(CleanableBaseModel):
 
 def act_filter_params(
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     act_date_to: Optional[int] = Query(None, description="Фильтр по дате до"),
     act_date_from: Optional[int] = Query(
         None, description="Фильтр по дате от"),
@@ -90,6 +94,7 @@ def act_filter_params(
 ):
     return {
         "contract": contract,
+        "company": company,
         "act_date_from": act_date_from,
         "act_date_to": act_date_to,
         "sort_by": sort_by,

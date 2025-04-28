@@ -9,7 +9,8 @@ async def test_add_contract(
     jwt_token_admin,
     seed_legal_entity,
     seed_legal_entity_buyer,
-    seed_contract_status
+    seed_contract_status,
+    seed_company
 ):
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     form_data = {
@@ -19,6 +20,7 @@ async def test_add_contract(
         "seller": str(seed_legal_entity_buyer["legal_entity_id"]),
         "comment": "Test contract comment",
         "status": str(seed_contract_status["contract_status_id"]),
+        "company": seed_company['company_id']
     }
 
     response = test_app.post(

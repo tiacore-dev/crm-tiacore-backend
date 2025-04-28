@@ -11,6 +11,7 @@ class BillCreateSchema(CleanableBaseModel):
     contract: Optional[UUID4] = Field(None)
     buyer: Optional[UUID4] = Field(None)
     seller: Optional[UUID4] = Field(None)
+    company: UUID4 = Field(...)
 
     @field_validator("bank_account", "bill_number", "bill_date", "contract")
     @classmethod
@@ -51,6 +52,7 @@ class BillEditSchema(CleanableBaseModel):
     contract: Optional[UUID4] = None
     buyer: Optional[UUID4] = None
     seller: Optional[UUID4] = None
+    company: Optional[UUID4] = None
 
     class Config:
         from_attributes = True
@@ -64,6 +66,7 @@ class BillSchema(CleanableBaseModel):
     contract: Optional[UUID4] = None
     buyer: UUID4
     seller: UUID4
+    company: UUID4
 
     class Config:
         from_attributes = True
@@ -82,6 +85,7 @@ def bill_filter_params(
     bank_account: Optional[UUID4] = Query(
         None, description="Фильтр по банковскому счету"),
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     bill_date_from: Optional[int] = Query(
         None, description="Фильтр по дате от (timestamp)"),
     bill_date_to: Optional[int] = Query(
@@ -95,6 +99,7 @@ def bill_filter_params(
     return {
         "bank_account": bank_account,
         "contract": contract,
+        "company": company,
         "bill_date_from": bill_date_from,
         "bill_date_to": bill_date_to,
         "sort_by": sort_by,

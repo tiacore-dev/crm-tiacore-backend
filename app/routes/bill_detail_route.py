@@ -48,7 +48,8 @@ async def add_bill_detail(
             bill=bill,
             service=service,
             quantity=data.quantity,
-            summ=data.summ
+            summ=data.summ,
+            price=data.price
         )
         return {"bill_detail_id": str(bill_detail.bill_detail_id)}
 
@@ -145,7 +146,8 @@ async def get_bill_details(
                     bill=bill_detail.bill.bill_id,  # ✅ Теперь передаем ID счета
                     service=bill_detail.service.service_id,  # ✅ Теперь передаем ID услуги
                     quantity=bill_detail.quantity,
-                    summ=bill_detail.summ
+                    summ=bill_detail.summ,
+                    price=bill_detail.price
                 )
                 for bill_detail in bill_details
             ]
@@ -176,5 +178,6 @@ async def get_bill_detail(
         bill=bill_detail.bill.bill_id,  # ✅ Передаем UUID счета
         service=bill_detail.service.service_id,  # ✅ Передаем UUID услуги
         quantity=bill_detail.quantity,
-        summ=bill_detail.summ
+        summ=bill_detail.summ,
+        price=bill_detail.price
     )

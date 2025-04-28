@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Bills, BankAccount, Contract, LegalEntity, EntityCompanyRelation
+from app.database.models import Bills, BankAccount, Contract, LegalEntity, EntityCompanyRelation, Company
 from app.pydantic_models.bill_models import (
     BillCreateSchema,
     BillResponseSchema,
@@ -44,7 +44,8 @@ async def add_bill(data: BillCreateSchema, context=Depends(require_permission_in
             data.seller = contract.seller.legal_entity_id
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
-        if not buyer or not seller:
+        company = await Company.get_or_none(company_id=data.company)
+        if not buyer or not seller or not company:
             raise HTTPException(
                 status_code=400, detail="Юр. лица не найдены")
 
@@ -57,7 +58,8 @@ async def add_bill(data: BillCreateSchema, context=Depends(require_permission_in
             bill_date=data.bill_date,
             contract=contract,
             buyer=buyer,
-            seller=seller
+            seller=seller,
+            company=company
         )
         return {"bill_id": str(bill.bill_id)}
 
@@ -100,6 +102,11 @@ async def update_bill(
         if not buyer:
             raise HTTPException(status_code=400, detail="Покупатель не найден")
         update_data["buyer"] = buyer
+    if data.company:
+        company = await Company.get_or_none(company_id=data.company)
+        if not company:
+            raise HTTPException(status_code=400, detail="Компмания не найдена")
+        update_data['company'] = company
 
     if data.seller:
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
@@ -179,7 +186,7 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
 
         bills = await Bills.filter(query) \
             .order_by(sort_field) \
-            .prefetch_related("contract", "bank_account", "buyer", "seller") \
+            .prefetch_related("contract", "bank_account", "buyer", "seller", "company") \
             .offset((page - 1) * page_size) \
             .limit(page_size)
 
@@ -193,7 +200,8 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
                     contract=bill.contract.contract_id if bill.contract else None,
                     bank_account=bill.bank_account.bank_account_id,
                     buyer=bill.buyer.legal_entity_id,
-                    seller=bill.seller.legal_entity_id
+                    seller=bill.seller.legal_entity_id,
+                    company=bill.company.company_id
                 )
                 for bill in bills
             ]
@@ -214,7 +222,7 @@ async def get_bill(
     bill_id: UUID,
     check_bill_access=with_permission_and_seller_bill_check("view_bill")
 ):
-    bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller").first()
+    bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller", "company").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
     return BillSchema(
@@ -224,5 +232,6 @@ async def get_bill(
         contract=bill.contract.contract_id if bill.contract else None,
         bank_account=bill.bank_account.bank_account_id,
         buyer=bill.buyer.legal_entity_id,
-        seller=bill.seller.legal_entity_id
+        seller=bill.seller.legal_entity_id,
+        company=bill.company.company_id
     )

@@ -5,7 +5,7 @@ from app.database.models import Contract, ContractStatus, LegalEntity
 @pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contract_status):
+async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contract_status, seed_company):
     """Создает тестовое юридическое лицо, передавая объекты вместо ID."""
 
     # Получаем объекты из базы
@@ -23,7 +23,8 @@ async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contrac
         contract_date="123456789012",
         buyer=buyer,
         seller=seller,
-        status=status
+        status=status,
+        company_id=seed_company['company_id']
     )
 
     return {
@@ -32,5 +33,6 @@ async def seed_contract(seed_legal_entity, seed_legal_entity_buyer, seed_contrac
         "contract_date": contract.contract_date,
         "buyer": contract.buyer,
         "seller": contract.seller,
-        "status": contract.status
+        "status": contract.status,
+        "company": contract.company
     }

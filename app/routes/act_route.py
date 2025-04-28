@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Acts, Contract, LegalEntity, EntityCompanyRelation
+from app.database.models import Acts, Contract, LegalEntity, EntityCompanyRelation, Company
 from app.pydantic_models.act_models import (
     ActCreateSchema,
     ActResponseSchema,
@@ -42,7 +42,8 @@ async def add_act(
             data.seller = contract.seller.legal_entity_id
         buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
         seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
-        if not buyer or not seller:
+        company = await Company.get_or_none(company_id=data.company)
+        if not buyer or not seller or not company:
             raise HTTPException(
                 status_code=400, detail="Юр. лица не найдены")
 
@@ -54,7 +55,8 @@ async def add_act(
             act_date=data.act_date,
             contract=contract,
             buyer=buyer,
-            seller=seller
+            seller=seller,
+            company=company
         )
         return {"act_id": str(act.act_id)}
 
@@ -96,6 +98,11 @@ async def update_act(
         if not seller:
             raise HTTPException(status_code=400, detail="Продавец не найден")
         update_data["seller"] = seller
+    if data.company:
+        company = await Company.get_or_none(company_id=data.company)
+        if not company:
+            raise HTTPException(status_code=400, detail="Компмания не найдена")
+        update_data['company'] = company
 
     await act.update_from_dict(update_data)
     await act.save()
@@ -166,7 +173,7 @@ async def get_acts(
 
         total_count = await Acts.filter(query).count()
 
-        acts = await Acts.filter(query).order_by(sort_field).prefetch_related("contract", "buyer", "seller").offset((page - 1) * page_size).limit(page_size)
+        acts = await Acts.filter(query).order_by(sort_field).prefetch_related("contract", "buyer", "seller", "company").offset((page - 1) * page_size).limit(page_size)
 
         return ActListResponseSchema(
             total=total_count,
@@ -177,7 +184,8 @@ async def get_acts(
                     act_number=act.act_number,
                     act_date=act.act_date,
                     buyer=act.buyer.legal_entity_id,
-                    seller=act.seller.legal_entity_id
+                    seller=act.seller.legal_entity_id,
+                    company=act.company.company_id
                 )
                 for act in acts
             ]
@@ -198,7 +206,7 @@ async def get_act(
     act_id: UUID,
     check_act_access=with_permission_and_seller_act_check("view_act")
 ):
-    act = await Acts.filter(act_id=act_id).prefetch_related("contract", "buyer", "seller").first()
+    act = await Acts.filter(act_id=act_id).prefetch_related("contract", "buyer", "seller", "company").first()
 
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
@@ -209,5 +217,6 @@ async def get_act(
         act_number=act.act_number,
         act_date=act.act_date,
         buyer=act.buyer.legal_entity_id,
-        seller=act.seller.legal_entity_id
+        seller=act.seller.legal_entity_id,
+        company=act.company.company_id
     )

@@ -10,6 +10,7 @@ class BillDetailCreateSchema(CleanableBaseModel):
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0)
     summ: Decimal = Field(..., gt=0)
+    price: Decimal = Field(..., gt=0, max_digits=8, decimal_places=2)
 
     @field_validator("bill", "service", "quantity", "summ")
     @classmethod
@@ -36,6 +37,7 @@ class BillDetailResponseSchema(CleanableBaseModel):
 class BillDetailEditSchema(CleanableBaseModel):
     quantity: Optional[Decimal] = Field(None, gt=0)
     summ: Optional[Decimal] = Field(None, gt=0)
+    price: Optional[Decimal] = Field(None, gt=0)
 
     class Config:
         from_attributes = True
@@ -47,6 +49,7 @@ class BillDetailSchema(CleanableBaseModel):
     service: UUID4  # ✅ Теперь передаем UUID услуги
     quantity: Decimal
     summ: Decimal
+    price: Decimal
 
     class Config:
         from_attributes = True

@@ -10,6 +10,7 @@ class ActDetailCreateSchema(CleanableBaseModel):
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0, max_digits=8, decimal_places=3)
     summ: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    price: Decimal = Field(..., gt=0, max_digits=8, decimal_places=2)
 
     @field_validator("act", "service", "quantity", "summ")
     @classmethod
@@ -32,6 +33,7 @@ class ActDetailSchema(CleanableBaseModel):
     service: UUID4  # ✅ Передаем UUID вместо объекта
     quantity: float
     summ: float
+    price: float
 
     class Config:
         from_attributes = True
@@ -59,6 +61,7 @@ class ActDetailEditSchema(CleanableBaseModel):
     service: Optional[UUID4] = None
     quantity: Optional[Decimal] = None
     summ: Optional[Decimal] = None
+    price: Optional[Decimal] = None
 
     class Config:
         from_attributes = True

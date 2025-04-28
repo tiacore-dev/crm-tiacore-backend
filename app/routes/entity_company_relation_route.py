@@ -44,17 +44,17 @@ async def add_entity_company_relation(
                     detail="Вы не имеете доступа к этой компании"
                 )
 
-        if data.relation_type == "seller":
-            # Проверяем, не является ли юрлицо уже продавцом в другой компании
-            existing_seller_relation = await EntityCompanyRelation.filter(
-                legal_entity=legal_entity,
-                relation_type="seller"
-            ).exclude(company=company).first()
-            if existing_seller_relation:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Это юридическое лицо уже является продавцом в другой компании"
-                )
+        # if data.relation_type == "seller":
+        #     # Проверяем, не является ли юрлицо уже продавцом в другой компании
+        #     existing_seller_relation = await EntityCompanyRelation.filter(
+        #         legal_entity=legal_entity,
+        #         relation_type="seller"
+        #     ).exclude(company=company).first()
+        #     if existing_seller_relation:
+        #         raise HTTPException(
+        #             status_code=400,
+        #             detail="Это юридическое лицо уже является продавцом в другой компании"
+        #         )
 
         relation = await EntityCompanyRelation.create(
             company=company,
