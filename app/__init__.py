@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_422_UNPROCESSABLE_ENTITY
-from loguru import logger
+
 from prometheus_client import make_asgi_app
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
@@ -52,6 +52,7 @@ def create_app(config_name) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
+        from loguru import logger
         logger.error(
             f"HTTPException: {exc.status_code} - {exc.detail} на {request.url}")
 
@@ -66,6 +67,7 @@ def create_app(config_name) -> FastAPI:
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
+        from loguru import logger
         logger.error(f"Unhandled Exception: {traceback.format_exc()}")
 
         response = JSONResponse(
@@ -78,6 +80,7 @@ def create_app(config_name) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        from loguru import logger
         logger.error(
             f"Request Validation Error: {exc.errors()} | body: {exc.body}")
 
