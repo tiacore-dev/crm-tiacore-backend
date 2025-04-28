@@ -1,9 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.exceptions import RequestValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+
 from prometheus_client import make_asgi_app
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
@@ -18,7 +17,7 @@ def create_app(config_name) -> FastAPI:
     settings = Settings()
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[f"{settings.ORIGIN}"],
+        allow_origins=[settings.ORIGIN],
         allow_credentials=True,  # Разрешаем использование кук и авторизации
         allow_methods=["*"],
         allow_headers=["*"],  # Разрешаем все заголовки
@@ -45,13 +44,14 @@ def create_app(config_name) -> FastAPI:
     setup_logger()
     register_routes(app)
 
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request, exc):
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
         from loguru import logger
-        logger.error(f"Ошибка валидации запроса: {exc}")
+        logger.error(
+            f"HTTPException: {exc.status_code} - {exc.detail} на {request.url}")
         return JSONResponse(
-            status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"detail": exc.errors(), "body": exc.body},
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
         )
 
     return app
