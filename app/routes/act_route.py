@@ -219,15 +219,14 @@ async def get_act(
 
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
-    act_summ_record = await ActDetails.filter(act_id=act_id) \
+
+    act_summ_records = await ActDetails.filter(act_id=act_id) \
         .group_by('act_id') \
         .annotate(total_summ=Sum('summ')) \
-        .first()
+        .values('act_id', 'total_summ')
 
-    act_summ = (
-        act_summ_record.total_summ if act_summ_record and act_summ_record.total_summ is not None
-        else 0
-    )
+    act_summ = Decimal(act_summ_records[0]['total_summ']
+                       or "0.00") if act_summ_records else Decimal("0.00")
 
     return ActSchema(
         act_id=act.act_id,

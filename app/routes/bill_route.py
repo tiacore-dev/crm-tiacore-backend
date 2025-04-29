@@ -234,23 +234,23 @@ async def get_bill(
     bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller", "company").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
-    bill_summ_record = await BillDetails.filter(bill_id=bill_id) \
+
+    bill_summ_records = await BillDetails.filter(bill_id=bill_id) \
         .group_by('bill_id') \
         .annotate(total_summ=Sum('summ')) \
-        .first()
+        .values('bill_id', 'total_summ')
 
-    bill_summ = (
-        bill_summ_record.total_summ if bill_summ_record and bill_summ_record.total_summ is not None
-        else Decimal("0.00")
+    bill_summ = Decimal(bill_summ_records[0]['total_summ']
+                        or "0.00") if bill_summ_records else Decimal("0.00")
     )
-    return BillSchema(
-        bill_id=bill.bill_id,
-        bill_number=bill.bill_number,
-        bill_date=bill.bill_date,
-        contract=bill.contract.contract_id if bill.contract else None,
-        bank_account=bill.bank_account.bank_account_id,
-        buyer=bill.buyer.legal_entity_id,
-        seller=bill.seller.legal_entity_id,
-        company=bill.company.company_id,
-        summ=bill_summ
+        return BillSchema(
+    bill_id = bill.bill_id,
+    bill_number = bill.bill_number,
+    bill_date = bill.bill_date,
+    contract = bill.contract.contract_id if bill.contract else None,
+    bank_account = bill.bank_account.bank_account_id,
+    buyer = bill.buyer.legal_entity_id,
+    seller = bill.seller.legal_entity_id,
+    company = bill.company.company_id,
+    summ = bill_summ
     )
