@@ -76,6 +76,9 @@ async def edit_user(
         if 'password' in update_data:  # Если передан пароль, хешируем его
             update_data['password_hash'] = bcrypt.hashpw(
                 update_data.pop('password').encode(), bcrypt.gensalt()).decode()
+        if "is_verified" in update_data:
+            if not context['is_superadmin']:
+                update_data.pop("is_verified")
         updated_rows = None
         if update_data:  # Обновляем только если есть данные для обновления
             updated_rows = await User.filter(user_id=user_id).update(**update_data)

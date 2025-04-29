@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Acts, Contract, LegalEntity, EntityCompanyRelation, Company
+from app.database.models import Acts, Contract, LegalEntity,  Company
 from app.pydantic_models.act_models import (
     ActCreateSchema,
     ActResponseSchema,
@@ -134,12 +134,12 @@ async def get_acts(
 ):
     try:
         query = Q()
-        if not context.get("is_superadmin"):
-            seller_entity_ids = await EntityCompanyRelation.filter(
-                company_id=context["company"],
-                relation_type="seller"
-            ).values_list("legal_entity_id", flat=True)
-            query &= Q(seller_id__in=seller_entity_ids)
+        if context["is_superadmin"]:
+            company_filter = filters.get("company")
+            if company_filter:
+                query &= Q(company_id=company_filter)
+        else:
+            query &= Q(company_id=context['company'])
 
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])

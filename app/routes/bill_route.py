@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import Bills, BankAccount, Contract, LegalEntity, EntityCompanyRelation, Company
+from app.database.models import Bills, BankAccount, Contract, LegalEntity,  Company
 from app.pydantic_models.bill_models import (
     BillCreateSchema,
     BillResponseSchema,
@@ -144,12 +144,12 @@ async def delete_bill(
 async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends(require_permission_in_context("get_all_bills"))):
     try:
         query = Q()
-        if not context.get("is_superadmin"):
-            seller_entity_ids = await EntityCompanyRelation.filter(
-                company_id=context["company"],
-                relation_type="seller"
-            ).values_list("legal_entity_id", flat=True)
-            query &= Q(seller_id__in=seller_entity_ids)
+        if context["is_superadmin"]:
+            company_filter = filters.get("company")
+            if company_filter:
+                query &= Q(company_id=company_filter)
+        else:
+            query &= Q(company_id=context['company'])
 
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])

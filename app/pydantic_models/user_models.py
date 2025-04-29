@@ -23,6 +23,7 @@ class UserEditSchema(CleanableBaseModel):
     password: Optional[str] = Field(None, min_length=6)
     full_name: Optional[str] = Field(None, min_length=3, max_length=100)
     position: Optional[str] = Field(None, max_length=50)
+    is_verified: Optional[bool] = Field(None)
 
 
 class UserSchema(CleanableBaseModel):
