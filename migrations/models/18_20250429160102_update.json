@@ -1,0 +1,8 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"templates\" ALTER COLUMN \"company_id\" DROP NOT NULL"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"templates\" ALTER COLUMN \"company_id\" SET NOT NULL"
+  ]
+}

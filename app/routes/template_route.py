@@ -39,7 +39,7 @@ async def add_template(
         context: dict = Depends(require_permission_in_context("add_template"))):
     try:
         company_obj = await Company.get_or_none(company_id=data.company)
-        if not company_obj:
+        if not company_obj and not context['is_superadmin']:
             raise HTTPException(
                 status_code=400, detail="Компания не найдена"
             )
@@ -165,9 +165,9 @@ async def get_templates(
         if context["is_superadmin"]:
             company_filter = filters.get("company")
             if company_filter:
-                query &= Q(company_id=company_filter)
+                query &= (Q(company_id=company_filter) | Q(company_id=None))
         else:
-            query &= Q(company_id=context['company'])
+            query &= (Q(company_id=context['company']) | Q(company_id=None))
         if filters.get("entity"):
             query &= Q(entity=filters["entity"])
 
@@ -189,7 +189,7 @@ async def get_templates(
                     template_id=template.template_id,
                     template_name=template.template_name,
                     description=template.description or "",
-                    company=template.company.company_id,
+                    company=template.company.company_id if template.company else None,
                     entity=template.entity,
                     s3_key=template.s3_key
                 )
@@ -298,7 +298,7 @@ async def get_template(template_id: UUID, context=Depends(require_permission_in_
         template_id=template.template_id,
         template_name=template.template_name,
         description=template.description or "",
-        company=template.company.company_id,
+        company=template.company.company_id if template.company else None,
         entity=template.entity,
         s3_key=template.s3_key
     )

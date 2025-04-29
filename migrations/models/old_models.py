@@ -258,7 +258,7 @@ class Templates(Model):
     template_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     template_name = fields.CharField(max_length=255)
     company = fields.ForeignKeyField(
-        "diff_models.Company", related_name="templates"
+        "diff_models.Company", related_name="templates", null=True
     )
     description = fields.TextField(null=True)
     entity = fields.CharField(max_length=50)

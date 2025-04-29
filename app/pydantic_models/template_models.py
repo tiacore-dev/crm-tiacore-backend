@@ -22,7 +22,7 @@ class TemplateSchema(CleanableBaseModel):
     template_id: UUID4
     template_name: str
     description: Optional[str] = None
-    company: UUID4
+    company: Optional[UUID4] = None
     entity: str
     s3_key: str
 
@@ -59,7 +59,7 @@ def template_filter_params(
 class TemplateCreateSchema(CleanableBaseModel):
     template_name: str
     description: Optional[str]
-    company: UUID4
+    company: Optional[UUID4]
     entity: str
     file: UploadFile
 
@@ -68,7 +68,7 @@ class TemplateCreateSchema(CleanableBaseModel):
         cls,
         template_name: str = Form(...),
         description: Optional[str] = Form(None),
-        company: UUID4 = Form(...),
+        company: Optional[UUID4] = Form(None),
         entity: str = Form(...),
         file: UploadFile = File(...),
     ):
