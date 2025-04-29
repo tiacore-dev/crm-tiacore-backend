@@ -50,7 +50,7 @@ async def login(data: LoginRequest):
 @auth_router.post("/register", response_model=RegisterResponse)
 async def register(data: RegisterRequest):
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
-    token = generate_token({"user_id": str(user.user_id), "sub": data.email})
+    token = generate_token({"sub": str(user.user_id)})
     logger.info(
         f"Пользователь зарегистрирован: {user.email}, user_id={user.user_id}")
     verification_link = f"{settings.BACK_ORIGIN}/api/auth/verify-email?token={token}"
