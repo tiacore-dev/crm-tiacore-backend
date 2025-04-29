@@ -74,7 +74,6 @@ async def delete_company(
             raise HTTPException(status_code=404, detail="Компания не найдена")
 
         logger.success(f"Компания {company_id} успешно удалена")
-        # return {"detail": "Компания успешно удалена"}
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")

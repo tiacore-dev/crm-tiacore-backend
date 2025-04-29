@@ -35,3 +35,9 @@ class RegisterRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     user_id: UUID4
+
+
+class InviteRequest(BaseModel):
+    email: str
+    company_id: UUID4
+    role_id: UUID4

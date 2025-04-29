@@ -83,7 +83,7 @@ def with_exact_company_permission(permission: str):
         if is_superadmin:
             return user_data
 
-        if permission not in permissions:
+        if str(company_id) not in permissions or permission not in permissions[str(company_id)]:
             raise HTTPException(status_code=403, detail="Недостаточно прав")
 
         email = user_data["email"]

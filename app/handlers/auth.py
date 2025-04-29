@@ -18,16 +18,16 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 JWT_EXPIRATION_HOURS = int(settings.JWT_EXPIRATION_HOURS)
 
 
-def generate_email_token(user_id: str) -> str:
+def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) -> str:
     payload = {
-        "sub": str(user_id),
-        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+        **payload,
+        "exp": datetime.utcnow() + timedelta(hours=expires_in_hours),
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
-def verify_email_token(token):
+def verify_jwt_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
