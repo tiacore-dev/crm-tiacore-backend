@@ -1,3 +1,4 @@
+from decimal import Decimal
 import pytest
 from httpx import AsyncClient
 from app.database.models import Acts
@@ -48,7 +49,7 @@ async def test_edit_act(test_app: AsyncClient, jwt_token_admin, seed_act):
 
 
 @pytest.mark.asyncio
-async def test_view_act(test_app: AsyncClient, jwt_token_admin, seed_act):
+async def test_view_act(test_app: AsyncClient, jwt_token_admin, seed_act, seed_act_detail):
     """Тест просмотра информации об акте."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -63,6 +64,7 @@ async def test_view_act(test_app: AsyncClient, jwt_token_admin, seed_act):
     assert response_data["act_id"] == str(seed_act["act_id"])
     assert response_data["act_number"] == seed_act["act_number"]
     assert response_data["act_date"] == seed_act["act_date"]
+    assert Decimal(response_data['summ']) == seed_act_detail['summ']
 
 
 @pytest.mark.asyncio

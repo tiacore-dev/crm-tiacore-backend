@@ -48,7 +48,7 @@ async def add_bill_detail(
             bill=bill,
             service=service,
             quantity=data.quantity,
-            summ=data.summ,
+            summ=data.quantity*data.price,
             price=data.price
         )
         return {"bill_detail_id": str(bill_detail.bill_detail_id)}
@@ -77,6 +77,10 @@ async def update_bill_detail(
     update_data = data.dict(exclude_unset=True)
 
     await bill_detail.update_from_dict(update_data)
+    # Пересчитываем сумму только если изменились price или quantity
+    if "price" in update_data or "quantity" in update_data:
+        bill_detail.summ = bill_detail.price * bill_detail.quantity
+
     await bill_detail.save()
 
     return {"bill_detail_id": str(bill_detail.bill_detail_id)}

@@ -1,8 +1,10 @@
 from uuid import UUID
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
+from tortoise.functions import Sum
 from loguru import logger
-from app.database.models import Bills, BankAccount, Contract, LegalEntity,  Company
+from app.database.models import Bills, BankAccount, Contract, LegalEntity,  Company, BillDetails
 from app.pydantic_models.bill_models import (
     BillCreateSchema,
     BillResponseSchema,
@@ -189,6 +191,10 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
             .prefetch_related("contract", "bank_account", "buyer", "seller", "company") \
             .offset((page - 1) * page_size) \
             .limit(page_size)
+        bill_sums = await BillDetails.filter(bill_id__in=[bill.bill_id for bill in bills]) \
+            .group_by('bill_id') \
+            .annotate(total_summ=Sum('summ'))
+        summ_map = {item.bill_id: item.total_summ for item in bill_sums}
 
         return BillListResponseSchema(
             total=total_count,
@@ -201,7 +207,9 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
                     bank_account=bill.bank_account.bank_account_id,
                     buyer=bill.buyer.legal_entity_id,
                     seller=bill.seller.legal_entity_id,
-                    company=bill.company.company_id
+                    company=bill.company.company_id,
+                    summ=summ_map.get(bill.bill_id, Decimal(
+                        "0.00"))
                 )
                 for bill in bills
             ]
@@ -225,6 +233,15 @@ async def get_bill(
     bill = await Bills.filter(bill_id=bill_id).prefetch_related("contract", "bank_account", "buyer", "seller", "company").first()
     if not bill:
         raise HTTPException(status_code=404, detail="Счет не найден")
+    bill_summ_record = await BillDetails.filter(bill_id=bill_id) \
+        .group_by('bill_id') \
+        .annotate(total_summ=Sum('summ')) \
+        .first()
+
+    bill_summ = (
+        bill_summ_record.total_summ if bill_summ_record and bill_summ_record.total_summ is not None
+        else Decimal("0.00")
+    )
     return BillSchema(
         bill_id=bill.bill_id,
         bill_number=bill.bill_number,
@@ -233,5 +250,6 @@ async def get_bill(
         bank_account=bill.bank_account.bank_account_id,
         buyer=bill.buyer.legal_entity_id,
         seller=bill.seller.legal_entity_id,
-        company=bill.company.company_id
+        company=bill.company.company_id,
+        summ=bill_summ
     )

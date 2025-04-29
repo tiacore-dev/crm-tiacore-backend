@@ -11,7 +11,7 @@ async def test_add_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act, 
         "act": seed_act["act_id"],
         "service": seed_service["service_id"],
         "quantity": "5.500",
-        "summ": "1000.50",
+        # "summ": "1000.50",
         "price": "20"
     }
 
@@ -31,7 +31,7 @@ async def test_edit_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act_
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
         "quantity": "10.250",
-        "summ": "2000.75"
+        # "summ": "2000.75"
     }
 
     response = test_app.patch(
@@ -46,7 +46,7 @@ async def test_edit_act_detail(test_app: AsyncClient, jwt_token_admin, seed_act_
     updated_act_detail = await ActDetails.filter(act_detail_id=seed_act_detail["act_detail_id"]).first()
     assert updated_act_detail is not None
     assert updated_act_detail.quantity == 10.250
-    assert updated_act_detail.summ == 2000.75
+    # assert updated_act_detail.summ == 2000.75
 
 
 @pytest.mark.asyncio

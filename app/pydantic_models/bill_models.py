@@ -1,4 +1,5 @@
 from typing import Optional, List
+from decimal import Decimal
 from pydantic import UUID4, field_validator, Field, model_validator
 from fastapi import Query, HTTPException
 from app.pydantic_models.clean_model import CleanableBaseModel
@@ -67,6 +68,7 @@ class BillSchema(CleanableBaseModel):
     buyer: UUID4
     seller: UUID4
     company: UUID4
+    summ: Decimal
 
     class Config:
         from_attributes = True

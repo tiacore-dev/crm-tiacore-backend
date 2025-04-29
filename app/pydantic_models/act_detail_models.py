@@ -9,10 +9,10 @@ class ActDetailCreateSchema(CleanableBaseModel):
     act: UUID4 = Field(...)
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0, max_digits=8, decimal_places=3)
-    summ: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    # summ: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
     price: Decimal = Field(..., gt=0, max_digits=8, decimal_places=2)
 
-    @field_validator("act", "service", "quantity", "summ")
+    @field_validator("act", "service", "quantity", "price")
     @classmethod
     def validate_required_fields(cls, value, info):
         """Глобальная валидация обязательных полей с выбросом 400 ошибки"""

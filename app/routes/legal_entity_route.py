@@ -156,7 +156,6 @@ async def get_legal_entities(
                 query &= Q(entity_company_relations__company_id=company_filter)
             # иначе — без ограничений
         else:
-
             # Ищем все legal_entity_id, связанные с этими компаниями
             related_entity_ids = await EntityCompanyRelation.filter(
                 company_id=context['company']

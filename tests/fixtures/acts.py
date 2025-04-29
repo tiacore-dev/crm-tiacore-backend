@@ -1,3 +1,4 @@
+from decimal import Decimal
 import pytest
 from app.database.models import Acts, ActDetails, Contract, Service, LegalEntity
 
@@ -61,7 +62,7 @@ async def seed_act_detail(seed_act, seed_service):
         act=act,
         service=service,
         quantity=2,
-        summ=2000,
+        summ=Decimal(2*20),
         price=20
     )
 

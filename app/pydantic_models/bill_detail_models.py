@@ -9,10 +9,10 @@ class BillDetailCreateSchema(CleanableBaseModel):
     bill: UUID4 = Field(...)
     service: UUID4 = Field(...)
     quantity: Decimal = Field(..., gt=0)
-    summ: Decimal = Field(..., gt=0)
+    # summ: Decimal = Field(..., gt=0)
     price: Decimal = Field(..., gt=0, max_digits=8, decimal_places=2)
 
-    @field_validator("bill", "service", "quantity", "summ")
+    @field_validator("bill", "service", "quantity", "price")
     @classmethod
     def validate_required_fields(cls, value, info):
         """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
@@ -36,7 +36,7 @@ class BillDetailResponseSchema(CleanableBaseModel):
 
 class BillDetailEditSchema(CleanableBaseModel):
     quantity: Optional[Decimal] = Field(None, gt=0)
-    summ: Optional[Decimal] = Field(None, gt=0)
+    # summ: Optional[Decimal] = Field(None, gt=0)
     price: Optional[Decimal] = Field(None, gt=0)
 
     class Config:
@@ -45,8 +45,8 @@ class BillDetailEditSchema(CleanableBaseModel):
 
 class BillDetailSchema(CleanableBaseModel):
     bill_detail_id: UUID4
-    bill: UUID4  # ✅ Теперь передаем UUID счета
-    service: UUID4  # ✅ Теперь передаем UUID услуги
+    bill: UUID4
+    service: UUID4
     quantity: Decimal
     summ: Decimal
     price: Decimal
@@ -56,13 +56,12 @@ class BillDetailSchema(CleanableBaseModel):
 
 
 class BillDetailListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Количество записей по фильтру
-    # ✅ Используем `list`, а не `List[BillDetailSchema]`
+    total: int
     bill_details: List[BillDetailSchema]
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 def bill_detail_filter_params(

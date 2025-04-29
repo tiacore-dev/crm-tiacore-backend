@@ -1,4 +1,5 @@
 from typing import Optional, List
+from decimal import Decimal
 from pydantic import UUID4, field_validator, Field, model_validator
 from fastapi import Query, HTTPException
 from app.pydantic_models.clean_model import CleanableBaseModel
@@ -47,6 +48,7 @@ class ActSchema(CleanableBaseModel):
     buyer: UUID4
     seller: UUID4
     company: UUID4
+    summ: Decimal
 
     class Config:
         from_attributes = True
@@ -60,8 +62,8 @@ class ActResponseSchema(CleanableBaseModel):
 
 
 class ActListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Общее количество актов по фильтру
-    acts: List[ActSchema]  # ✅ Используем `list`, а не `List[ActSchema]`
+    total: int
+    acts: List[ActSchema]
 
     class Config:
         from_attributes = True

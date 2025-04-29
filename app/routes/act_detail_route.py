@@ -55,7 +55,7 @@ async def add_act_detail(
             act=act,
             service=service,
             quantity=data.quantity,
-            summ=data.summ,
+            summ=data.quantity*data.price,
             price=data.price
         )
         return {"act_detail_id": str(act_detail.act_detail_id)}
@@ -95,6 +95,8 @@ async def update_act_detail(
         update_data["service"] = service
 
     await act_detail.update_from_dict(update_data)
+    if "price" in update_data or "quantity" in update_data:
+        act_detail.summ = act_detail.price * act_detail.quantity
     await act_detail.save()
 
     return {"act_detail_id": str(act_detail.act_detail_id)}

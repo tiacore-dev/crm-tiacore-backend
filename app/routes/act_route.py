@@ -1,8 +1,10 @@
 from uuid import UUID
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
+from tortoise.functions import Sum
 from loguru import logger
-from app.database.models import Acts, Contract, LegalEntity,  Company
+from app.database.models import Acts, Contract, LegalEntity,  Company, ActDetails
 from app.pydantic_models.act_models import (
     ActCreateSchema,
     ActResponseSchema,
@@ -174,7 +176,10 @@ async def get_acts(
         total_count = await Acts.filter(query).count()
 
         acts = await Acts.filter(query).order_by(sort_field).prefetch_related("contract", "buyer", "seller", "company").offset((page - 1) * page_size).limit(page_size)
-
+        act_sums = await ActDetails.filter(act_id__in=[act.act_id for act in acts]) \
+            .group_by('act_id') \
+            .annotate(total_summ=Sum('summ'))
+        summ_map = {item.act_id: item.total_summ for item in act_sums}
         return ActListResponseSchema(
             total=total_count,
             acts=[
@@ -185,7 +190,9 @@ async def get_acts(
                     act_date=act.act_date,
                     buyer=act.buyer.legal_entity_id,
                     seller=act.seller.legal_entity_id,
-                    company=act.company.company_id
+                    company=act.company.company_id,
+                    summ=summ_map.get(act.act_id, Decimal(
+                        "0.00"))
                 )
                 for act in acts
             ]
@@ -210,6 +217,15 @@ async def get_act(
 
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
+    act_summ_record = await ActDetails.filter(act_id=act_id) \
+        .group_by('act_id') \
+        .annotate(total_summ=Sum('summ')) \
+        .first()
+
+    act_summ = (
+        act_summ_record.total_summ if act_summ_record and act_summ_record.total_summ is not None
+        else 0
+    )
 
     return ActSchema(
         act_id=act.act_id,
@@ -218,5 +234,6 @@ async def get_act(
         act_date=act.act_date,
         buyer=act.buyer.legal_entity_id,
         seller=act.seller.legal_entity_id,
-        company=act.company.company_id
+        company=act.company.company_id,
+        summ=Decimal(act_summ)
     )
