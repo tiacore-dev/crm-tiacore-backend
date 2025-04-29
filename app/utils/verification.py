@@ -1,5 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
+from loguru import logger
 from app.config import Settings
 
 settings = Settings()
@@ -25,7 +26,13 @@ def send_verification_email(to_email: str, token: str):
     msg['From'] = settings.SMTP_USERNAME
     msg['To'] = to_email
 
-    with smtplib.SMTP(settings.SMTP_SERVER, 587) as server:  # Порт 587!
-        server.starttls()  # Очень важно! starttls() после подключения
-        server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-        server.sendmail(msg['From'], [msg['To']], msg.as_string())
+    try:
+        with smtplib.SMTP(settings.SMTP_SERVER, 587) as server:
+            server.starttls()
+            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            server.sendmail(msg['From'], [msg['To']], msg.as_string())
+            logger.info(
+                f"Письмо для подтверждения почты отправлено на {to_email}")
+    except Exception as e:
+        logger.error(f"Ошибка при отправке письма на {to_email}: {e}")
+        raise  # пробрасываем исключение выше, чтобы не скрыть ошибку

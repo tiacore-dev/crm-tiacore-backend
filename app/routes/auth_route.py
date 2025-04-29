@@ -34,6 +34,8 @@ async def login(data: LoginRequest):
 async def register(data: RegisterRequest):
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
     token = generate_email_token(user.user_id)
+    logger.info(
+        f"Пользователь зарегистрирован: {user.email}, user_id={user.user_id}")
     send_verification_email(user.email, token)
     return RegisterResponse(user_id=user.user_id)
 
@@ -76,16 +78,21 @@ async def verify_email(token: str = Query(...)):
     payload = verify_email_token(token)
     user_id = payload.get("sub")
     if not user_id:
+        logger.warning(f"Попытка верификации с некорректным токеном: {token}")
         raise HTTPException(status_code=400, detail="Проблема с токеном")
 
     user = await User.get_or_none(user_id=user_id)
     if not user:
+        logger.warning(
+            f"Пользователь не найден при верификации почты, user_id={user_id}")
         raise HTTPException(status_code=400, detail="Пользователь не найден")
 
     if user.is_verified:
+        logger.info(f"Почта уже подтверждена ранее, user_id={user.user_id}")
         return {"message": "Почта уже подтверждена"}
 
     user.is_verified = True
     await user.save()
 
+    logger.info(f"Почта успешно подтверждена, user_id={user.user_id}")
     return {"message": "Почта успешно подтверждена!"}
