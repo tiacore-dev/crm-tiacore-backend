@@ -193,7 +193,8 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
             .limit(page_size)
         bill_sums = await BillDetails.filter(bill_id__in=[bill.bill_id for bill in bills]) \
             .group_by('bill_id') \
-            .annotate(total_summ=Sum('summ'))
+            .annotate(total_summ=Sum('summ'))\
+            .values('bill_id', 'total_summ')
         summ_map = {item.bill_id: item.total_summ for item in bill_sums}
 
         return BillListResponseSchema(

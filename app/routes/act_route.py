@@ -178,7 +178,9 @@ async def get_acts(
         acts = await Acts.filter(query).order_by(sort_field).prefetch_related("contract", "buyer", "seller", "company").offset((page - 1) * page_size).limit(page_size)
         act_sums = await ActDetails.filter(act_id__in=[act.act_id for act in acts]) \
             .group_by('act_id') \
-            .annotate(total_summ=Sum('summ'))
+            .annotate(total_summ=Sum('summ')) \
+            .values('act_id', 'total_summ')
+
         summ_map = {item.act_id: item.total_summ for item in act_sums}
         return ActListResponseSchema(
             total=total_count,
