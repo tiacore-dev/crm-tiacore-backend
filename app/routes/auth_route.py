@@ -50,7 +50,7 @@ async def login(data: LoginRequest):
 @auth_router.post("/register", response_model=RegisterResponse)
 async def register(data: RegisterRequest):
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
-    token = generate_token({"user_id": str(user.user_id)})
+    token = generate_token({"user_id": str(user.user_id), "sub": data.email})
     logger.info(
         f"Пользователь зарегистрирован: {user.email}, user_id={user.user_id}")
     verification_link = f"{settings.BACK_ORIGIN}/api/auth/verify-email?token={token}"
@@ -127,6 +127,7 @@ async def verify_email(token: str = Query(...)):
 @auth_router.post("/invite", status_code=201)
 async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
     payload = {
+        "sub": data.email,
         "company_id": str(data.company_id), "role_id": str(data.role_id)}
     token = generate_token(payload)
     verification_link = f"{settings.FRONT_ORIGIN}/invite?token={token}&email={data.email}"
