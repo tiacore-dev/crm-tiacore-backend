@@ -150,7 +150,11 @@ async def get_users(
                     return UserListResponseSchema(total=0, users=[])
             # 🆓 без company — видит всех
         else:
-            # 🔒 обычный пользователь — только свою компанию
+            if not context["company"]:
+                logger.info(
+                    f"Нет компании в контексте для пользователя {context['user']} — возврат пустого списка пользователей")
+                return UserListResponseSchema(total=0, users=[])
+
             related_user_ids = await UserCompanyRelation.filter(
                 company=context["company"]
             ).values_list("user_id", flat=True)
