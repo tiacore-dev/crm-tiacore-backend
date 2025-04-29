@@ -29,7 +29,7 @@ class UserSchema(CleanableBaseModel):
     user_id: UUID4
     email: str
     full_name: str
-    position: str
+    position: Optional[str] = None
 
 
 class UserListResponseSchema(CleanableBaseModel):
