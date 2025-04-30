@@ -139,10 +139,18 @@ async def get_user_company_relations(
         if filters.get("role"):
             query &= Q(role=filters["role"])
 
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
         # ✅ Общее число записей
         total_count = await UserCompanyRelation.filter(query).count()
 
-        relations = await UserCompanyRelation.filter(query) \
+        relations = await UserCompanyRelation.filter(query).order_by(sort_field) \
             .prefetch_related("user", "company", "role") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
@@ -154,7 +162,8 @@ async def get_user_company_relations(
                     user_company_id=relation.user_company_id,
                     user_id=relation.user.user_id,
                     company_id=relation.company.company_id,
-                    role_id=relation.role.role_id
+                    role_id=relation.role.role_id,
+                    created_at=relation.created_at
                 )
                 for relation in relations
             ]
@@ -186,5 +195,6 @@ async def get_user_company_relation(
         user_company_id=relation.user_company_id,
         user_id=relation.user.user_id,
         company_id=relation.company.company_id,
-        role_id=relation.role.role_id
+        role_id=relation.role.role_id,
+        created_at=relation.created_at
     )

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional, List
 from pydantic import UUID4, Field, field_validator
 from fastapi import Query, HTTPException
@@ -50,6 +51,7 @@ class BillDetailSchema(CleanableBaseModel):
     quantity: Decimal
     summ: Decimal
     price: Decimal
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -67,12 +69,18 @@ class BillDetailListResponseSchema(CleanableBaseModel):
 def bill_detail_filter_params(
     bill: Optional[UUID4] = Query(None, description="Фильтр по счету"),
     service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),
+    sort_by: Optional[str] = Query(
+        "created_at", description="Поле сортировки"),
+    order: Optional[str] = Query(
+        "desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "bill": bill,
         "service": service,
+        "sort_by": sort_by,
+        "order": order,
         "page": page,
         "page_size": page_size,
     }

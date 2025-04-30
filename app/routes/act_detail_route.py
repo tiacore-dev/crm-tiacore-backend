@@ -145,8 +145,15 @@ async def get_act_details(
 
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
 
-        act_details = await ActDetails.filter(query) \
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
+        act_details = await ActDetails.filter(query).order_by(sort_field) \
             .prefetch_related("act", "service") \
             .offset((page - 1) * page_size) \
             .limit(page_size)
@@ -160,7 +167,8 @@ async def get_act_details(
                     service=act_detail.service.service_id,
                     quantity=act_detail.quantity,
                     summ=act_detail.summ,
-                    price=act_detail.price
+                    price=act_detail.price,
+                    created_at=act_detail.created_at
                 )
                 for act_detail in act_details
             ]
@@ -189,5 +197,6 @@ async def get_act_detail(act_detail_id: UUID, context=with_permission_through_ac
         service=act_detail.service.service_id,  # ✅ Теперь передаем UUID
         quantity=act_detail.quantity,
         summ=act_detail.summ,
-        price=act_detail.price
+        price=act_detail.price,
+        created_at=act_detail.created_at
     )

@@ -16,7 +16,6 @@ class LegalEntityType(Model):
 
 
 class UserRole(Model):
-
     role_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role_name = fields.CharField(max_length=50, unique=True)
     role_system_name = fields.CharField(max_length=50, null=True, unique=True)
@@ -36,6 +35,7 @@ class RolePermissionRelation(Model):
     permission = fields.ForeignKeyField(
         "models.Permissions", related_name="role_permission_relations",
         on_delete=fields.CASCADE)
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "role_permission_relations"
@@ -114,6 +114,7 @@ class UserCompanyRelation(Model):
         related_name="user_company_relations",
         on_delete=fields.CASCADE
     )
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "user_to_company_relations"
@@ -128,6 +129,7 @@ class EntityCompanyRelation(Model):
         "models.LegalEntity", related_name="entity_company_relations", on_delete=fields.CASCADE)
     relation_type = fields.CharField(max_length=10)
     description = fields.TextField(null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "entity_company_relations"
@@ -235,6 +237,7 @@ class BillDetails(Model):
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
     price = fields.DecimalField(max_digits=8, decimal_places=2)
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "bill_details"
@@ -249,6 +252,7 @@ class ActDetails(Model):
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
     price = fields.DecimalField(max_digits=8, decimal_places=2)
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = "act_details"

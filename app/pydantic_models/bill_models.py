@@ -92,7 +92,8 @@ def bill_filter_params(
         None, description="Фильтр по дате от (timestamp)"),
     bill_date_to: Optional[int] = Query(
         None, description="Фильтр по дате до (timestamp)"),
-    sort_by: Optional[str] = Query("bill_date", description="Поле сортировки"),
+    sort_by: Optional[str] = Query(
+        "bill_number", description="Поле сортировки"),
     order: Optional[str] = Query(
         "desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),

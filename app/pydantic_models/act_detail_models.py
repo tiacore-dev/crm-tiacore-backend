@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional, List
 from pydantic import UUID4, field_validator, Field
 from fastapi import Query, HTTPException
@@ -34,6 +35,7 @@ class ActDetailSchema(CleanableBaseModel):
     quantity: float
     summ: float
     price: float
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -70,12 +72,18 @@ class ActDetailEditSchema(CleanableBaseModel):
 def act_detail_filter_params(
     act: Optional[UUID4] = Query(None, description="Фильтр по акту"),
     service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),
+    sort_by: Optional[str] = Query(
+        "created_at", description="Поле сортировки"),
+    order: Optional[str] = Query(
+        "desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "act": act,
         "service": service,
+        "sort_by": sort_by,
+        "order": order,
         "page": page,
         "page_size": page_size,
     }

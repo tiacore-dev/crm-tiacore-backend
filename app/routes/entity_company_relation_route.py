@@ -133,8 +133,16 @@ async def get_entity_company_relations(
         if filters.get("description"):
             query &= Q(description__icontains=filters["description"])
 
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
         total_count = await EntityCompanyRelation.filter(query).count()
-        relations = await EntityCompanyRelation.filter(query) \
+        relations = await EntityCompanyRelation.filter(query).order_by(sort_field) \
             .prefetch_related("company", "legal_entity") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
@@ -147,7 +155,8 @@ async def get_entity_company_relations(
                     company_id=relation.company.company_id,
                     legal_entity_id=relation.legal_entity.legal_entity_id,
                     relation_type=relation.relation_type,
-                    description=relation.description
+                    description=relation.description,
+                    created_at=relation.created_at
                 )
                 for relation in relations
             ]
@@ -180,5 +189,6 @@ async def get_entity_company_relation(
         company_id=relation.company.company_id,
         legal_entity_id=relation.legal_entity.legal_entity_id,
         relation_type=relation.relation_type,
-        description=relation.description
+        description=relation.description,
+        created_at=relation.created_at
     )

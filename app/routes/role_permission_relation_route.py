@@ -117,7 +117,15 @@ async def get_role_permission_relations(
 
         total_count = await RolePermissionRelation.filter(query).count()
 
-        relations = await RolePermissionRelation.filter(query) \
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
+        relations = await RolePermissionRelation.filter(query).order_by(sort_field) \
             .prefetch_related("role", "permission") \
             .offset((filters["page"] - 1) * filters["page_size"]) \
             .limit(filters["page_size"])
@@ -128,7 +136,8 @@ async def get_role_permission_relations(
                 RolePermissionRelationSchema(
                     role_permission_id=rel.role_permission_id,
                     role_id=rel.role.role_id,
-                    permission_id=rel.permission.permission_id
+                    permission_id=rel.permission.permission_id,
+                    created_at=rel.created_at
                 ) for rel in relations
             ]
         )
@@ -157,5 +166,6 @@ async def get_role_permission_relation(
     return RolePermissionRelationSchema(
         role_permission_id=relation.role_permission_id,
         role_id=relation.role.role_id,
-        permission_id=relation.permission.permission_id
+        permission_id=relation.permission.permission_id,
+        created_at=relation.created_at
     )

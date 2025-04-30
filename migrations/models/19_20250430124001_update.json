@@ -1,0 +1,16 @@
+{
+  "upgrade": [
+    "ALTER TABLE \"act_details\" ADD \"created_at\" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE \"bill_details\" ADD \"created_at\" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE \"entity_company_relations\" ADD \"created_at\" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE \"role_permission_relations\" ADD \"created_at\" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "ALTER TABLE \"user_to_company_relations\" ADD \"created_at\" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP"
+  ],
+  "downgrade": [
+    "ALTER TABLE \"act_details\" DROP COLUMN \"created_at\"",
+    "ALTER TABLE \"bill_details\" DROP COLUMN \"created_at\"",
+    "ALTER TABLE \"entity_company_relations\" DROP COLUMN \"created_at\"",
+    "ALTER TABLE \"role_permission_relations\" DROP COLUMN \"created_at\"",
+    "ALTER TABLE \"user_to_company_relations\" DROP COLUMN \"created_at\""
+  ]
+}

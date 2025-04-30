@@ -137,7 +137,14 @@ async def get_bill_details(
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
-        bill_details = await BillDetails.filter(query) \
+        sort_by = filters.get("sort_by", "act_date")
+        order = filters.get("order", "asc").lower()
+        if order not in ("asc", "desc"):
+            raise HTTPException(
+                status_code=422, detail="order должен быть 'asc' или 'desc'")
+        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
+        bill_details = await BillDetails.filter(query).order_by(sort_field) \
             .prefetch_related("bill", "service") \
             .offset((page - 1) * page_size) \
             .limit(page_size)
@@ -151,7 +158,8 @@ async def get_bill_details(
                     service=bill_detail.service.service_id,
                     quantity=bill_detail.quantity,
                     summ=bill_detail.summ,
-                    price=bill_detail.price
+                    price=bill_detail.price,
+                    created_at=bill_detail.created_at
                 )
                 for bill_detail in bill_details
             ]
@@ -183,5 +191,6 @@ async def get_bill_detail(
         service=bill_detail.service.service_id,
         quantity=bill_detail.quantity,
         summ=bill_detail.summ,
-        price=bill_detail.price
+        price=bill_detail.price,
+        created_at=bill_detail.created_at
     )
