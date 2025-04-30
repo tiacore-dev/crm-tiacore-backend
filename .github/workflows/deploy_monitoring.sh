@@ -7,4 +7,4 @@ echo "📄 Генерация alertmanager.yml из шаблона"
 envsubst < monitoring/alertmanager.yml.template > monitoring/alertmanager.yml
 
 echo "🚀 Перезапуск alertmanager"
-docker compose -f docker-compose.monitoring.yaml up -d alertmanager
+docker compose -f docker-compose.monitoring.yml up -d alertmanager
