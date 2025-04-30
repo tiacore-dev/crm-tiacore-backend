@@ -100,7 +100,7 @@ jobs:
           elif [[ "${{ github.ref_name }}" == "dev" ]]; then
             echo "DEPLOY_PATH=apps/crm-backend-dev" >> $GITHUB_ENV
           elif [[ "${{ github.ref_name }}" == "stage" ]]; then
-            echo "DEPLOY_PATH=apps/crm-backend-stage" >> $GITHUB_ENV
+            echo "DEPLOY_PATH=apps/crm-tiacore-backend-stage" >> $GITHUB_ENV
           else
             echo "❌ Неизвестная ветка! Прерываем процесс."
             exit 1
