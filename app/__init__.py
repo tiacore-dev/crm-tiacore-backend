@@ -1,18 +1,13 @@
 import traceback
-from fastapi import FastAPI  # , HTTPException, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-# from fastapi.exceptions import RequestValidationError
-# from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_422_UNPROCESSABLE_ENTITY
-
 from prometheus_client import make_asgi_app
 from tortoise.contrib.fastapi import register_tortoise
 from app.logger import setup_logger
 from app.routes import register_routes
 from app.config import Settings
-# from app.middleware.trace import TraceIDMiddleware
-# Определяем OAuth2 (аналогично Flask)
 
 
 def create_app(config_name) -> FastAPI:
@@ -41,7 +36,6 @@ def create_app(config_name) -> FastAPI:
         db_url=db_url,
         modules={"models": ["app.database.models"]},
         add_exception_handlers=True,
-        # Генерация схем только в тестах
         generate_schemas=(config_name == 'Test')
     )
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
