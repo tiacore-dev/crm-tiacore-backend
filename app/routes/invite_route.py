@@ -41,6 +41,7 @@ async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
 
         Если вас пригласили по ошибке, проигнорируйте это письмо.
         """
+        send_email(data.email,  body)
         # await UserCompanyRelation.create(user=existing_user, role_id=data.role_id, company_id=data.company_id)
         return
 
