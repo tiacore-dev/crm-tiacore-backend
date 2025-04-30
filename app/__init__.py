@@ -25,7 +25,7 @@ def create_app(config_name) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    # app.add_middleware(TraceIDMiddleware)
+
     app.mount("/metrics", make_asgi_app())
     if config_name == "Production":
         from app.tracer import init_tracer
