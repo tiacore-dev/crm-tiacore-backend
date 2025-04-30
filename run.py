@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.backends.redis import RedisBackend
+import redis.asyncio as redis
 from app import create_app
 from app.database.add_permissions import add_initial_permissions
 
@@ -43,7 +44,9 @@ async def startup_event():
     await add_initial_permissions()
     await create_admin_user()
     await create_test_data()
-    FastAPICache.init(InMemoryBackend())
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    redis_client = redis.from_url(redis_url)
+    FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
 
 if __name__ == "__main__":
     import uvicorn
