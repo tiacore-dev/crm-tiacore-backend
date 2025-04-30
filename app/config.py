@@ -32,3 +32,4 @@ class Settings:
     SMTP_PORT = os.getenv('SMTP_PORT')
     SMTP_USERNAME = os.getenv('SMTP_USERNAME')
     SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
+    ORIGIN = os.getenv('ORIGIN')
