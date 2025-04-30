@@ -74,7 +74,7 @@ async def update_role_permission_relation(
     await relation.update_from_dict(update_data)
     await relation.save()
     related_users = await User.filter(
-        usercompanyrelation__role=role
+        user_company_relations__role=role
     ).distinct()
 
     for user in related_users:

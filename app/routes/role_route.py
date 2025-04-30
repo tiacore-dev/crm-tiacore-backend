@@ -93,7 +93,7 @@ async def edit_role(
         await role.update_from_dict(data.dict(exclude_unset=True))
         await role.save()
         related_users = await User.filter(
-            usercompanyrelation__role=role
+            user_company_relations__role=role
         ).distinct()
 
         for user in related_users:
