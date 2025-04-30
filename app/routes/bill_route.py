@@ -195,7 +195,7 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
             .group_by('bill_id') \
             .annotate(total_summ=Sum('summ'))\
             .values('bill_id', 'total_summ')
-        summ_map = {item.bill_id: item.total_summ for item in bill_sums}
+        summ_map = {item['bill_id']: item['total_summ'] for item in bill_sums}
 
         return BillListResponseSchema(
             total=total_count,

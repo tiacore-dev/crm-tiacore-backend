@@ -181,7 +181,8 @@ async def get_acts(
             .annotate(total_summ=Sum('summ')) \
             .values('act_id', 'total_summ')
 
-        summ_map = {item.act_id: item.total_summ for item in act_sums}
+        summ_map = {item["act_id"]: item["total_summ"] for item in act_sums}
+
         return ActListResponseSchema(
             total=total_count,
             acts=[
