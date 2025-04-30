@@ -3,7 +3,8 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+       - ./monitoring:/etc/prometheus:ro
     ports:
       - "9090:9090"
     networks:
