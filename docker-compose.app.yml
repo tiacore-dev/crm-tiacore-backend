@@ -4,6 +4,8 @@ services:
       ports:
         - "6379:6379"
       restart: always
+      networks:
+      - crm_network
 
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
