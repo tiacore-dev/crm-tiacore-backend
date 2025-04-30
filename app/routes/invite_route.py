@@ -1,4 +1,5 @@
 from fastapi import APIRouter,  HTTPException, Query, Depends
+from loguru import logger
 from app.handlers.auth import (
     create_refresh_token,
     create_access_token,
@@ -84,7 +85,7 @@ async def register_with_token(data: RegisterRequest, token: str = Query(...)):
 
 @invite_router.get("/accept-invite", status_code=201)
 async def accept_invite(token: str = Query(...)):
-
+    logger.debug(f"Получен токен: {token}")
     token_data = verify_jwt_token(token)
     company_id = token_data.get('company_id')
     role_id = token_data.get('role_id')

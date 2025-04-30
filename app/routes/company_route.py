@@ -1,11 +1,9 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
 from tortoise.expressions import Q
 from app.dependencies.permissions import with_exact_company_permission
-from app.handlers.auth import get_current_user, invalidate_user_cache, get_cached_user_data, get_company_permissions_for_user, custom_key_builder
+from app.handlers.auth import get_current_user, invalidate_user_cache, get_cached_user_data
 from app.database.models import Company, UserCompanyRelation,  UserRole, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
@@ -15,7 +13,6 @@ from app.pydantic_models.company_models import (
 company_router = APIRouter()
 
 
-# ✅ 1. Добавление компании
 @company_router.post("/add", response_model=CompanyResponseSchema, summary="Добавление новой компании", status_code=status.HTTP_201_CREATED)
 async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depends(get_current_user)):
     logger.info(f"Создание компании: {data.model_dump()}")
@@ -32,21 +29,7 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
         if role and user:
             await UserCompanyRelation.create(role=role, company=company, user=user)
             await invalidate_user_cache(user.email)
-            user_refreshed = await User.get_or_none(email=user.email)
-            if user_refreshed:
-                # Дождись реальной полной записи перед кешированием
-                permissions = await get_company_permissions_for_user(user_refreshed)
-                backend: RedisBackend = FastAPICache.get_backend()
-                key = custom_key_builder(get_cached_user_data, args=[
-                    user.email], kwargs={})
-                value = {
-                    "email": user.email,
-                    "permissions": permissions,
-                    "is_superadmin": user.is_superadmin,
-                    "user_id": user.user_id
-                }
-                # Ставим вручную
-                await backend.set(key, value, expire=300)
+            await get_cached_user_data(user.email)
 
         return {"company_id": str(company.company_id)}
 
