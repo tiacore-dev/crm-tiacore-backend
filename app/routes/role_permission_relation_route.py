@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from tortoise.expressions import Q
 from loguru import logger
 
-from app.database.models import RolePermissionRelation, UserRole, Permissions
+from app.database.models import RolePermissionRelation, UserRole, Permissions, User
 from app.pydantic_models.role_permission_relation_models import (
     RolePermissionRelationCreateSchema,
     RolePermissionRelationEditSchema,
@@ -12,7 +12,7 @@ from app.pydantic_models.role_permission_relation_models import (
     RolePermissionRelationListResponseSchema,
     role_permission_filter_params
 )
-from app.handlers.auth import require_superadmin
+from app.handlers.auth import require_superadmin, invalidate_user_cache
 
 role_relation_router = APIRouter()
 
@@ -73,6 +73,12 @@ async def update_role_permission_relation(
 
     await relation.update_from_dict(update_data)
     await relation.save()
+    related_users = await User.filter(
+        usercompanyrelation__role=role
+    ).distinct()
+
+    for user in related_users:
+        await invalidate_user_cache(user.email)
 
     return {"role_permission_id": str(relation.role_permission_id)}
 

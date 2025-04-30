@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status, Response
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import require_superadmin, get_current_user
-from app.database.models import UserRole, RolePermissionRelation
+from app.handlers.auth import require_superadmin, get_current_user, invalidate_user_cache
+from app.database.models import UserRole, RolePermissionRelation, User
 from app.pydantic_models.roles_models import (
     UserRoleCreateSchema,
     UserRoleEditSchema,
@@ -92,7 +92,12 @@ async def edit_role(
 
         await role.update_from_dict(data.dict(exclude_unset=True))
         await role.save()
+        related_users = await User.filter(
+            usercompanyrelation__role=role
+        ).distinct()
 
+        for user in related_users:
+            await invalidate_user_cache(user.email)
         logger.success(f"Роль {role_id} успешно обновлена")
         return UserRoleResponseSchema(role_id=role.role_id)
     except (KeyError, TypeError, ValueError) as e:

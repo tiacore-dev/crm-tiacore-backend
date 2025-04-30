@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
+from fastapi_cache import FastAPICache
 from fastapi_cache.decorator import cache
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials
@@ -36,6 +37,11 @@ def verify_jwt_token(token: str) -> dict:
         raise HTTPException(
             status_code=401, detail="Invalid or expired token"
         ) from e
+
+
+async def invalidate_user_cache(email: str):
+    key = f"fastapi-cache:get_cached_user_data:{email}"
+    await FastAPICache.clear(key)
 
 
 @cache(expire=300)  # кэш на 5 минут
