@@ -147,8 +147,8 @@ async def get_bill_details(
             bill_details=[
                 BillDetailSchema(
                     bill_detail_id=bill_detail.bill_detail_id,
-                    bill=bill_detail.bill.bill_id,  # ✅ Теперь передаем ID счета
-                    service=bill_detail.service.service_id,  # ✅ Теперь передаем ID услуги
+                    bill=bill_detail.bill.bill_id,
+                    service=bill_detail.service.service_id,
                     quantity=bill_detail.quantity,
                     summ=bill_detail.summ,
                     price=bill_detail.price
@@ -179,8 +179,8 @@ async def get_bill_detail(
 
     return BillDetailSchema(
         bill_detail_id=bill_detail.bill_detail_id,
-        bill=bill_detail.bill.bill_id,  # ✅ Передаем UUID счета
-        service=bill_detail.service.service_id,  # ✅ Передаем UUID услуги
+        bill=bill_detail.bill.bill_id,
+        service=bill_detail.service.service_id,
         quantity=bill_detail.quantity,
         summ=bill_detail.summ,
         price=bill_detail.price

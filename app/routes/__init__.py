@@ -1,4 +1,7 @@
+from fastapi import FastAPI
 from .auth_route import auth_router
+from .register_route import register_router
+from .invite_route import invite_router
 from .get_route import get_router
 from .service_route import service_router
 from .user_route import user_router
@@ -17,11 +20,12 @@ from .role_route import role_router
 from .permissions_route import permissions_router
 from .role_permission_relation_route import role_relation_router
 from .entity_company_relation_route import entity_relation_router
-# Функция для регистрации всех маршрутов
 
 
-def register_routes(app):
+def register_routes(app: FastAPI):
     app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
+    app.include_router(register_router, prefix='/api', tags=["Register"])
+    app.include_router(invite_router, prefix='/api', tags=["Invite"])
     app.include_router(get_router, prefix="/api",
                        tags=["Statuses, Types, Roles"])
     app.include_router(
