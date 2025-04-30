@@ -13,7 +13,7 @@ from app.pydantic_models.user_company_relation_models import (
 )
 from app.handlers.depends import require_permission_in_context
 from app.dependencies.permissions import with_permission_and_user_company_check
-from app.handlers.auth import invalidate_user_cache
+from app.handlers.auth import invalidate_user_cache, get_cached_user_data
 
 relation_router = APIRouter()
 
@@ -47,6 +47,7 @@ async def add_user_company_relation(
 
         relation = await UserCompanyRelation.create(user=user, company=company, role=role)
         await invalidate_user_cache(user.email)
+        await get_cached_user_data(user.email)
         return {"user_company_id": str(relation.user_company_id)}
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
@@ -96,6 +97,7 @@ async def update_user_company_relation(
     await relation.save()
     await relation.fetch_related("user")  # чтобы relation.user был доступен
     await invalidate_user_cache(relation.user.email)
+    await get_cached_user_data(relation.user.email)
 
     return {"user_company_id": str(relation.user_company_id)}
 
@@ -114,6 +116,7 @@ async def delete_user_company_relation(
         raise HTTPException(status_code=404, detail="Связь не найдена")
     await relation.delete()
     await invalidate_user_cache(relation.user.email)
+    await get_cached_user_data(relation.user.email)
 
 
 @relation_router.get(

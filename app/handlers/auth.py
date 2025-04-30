@@ -66,6 +66,8 @@ async def get_cached_user_data(email: str) -> dict:
     if not user:
         raise HTTPException(
             status_code=500, detail="Пользователь не найден в базе")
+    logger.debug(
+        f"[get_cached_user_data] email={email}, permissions={permissions}")
 
     permissions = await get_company_permissions_for_user(user)
 

@@ -12,7 +12,7 @@ from app.pydantic_models.role_permission_relation_models import (
     RolePermissionRelationListResponseSchema,
     role_permission_filter_params
 )
-from app.handlers.auth import require_superadmin, invalidate_user_cache
+from app.handlers.auth import require_superadmin, invalidate_user_cache, get_cached_user_data
 
 role_relation_router = APIRouter()
 
@@ -79,6 +79,7 @@ async def update_role_permission_relation(
 
     for user in related_users:
         await invalidate_user_cache(user.email)
+        await get_cached_user_data(user.email)
 
     return {"role_permission_id": str(relation.role_permission_id)}
 

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.handlers.depends import require_permission_in_context
+from app.handlers.auth import require_superadmin
 from app.dependencies.permissions import with_permission_and_company_check
 from app.database.models import User, create_user, UserCompanyRelation, UserRole, Company
 from app.pydantic_models.user_models import (
@@ -19,9 +20,8 @@ user_router = APIRouter()
     summary="Добавление нового пользователя",
     status_code=status.HTTP_201_CREATED)
 async def add_user(data: UserCreateSchema = Body(...),
-                   context=Depends(require_permission_in_context("add_user"))
+                   context=Depends(require_superadmin)
                    ):
-    # Логируем без пароля
     logger.info(f"Создание пользователя: {data.dict(exclude={'password'})}")
     try:
         existing_user = await User.get_or_none(email=data.email)
