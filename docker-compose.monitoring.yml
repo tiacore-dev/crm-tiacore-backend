@@ -23,7 +23,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./monitoring:/etc/alertmanager
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
 
     networks:
       - crm_network

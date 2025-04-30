@@ -9,3 +9,14 @@ groups:
         annotations:
           summary: "Инстанс {{ $labels.instance }} недоступен"
           description: "Экспортер {{ $labels.job }} не отвечает более 1 минуты"
+
+  - name: http_errors
+    rules:
+      - alert: FastsapiApp5xxErrors
+        expr: increase(fastapi_errors_total[1m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "⚠️ Fastapi-приложение возвращает 5xx ошибки"
+          description: "Обнаружены ошибки 5xx в течение последней минуты"
