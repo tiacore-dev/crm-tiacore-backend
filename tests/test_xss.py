@@ -12,11 +12,11 @@ async def test_xss_injection(test_app: AsyncClient, jwt_token_admin, endpoint, m
     """Проверяем, что API защищено от XSS-атак"""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {payload_key: "<script>alert('XSS')</script>"}
-    endpoint += f"?company={seed_company['company_id']}"
     # Если тестируем пользователя, добавляем пароль и имя
     if payload_key == "email":
         data["password"] = "SecurePass123"
         data["full_name"] = "Test User"
+        data['company'] = seed_company['company_id']
 
     response = test_app.post(endpoint, headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"

@@ -13,6 +13,7 @@ class UserCreateSchema(CleanableBaseModel):
                            description="Полное имя пользователя")
     position: Optional[str] = Field(
         None, max_length=50, description="Должность пользователя")
+    company: UUID4 = Field(...)
 
     class Config:
         from_attributes = True

@@ -11,11 +11,12 @@ async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, ot
         "email": "testuser",
         "full_name": "Test User",
         "position": "Developer",
-        "password": "securepassword123"
+        "password": "securepassword123",
+        "company": seed_company['company_id']
     }
 
     response = test_app.post(
-        f"/api/users/add?company={seed_company['company_id']}", headers=headers, json=data)
+        "/api/users/add", headers=headers, json=data)
     assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
 
     # Проверяем, что пользователь добавлен в базу
