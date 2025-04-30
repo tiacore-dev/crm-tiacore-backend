@@ -2,7 +2,7 @@ name: CI/CD to Server
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master, stage, dev]
 
 jobs:
   build-test-push:
@@ -99,6 +99,8 @@ jobs:
             echo "DEPLOY_PATH=apps/crm-backend" >> $GITHUB_ENV
           elif [[ "${{ github.ref_name }}" == "dev" ]]; then
             echo "DEPLOY_PATH=apps/crm-backend-dev" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "stage" ]]; then
+            echo "DEPLOY_PATH=apps/crm-backend-stage" >> $GITHUB_ENV
           else
             echo "❌ Неизвестная ветка! Прерываем процесс."
             exit 1

@@ -20,14 +20,12 @@ def create_app(config_name) -> FastAPI:
     setup_logger()
     settings = Settings()
     if config_name == 'Test':
-        origin = "*"
         db_url = settings.TEST_DATABASE_URL
     else:
         db_url = settings.DATABASE_URL
-        origin = settings.ORIGIN
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[origin],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
