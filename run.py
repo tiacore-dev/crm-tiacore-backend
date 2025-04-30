@@ -44,6 +44,7 @@ async def startup_event():
     await add_initial_permissions()
     await create_admin_user()
     await create_test_data()
+    # Используем имя докер контейнера
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
     redis_client = redis.from_url(redis_url)
     FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
