@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.dependencies.permissions import with_exact_company_permission
-from app.handlers.auth import get_current_user, invalidate_user_cache, get_cached_user_data
+from app.handlers.auth import get_current_user, invalidate_user_cache, save_user_to_cache
+from app.utils.permissions_get import get_company_permissions_for_user
 from app.database.models import Company, UserCompanyRelation,  UserRole, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
@@ -34,9 +35,8 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
             )
             # Теперь инвалидируй и пересоздай кэш
             await invalidate_user_cache(user.email)
-            permissions_data = await get_cached_user_data(user.email)
-            logger.debug(
-                f"[AFTER CACHE INVALIDATION] user_data: {permissions_data}")
+            perms = await get_company_permissions_for_user(user)
+            await save_user_to_cache(user, perms)
 
         return {"company_id": str(company.company_id)}
 
@@ -89,10 +89,9 @@ async def delete_company(
             "user_company_relations__role__role_permission_relations__permission"
         )
 
-        # Теперь инвалидируй и пересоздай кэш
         await invalidate_user_cache(user.email)
-        cached = await get_cached_user_data(user.email)
-        logger.debug(f"[cached after invalidate + refresh] {cached}")
+        perms = await get_company_permissions_for_user(user)
+        await save_user_to_cache(user, perms)
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")

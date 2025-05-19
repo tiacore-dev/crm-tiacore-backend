@@ -37,6 +37,11 @@ def custom_key_builder(
     return f"{namespace}:{hashed}" if namespace else hashed
 
 
+def get_user_cache_key(email: str) -> str:
+    hashed = sha256(email.encode()).hexdigest()
+    return f"fastapi-cache:{hashed}"
+
+
 def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) -> str:
     payload = {
         **payload,
@@ -44,6 +49,23 @@ def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) 
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
+
+
+async def save_user_to_cache(user: User, permissions: dict):
+    cache_key = get_user_cache_key(user.email)
+
+    user_data = {
+        "email": user.email,
+        "user_id": str(user.user_id),
+        "is_superadmin": user.is_superadmin,
+        "permissions": permissions,
+    }
+
+    # Сохраняем в кэш
+    backend = FastAPICache.get_backend()
+    await backend.set(cache_key, user_data)
+
+    return user_data
 
 
 def verify_jwt_token(token: str) -> dict:
