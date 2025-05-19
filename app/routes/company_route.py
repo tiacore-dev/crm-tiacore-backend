@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.dependencies.permissions import with_exact_company_permission
-from app.handlers.auth import get_current_user, invalidate_user_cache, get_cached_user_data
+from app.handlers.auth import get_current_user, invalidate_user_cache
 from app.database.models import Company, UserCompanyRelation,  UserRole, User
 from app.pydantic_models.company_models import (
     CompanyCreateSchema, CompanyEditSchema, company_filter_params, CompanyResponseSchema, CompanyListResponseSchema, CompanySchema
@@ -29,7 +29,6 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
         if role and user:
             await UserCompanyRelation.create(role=role, company=company, user=user)
             await invalidate_user_cache(user.email)
-            await get_cached_user_data(user.email)
 
         return {"company_id": str(company.company_id)}
 
