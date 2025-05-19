@@ -10,6 +10,8 @@ async def get_current_context(
     token_data: dict = Depends(get_current_user),
     company: Optional[UUID] = Query(None, description="ID компании")
 ):
+    logger.debug(
+        f"[PERMISSION CHECK] user={token_data.get('email')}, perms={token_data.get('permissions')}")
 
     permissions_map = token_data.get("permissions", {})
     is_token_superadmin = token_data.get("is_superadmin")
@@ -31,6 +33,8 @@ async def get_current_context(
     permissions = []
     if company:
         permissions = permissions_map.get(str(company), [])
+        logger.debug(
+            f"[DEBUG CONTEXT] company={company}, permissions_map_keys={list(permissions_map.keys())}")
 
     return {
         "user": user_id,
