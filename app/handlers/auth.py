@@ -1,10 +1,5 @@
 from datetime import datetime, timedelta
-import json
-from typing import Optional
-from hashlib import sha256
 from jose import JWTError, jwt
-from fastapi_cache import FastAPICache
-from fastapi_cache.decorator import cache
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials
 from loguru import logger
@@ -12,6 +7,7 @@ from app.config import Settings
 from app.utils.permissions_get import get_company_permissions_for_user
 from app.database.models import User
 from app.auth_schemas import bearer_scheme
+from app.handlers.cache import get_cached_user_data
 
 # Конфигурация JWT
 settings = Settings()
@@ -20,27 +16,6 @@ ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 REFRESH_TOKEN_EXPIRE_DAYS = int(settings.REFRESH_TOKEN_EXPIRE_DAYS)
 JWT_EXPIRATION_HOURS = int(settings.JWT_EXPIRATION_HOURS)
-
-
-def custom_key_builder(
-    func,
-    namespace: str,
-    request=None,
-    response=None,
-    args: Optional[list] = None,
-    kwargs: Optional[dict] = None,
-) -> str:
-    args = args or []
-    kwargs = kwargs or {}
-
-    raw_key = f"{func.__module__}:{func.__name__}:{args}:{kwargs}"
-    hashed = sha256(raw_key.encode()).hexdigest()
-    return f"{namespace}:{hashed}" if namespace else hashed
-
-
-def get_user_cache_key(email: str) -> str:
-    hashed = sha256(email.encode()).hexdigest()
-    return f"fastapi-cache:{hashed}"
 
 
 def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) -> str:
@@ -52,19 +27,6 @@ def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) 
     return token
 
 
-async def save_user_to_cache(user, permissions: dict):
-    key = get_user_cache_key(user.email)
-    data = {
-        "email": user.email,
-        "user_id": str(user.user_id),
-        "is_superadmin": user.is_superadmin,
-        "permissions": permissions,
-    }
-    # 👇 сериализация!
-    await FastAPICache.get_backend().set(key, json.dumps(data))
-    return data
-
-
 def verify_jwt_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -74,43 +36,6 @@ def verify_jwt_token(token: str) -> dict:
         raise HTTPException(
             status_code=401, detail="Invalid or expired token"
         ) from e
-
-
-async def debug_cached_user_data(email: str):
-    backend = FastAPICache.get_backend()
-    key = custom_key_builder(get_cached_user_data, args=[
-                             email], kwargs={}, namespace="fastapi-cache")
-    value = await backend.get(key)
-    logger.debug(f"[debug_cached_user_data] Ключ: {key}")
-    logger.debug(f"[debug_cached_user_data] Значение в кэше: {value}")
-
-
-async def invalidate_user_cache(email: str):
-    key = custom_key_builder(
-        get_cached_user_data, namespace="fastapi-cache", args=[email], kwargs={})
-    logger.debug(f"[invalidate_user_cache] Invalidate cache for key: {key}")
-    await FastAPICache.clear(key)
-
-    await debug_cached_user_data(email)
-
-
-@cache(expire=300, key_builder=custom_key_builder)  # кэш на 5 минут
-async def get_cached_user_data(email: str) -> dict:
-    user = await User.get_or_none(email=email)
-    if not user:
-        raise HTTPException(
-            status_code=500, detail="Пользователь не найден в базе")
-
-    permissions = await get_company_permissions_for_user(user)
-    logger.debug(
-        f"[get_cached_user_data] email={email}, permissions={permissions}")
-
-    return {
-        "email": email,
-        "permissions": permissions,
-        "is_superadmin": user.is_superadmin,
-        "user_id": user.user_id
-    }
 
 
 def create_access_token(data: dict, expires_delta: timedelta = None):

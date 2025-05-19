@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, HTTPException, Body, status, Response
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import require_superadmin, get_current_user, invalidate_user_cache, get_cached_user_data
+from app.handlers.auth import require_superadmin, get_current_user, get_cached_user_data
+from app.handlers.cache import invalidate_user_cache
 from app.database.models import UserRole, RolePermissionRelation, User
 from app.pydantic_models.roles_models import (
     UserRoleCreateSchema,

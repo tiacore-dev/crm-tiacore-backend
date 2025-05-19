@@ -13,7 +13,8 @@ from app.pydantic_models.user_company_relation_models import (
 )
 from app.handlers.depends import require_permission_in_context
 from app.dependencies.permissions import with_permission_and_user_company_check
-from app.handlers.auth import invalidate_user_cache, get_cached_user_data
+from app.handlers.auth import get_cached_user_data
+from app.handlers.cache import invalidate_user_cache
 
 relation_router = APIRouter()
 

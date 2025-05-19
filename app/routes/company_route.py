@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, Path, HTTPException, Body, status
 from loguru import logger
 from tortoise.expressions import Q
 from app.dependencies.permissions import with_exact_company_permission
-from app.handlers.auth import get_current_user, invalidate_user_cache, save_user_to_cache
+from app.handlers.auth import get_current_user
+from app.handlers.cache import invalidate_user_cache, save_user_to_cache
 from app.utils.permissions_get import get_company_permissions_for_user
 from app.database.models import Company, UserCompanyRelation,  UserRole, User
 from app.pydantic_models.company_models import (

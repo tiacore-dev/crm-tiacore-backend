@@ -12,7 +12,8 @@ from app.pydantic_models.role_permission_relation_models import (
     RolePermissionRelationListResponseSchema,
     role_permission_filter_params
 )
-from app.handlers.auth import require_superadmin, invalidate_user_cache, get_cached_user_data
+from app.handlers.auth import require_superadmin,  get_cached_user_data
+from app.handlers.cache import invalidate_user_cache
 
 role_relation_router = APIRouter()
 
