@@ -29,7 +29,9 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
         if role and user:
             await UserCompanyRelation.create(role=role, company=company, user=user)
             # ❗ Подожди, пока связь точно появится
-            user = await User.get(email=user.email).prefetch_related("user_company_relations__role__permissions")
+            user = await User.get(email=user.email).prefetch_related(
+                "user_company_relations__role__role_permission_relations__permission"
+            )
             # Теперь инвалидируй и пересоздай кэш
             await invalidate_user_cache(user.email)
             permissions_data = await get_cached_user_data(user.email)
