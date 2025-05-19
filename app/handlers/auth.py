@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 from hashlib import sha256
 from jose import JWTError, jwt
 from fastapi_cache import FastAPICache
@@ -22,13 +23,15 @@ JWT_EXPIRATION_HOURS = int(settings.JWT_EXPIRATION_HOURS)
 
 def custom_key_builder(
     func,
-    args: list,
-    kwargs: dict,
-    namespace: str = "",
+    namespace: str,
+    request=None,
+    response=None,
+    args: Optional[list] = None,
+    kwargs: Optional[dict] = None,
 ) -> str:
-    """
-    Генерация ключа кэша, совместимая с fastapi-cache.
-    """
+    args = args or []
+    kwargs = kwargs or {}
+
     raw_key = f"{func.__module__}:{func.__name__}:{args}:{kwargs}"
     hashed = sha256(raw_key.encode()).hexdigest()
     return f"{namespace}:{hashed}" if namespace else hashed
@@ -64,7 +67,8 @@ async def debug_cached_user_data(email: str):
 
 
 async def invalidate_user_cache(email: str):
-    key = custom_key_builder(get_cached_user_data, args=[email], kwargs={})
+    key = custom_key_builder(
+        get_cached_user_data, namespace="fastapi-cache", args=[email], kwargs={})
     logger.debug(f"[invalidate_user_cache] Invalidate cache for key: {key}")
     await FastAPICache.clear(key)
 
