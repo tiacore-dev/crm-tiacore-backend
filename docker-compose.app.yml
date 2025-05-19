@@ -1,6 +1,7 @@
 services:
   redis:
       image: redis:7-alpine
+      container_name: redis
       ports:
         - "6379:6379"
       restart: always
@@ -9,6 +10,7 @@ services:
 
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
+    container_name: crm-backend
     tty: true
     stdin_open: true
     restart: always
@@ -24,6 +26,7 @@ services:
 
   template-service:
     image: ${DOCKERHUB_USERNAME}/template-service:latest
+    container_name: template-service
     tty: true
     stdin_open: true
     restart: always

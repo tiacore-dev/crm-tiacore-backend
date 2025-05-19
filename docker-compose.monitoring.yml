@@ -2,16 +2,20 @@ services:
 
   prometheus:
     image: prom/prometheus
+    container_name: prometheus
     volumes:
        - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
        - ./monitoring:/etc/prometheus:ro
     ports:
       - "9090:9090"
+    restart: always
     networks:
       - crm_network
 
   grafana:
     image: grafana/grafana
+    container_name: grafana
+    restart: always
     ports:
       - "3000:3000"
     volumes:
@@ -21,6 +25,8 @@ services:
 
   alertmanager:
     image: prom/alertmanager
+    container_name: alertmanager
+    restart: always
     ports:
       - "9093:9093"
     volumes:
@@ -51,6 +57,7 @@ services:
   loki:
     image: grafana/loki:2.9.3
     container_name: loki
+    restart: always
     ports:
       - "3100:3100"
     volumes:
@@ -62,6 +69,7 @@ services:
   promtail:
     image: grafana/promtail:2.9.3
     container_name: promtail
+    restart: always
     volumes:
       - ./logs:/app/logs            
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
@@ -71,6 +79,8 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    restart: always
     ports:
       - "16686:16686"  # UI
       - "4318:4318" 
