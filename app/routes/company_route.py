@@ -83,10 +83,14 @@ async def delete_company(
         logger.success(f"Компания {company_id} успешно удалена")
         user = await User.get_or_none(email=context['email'])
         # ❗ Подожди, пока связь точно появится
-        user = await User.get(email=user.email).prefetch_related("user_company_relations__role__permissions")
+        user = await User.get(email=user.email).prefetch_related(
+            "user_company_relations__role__role_permission_relations__permission"
+        )
+
         # Теперь инвалидируй и пересоздай кэш
         await invalidate_user_cache(user.email)
-        await get_cached_user_data(user.email)
+        cached = await get_cached_user_data(user.email)
+        logger.debug(f"[cached after invalidate + refresh] {cached}")
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
