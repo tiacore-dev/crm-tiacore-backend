@@ -88,6 +88,8 @@ def bill_filter_params(
         None, description="Фильтр по банковскому счету"),
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
     company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
+    buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
+    seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
     bill_date_from: Optional[int] = Query(
         None, description="Фильтр по дате от (timestamp)"),
     bill_date_to: Optional[int] = Query(
@@ -105,6 +107,8 @@ def bill_filter_params(
         "company": company,
         "bill_date_from": bill_date_from,
         "bill_date_to": bill_date_to,
+        "buyer": buyer,
+        "seller": seller,
         "sort_by": sort_by,
         "order": order,
         "page": page,

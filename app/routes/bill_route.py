@@ -158,6 +158,12 @@ async def get_bills(filters: dict = Depends(bill_filter_params), context=Depends
         if filters.get("bank_account"):
             query &= Q(bank_account_id=filters["bank_account"])
 
+        if filters.get("buyer"):
+            query &= Q(buyer_id=filters["buyer"])
+
+        if filters.get("seller"):
+            query &= Q(seller_id=filters["seller"])
+
         if filters.get("bill_date_from"):
             try:
                 date_from = int(filters["bill_date_from"])

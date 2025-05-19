@@ -85,6 +85,8 @@ class ActEditSchema(CleanableBaseModel):
 def act_filter_params(
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
     company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
+    buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
+    seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
     act_date_to: Optional[int] = Query(None, description="Фильтр по дате до"),
     act_date_from: Optional[int] = Query(
         None, description="Фильтр по дате от"),
@@ -100,6 +102,8 @@ def act_filter_params(
         "company": company,
         "act_date_from": act_date_from,
         "act_date_to": act_date_to,
+        "buyer": buyer,
+        "seller": seller,
         "sort_by": sort_by,
         "order": order,
         "page": page,

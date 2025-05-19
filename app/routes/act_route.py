@@ -146,6 +146,12 @@ async def get_acts(
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
 
+        if filters.get("buyer"):
+            query &= Q(buyer_id=filters["buyer"])
+
+        if filters.get("seller"):
+            query &= Q(seller_id=filters["seller"])
+
         if filters.get("act_date_from"):
             try:
                 date_from = int(filters["act_date_from"])
