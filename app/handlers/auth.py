@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 from typing import Optional
 from hashlib import sha256
 from jose import JWTError, jwt
@@ -51,21 +52,17 @@ def generate_token(payload: dict, expires_in_hours: int = JWT_EXPIRATION_HOURS) 
     return token
 
 
-async def save_user_to_cache(user: User, permissions: dict):
-    cache_key = get_user_cache_key(user.email)
-
-    user_data = {
+async def save_user_to_cache(user, permissions: dict):
+    key = get_user_cache_key(user.email)
+    data = {
         "email": user.email,
         "user_id": str(user.user_id),
         "is_superadmin": user.is_superadmin,
         "permissions": permissions,
     }
-
-    # Сохраняем в кэш
-    backend = FastAPICache.get_backend()
-    await backend.set(cache_key, user_data)
-
-    return user_data
+    # 👇 сериализация!
+    await FastAPICache.get_backend().set(key, json.dumps(data))
+    return data
 
 
 def verify_jwt_token(token: str) -> dict:
