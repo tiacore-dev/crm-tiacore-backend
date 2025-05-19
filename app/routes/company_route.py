@@ -29,10 +29,12 @@ async def add_company(data: CompanyCreateSchema = Body(), user_data: dict = Depe
         if role and user:
             await UserCompanyRelation.create(role=role, company=company, user=user)
             # ❗ Подожди, пока связь точно появится
-            await user.fetch_related("user_company_relations__role")
+            user = await User.get(email=user.email).prefetch_related("user_company_relations__role__permissions")
             # Теперь инвалидируй и пересоздай кэш
             await invalidate_user_cache(user.email)
-            await get_cached_user_data(user.email)
+            permissions_data = await get_cached_user_data(user.email)
+            logger.debug(
+                f"[AFTER CACHE INVALIDATION] user_data: {permissions_data}")
 
         return {"company_id": str(company.company_id)}
 
@@ -81,7 +83,7 @@ async def delete_company(
         logger.success(f"Компания {company_id} успешно удалена")
         user = await User.get_or_none(email=context['email'])
         # ❗ Подожди, пока связь точно появится
-        await user.fetch_related("user_company_relations__role")
+        user = await User.get(email=user.email).prefetch_related("user_company_relations__role__permissions")
         # Теперь инвалидируй и пересоздай кэш
         await invalidate_user_cache(user.email)
         await get_cached_user_data(user.email)
