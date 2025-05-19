@@ -75,6 +75,8 @@ async def delete_company(
             raise HTTPException(status_code=404, detail="Компания не найдена")
 
         logger.success(f"Компания {company_id} успешно удалена")
+        user = await User.get_or_none(user_id=context['user_id'])
+        await invalidate_user_cache(user.email)
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
