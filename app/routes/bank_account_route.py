@@ -98,7 +98,7 @@ async def delete_bank_account(
             status_code=404, detail="Банковский счет не найден")
 
     await bank_account.delete()
-    # return {"message": "Банковский счет удалён"}
+    return
 
 
 @bank_account_router.get(

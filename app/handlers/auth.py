@@ -54,13 +54,24 @@ def verify_jwt_token(token: str) -> dict:
         ) from e
 
 
+async def debug_cached_user_data(email: str):
+    backend = FastAPICache.get_backend()
+    key = custom_key_builder(get_cached_user_data, args=[
+                             email], kwargs={}, namespace="fastapi-cache")
+    value = await backend.get(key)
+    logger.debug(f"[debug_cached_user_data] Ключ: {key}")
+    logger.debug(f"[debug_cached_user_data] Значение в кэше: {value}")
+
+
 async def invalidate_user_cache(email: str):
     key = custom_key_builder(get_cached_user_data, args=[email], kwargs={})
-    logger.debug(f"Invalidate cache for key: {key}")
+    logger.debug(f"[invalidate_user_cache] Invalidate cache for key: {key}")
     await FastAPICache.clear(key)
 
+    await debug_cached_user_data(email)
 
-@cache(expire=300)  # кэш на 5 минут
+
+@cache(expire=300, key_builder=custom_key_builder)  # кэш на 5 минут
 async def get_cached_user_data(email: str) -> dict:
     user = await User.get_or_none(email=email)
     if not user:
