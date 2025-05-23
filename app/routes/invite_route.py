@@ -72,7 +72,7 @@ async def register_with_token(data: RegisterRequest, token: str = Query(...)):
     role_id = token_data.get('role_id')
     if not company_id or not role_id:
         raise HTTPException(status_code=400, detail="Invalid invitation token")
-    existing_relation = await UserCompanyRelation(user=user, company_id=company_id)
+    existing_relation = await UserCompanyRelation(user=user, company_id=company_id, role_id=role_id)
     if existing_relation:
         return TokenResponse(
             access_token=create_access_token({
@@ -105,7 +105,7 @@ async def accept_invite(token: str = Query(...)):
     user = await User.get_or_none(email=email)
     if not company_id or not role_id or not user:
         raise HTTPException(status_code=400, detail="Invalid invitation token")
-    exists = await UserCompanyRelation.exists(user=user, company_id=company_id)
+    exists = await UserCompanyRelation.exists(user=user, company_id=company_id, role_id=role_id)
     if exists:
         return
     await UserCompanyRelation.create(user=user, company_id=company_id, role_id=role_id)

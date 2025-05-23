@@ -83,7 +83,7 @@ class User(Model):
 
     def check_password(self, password: str):
         if not self.password_hash:
-            return False  # Если пароль отсутствует в БД, всегда возвращаем False
+            return False
 
         return bcrypt.checkpw(password.encode(), self.password_hash.encode())
 
@@ -118,6 +118,7 @@ class UserCompanyRelation(Model):
 
     class Meta:
         table = "user_to_company_relations"
+        unique_together = (("user", "company", "role"),)
 
 
 class EntityCompanyRelation(Model):
