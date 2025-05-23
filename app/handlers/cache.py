@@ -40,23 +40,14 @@ async def save_user_to_cache(user, permissions: dict):
     serialized = json.dumps(data)
     await FastAPICache.get_backend().set(key, serialized)
     logger.debug(
-        f"[save_user_to_cache] Сохранили данные в кэш: key={key}, data={serialized}")
+        f"[save_user_to_cache] Сохранили данные в кэш: key={key}")
     return data
-
-
-async def debug_cached_user_data(email: str):
-    backend = FastAPICache.get_backend()
-    key = get_user_cache_key(email)
-    value = await backend.get(key)
-    logger.debug(f"[debug_cached_user_data] Ключ: {key}")
-    logger.debug(f"[debug_cached_user_data] Значение в кэше: {value}")
 
 
 async def invalidate_user_cache(email: str):
     key = get_user_cache_key(email)
     logger.debug(f"[invalidate_user_cache] Удаляем ключ из кэша: {key}")
     await FastAPICache.clear(key)
-    await debug_cached_user_data(email)
 
 
 async def get_cached_user_data(email: str) -> dict:
@@ -64,7 +55,7 @@ async def get_cached_user_data(email: str) -> dict:
     key = get_user_cache_key(email)
     cached = await backend.get(key)
     if cached:
-        logger.debug(f"[get_cached_user_data] HIT key={key}, value={cached}")
+        # logger.debug(f"[get_cached_user_data] HIT key={key}, value={cached}")
         return json.loads(cached)
 
     logger.debug(f"[get_cached_user_data] MISS key={key}. Берем из базы.")
@@ -86,6 +77,6 @@ async def get_cached_user_data(email: str) -> dict:
 
     serialized = json.dumps(data)
     await backend.set(key, serialized)
-    logger.debug(
-        f"[get_cached_user_data] Кэшируем key={key}, value={serialized}")
+    # logger.debug(
+    #    f"[get_cached_user_data] Кэшируем key={key}, value={serialized}")
     return data

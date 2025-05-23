@@ -10,8 +10,8 @@ async def get_current_context(
     token_data: dict = Depends(get_current_user),
     company: Optional[UUID] = Query(None, description="ID компании")
 ):
-    logger.debug(
-        f"[PERMISSION CHECK] user={token_data.get('email')}, perms={token_data.get('permissions')}")
+    # logger.debug(
+    #    f"[PERMISSION CHECK] user={token_data.get('email')}, perms={token_data.get('permissions')}")
 
     permissions_map = token_data.get("permissions", {})
     is_token_superadmin = token_data.get("is_superadmin")
@@ -24,7 +24,7 @@ async def get_current_context(
             "role": "superadmin",
             "permissions": ["*"],
             "is_superadmin": True,
-            "has_relations": True  # для суперюзеров всегда True
+            "has_relations": True
         }
 
     relations = await UserCompanyRelation.filter(user_id=user_id).all()

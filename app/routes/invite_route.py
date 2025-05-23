@@ -60,7 +60,9 @@ async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
 
 @invite_router.post("/register-with-token", response_model=TokenResponse, status_code=201)
 async def register_with_token(data: RegisterRequest, token: str = Query(...)):
-
+    existing_user = await User.exists(email=data.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
     user = await create_user(email=data.email, password=data.password, full_name=data.full_name, position=data.position)
     user.is_verified = True
     await user.save()
@@ -70,7 +72,17 @@ async def register_with_token(data: RegisterRequest, token: str = Query(...)):
     role_id = token_data.get('role_id')
     if not company_id or not role_id:
         raise HTTPException(status_code=400, detail="Invalid invitation token")
-
+    existing_relation = await UserCompanyRelation(user=user, company_id=company_id)
+    if existing_relation:
+        return TokenResponse(
+            access_token=create_access_token({
+                "sub": user.email
+            }),
+            refresh_token=create_refresh_token({"sub": user.email}),
+            permissions=None if user.is_superadmin else await get_company_permissions_for_user(user),
+            is_superadmin=user.is_superadmin,
+            user_id=user.user_id
+        )
     await UserCompanyRelation.create(user=user, company_id=company_id, role_id=role_id)
     return TokenResponse(
         access_token=create_access_token({
@@ -93,6 +105,8 @@ async def accept_invite(token: str = Query(...)):
     user = await User.get_or_none(email=email)
     if not company_id or not role_id or not user:
         raise HTTPException(status_code=400, detail="Invalid invitation token")
-
+    exists = await UserCompanyRelation.exists(user=user, company_id=company_id)
+    if exists:
+        return
     await UserCompanyRelation.create(user=user, company_id=company_id, role_id=role_id)
     return
