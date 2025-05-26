@@ -1,28 +1,30 @@
-from typing import Optional, List, Union
-from pydantic import UUID4
-from fastapi import Query, Form, UploadFile, File
-from app.utils.validate_helpers import normalize_form_field
+from typing import List, Optional, Union
+from uuid import UUID
+
+from fastapi import File, Form, Query, UploadFile
+
 from app.pydantic_models.clean_model import CleanableBaseModel
+from app.utils.validate_helpers import normalize_form_field
 
 
 class GenerateFileSchema(CleanableBaseModel):
-    template_id: UUID4 = Form(...)
-    entity_id: UUID4 = Form(...)
+    template_id: UUID = Form(...)
+    entity_id: UUID = Form(...)
     is_pdf: Optional[bool] = Form(False)
 
 
 class TemplateResponseSchema(CleanableBaseModel):
-    template_id: UUID4
+    template_id: UUID
 
     class Config:
         from_attributes = True
 
 
 class TemplateSchema(CleanableBaseModel):
-    template_id: UUID4
+    template_id: UUID
     template_name: str
     description: Optional[str] = None
-    company: Optional[UUID4] = None
+    company: Optional[UUID] = None
     entity: str
     s3_key: str
 
@@ -40,9 +42,8 @@ class TemplateListResponseSchema(CleanableBaseModel):
 
 
 def template_filter_params(
-    company: Optional[UUID4] = Query(
-        None, description="Фильтр по компании"),
-    entity: Optional['str'] = Query(None, description="Фильтр по типу"),
+    company: Optional[UUID] = Query(None, description="Фильтр по компании"),
+    entity: Optional["str"] = Query(None, description="Фильтр по типу"),
     search: Optional[str] = Query(None, description="Фильтр поиска"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
@@ -59,7 +60,7 @@ def template_filter_params(
 class TemplateCreateSchema(CleanableBaseModel):
     template_name: str
     description: Optional[str]
-    company: Optional[UUID4]
+    company: Optional[UUID]
     entity: str
     file: UploadFile
 
@@ -68,7 +69,7 @@ class TemplateCreateSchema(CleanableBaseModel):
         cls,
         template_name: str = Form(...),
         description: Optional[str] = Form(None),
-        company: Optional[UUID4] = Form(None),
+        company: Optional[UUID] = Form(None),
         entity: str = Form(...),
         file: UploadFile = File(...),
     ):
@@ -77,16 +78,16 @@ class TemplateCreateSchema(CleanableBaseModel):
             description=description,
             company=company,
             entity=entity,
-            file=file
+            file=file,
         )
 
 
 class TemplateEditSchema(CleanableBaseModel):
     template_name: Optional[str] = None
     description: Optional[str] = None
-    company: Optional[UUID4] = None
+    company: Optional[UUID] = None
     entity: Optional[str] = None
-    file: Optional[UploadFile] = None
+    file: Optional[UploadFile | str] = None
 
     @classmethod
     def as_form(
@@ -100,8 +101,7 @@ class TemplateEditSchema(CleanableBaseModel):
         return cls(
             template_name=normalize_form_field(template_name, str),
             description=normalize_form_field(description, str),
-            company=normalize_form_field(company, UUID4),
+            company=normalize_form_field(company, UUID),
             entity=normalize_form_field(entity, str),
-            file=None if isinstance(
-                file, str) and file.strip() == "" else file,
+            file=None if isinstance(file, str) and file.strip() == "" else file,
         )

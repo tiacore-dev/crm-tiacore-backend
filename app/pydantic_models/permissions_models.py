@@ -1,5 +1,7 @@
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import Query
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -29,10 +31,8 @@ class PermissionsResponseSchema(CleanableBaseModel):
 
 
 def permission_filter_params(
-    permission_name: Optional[str] = Query(
-        None, description="Фильтр по названию"),
-    comment: Optional[str] = Query(
-        None, description="Комментарий к разрешению"),
+    permission_name: Optional[str] = Query(None, description="Фильтр по названию"),
+    comment: Optional[str] = Query(None, description="Комментарий к разрешению"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

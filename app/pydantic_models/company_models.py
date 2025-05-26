@@ -1,8 +1,10 @@
-from typing import Optional, List
-from pydantic import Field, field_validator, UUID4
-from fastapi import Query, HTTPException
-from app.utils.validate_helpers import sanitize_input
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
+from app.utils.validate_helpers import sanitize_input
 
 
 class CompanyCreateSchema(CleanableBaseModel):
@@ -14,7 +16,9 @@ class CompanyCreateSchema(CleanableBaseModel):
     def validate_company_name(cls, value: str) -> str:
         if not value or len(value) < 3:
             raise HTTPException(
-                status_code=400, detail="Название компании должно быть не менее 3 символов")
+                status_code=400,
+                detail="Название компании должно быть не менее 3 символов",
+            )
         return sanitize_input(value)
 
 
@@ -29,13 +33,12 @@ class CompanySchema(CleanableBaseModel):
 
 
 class CompanyListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Количество записей по фильтру
-    # ✅ Используем `list`, а не `List[CompanySchema]`
+    total: int
     companies: List[CompanySchema]
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 class CompanyEditSchema(CleanableBaseModel):
@@ -44,15 +47,11 @@ class CompanyEditSchema(CleanableBaseModel):
 
 
 def company_filter_params(
-    search: Optional[str] = Query(
-        None, description="Фильтр по названию компании"),
-    sort_by: Optional[str] = Query(
-        "company_name", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc"),
+    search: Optional[str] = Query(None, description="Фильтр по названию компании"),
+    sort_by: Optional[str] = Query("company_name", description="Поле сортировки"),
+    order: Optional[str] = Query("asc", description="Порядок сортировки: asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
-    page_size: Optional[int] = Query(
-        10, ge=1, le=100, description="Размер страницы"),
+    page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),
 ):
     return {
         "search": search,

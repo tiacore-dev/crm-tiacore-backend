@@ -1,8 +1,11 @@
-from typing import Optional, List
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import File, Form, HTTPException, Query, UploadFile
 from pydantic import UUID4, field_validator
-from fastapi import Query, HTTPException, UploadFile, File, Form
-from app.utils.validate_helpers import normalize_form_field
+
 from app.pydantic_models.clean_model import CleanableBaseModel
+from app.utils.validate_helpers import normalize_form_field
 
 
 class ContractCreateSchema(CleanableBaseModel):
@@ -11,13 +14,11 @@ class ContractCreateSchema(CleanableBaseModel):
     buyer: UUID4
     seller: UUID4
     comment: Optional[str] = None
-    file: Optional[UploadFile] = None
+    file: Optional[UploadFile | str | None] = None
     status: str
     company: UUID4
 
-    @field_validator(
-        "contract_name", "contract_date", "buyer", "seller", "status"
-    )
+    @field_validator("contract_name", "contract_date", "buyer", "seller", "status")
     @classmethod
     def validate_required_fields(cls, value: str, info):
         """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
@@ -36,9 +37,9 @@ class ContractCreateSchema(CleanableBaseModel):
         buyer=Form(...),
         seller=Form(...),
         comment=Form(None),
-        file=File(None),
+        file: UploadFile | str | None = File(None),
         status=Form(...),
-        company=Form(...)
+        company=Form(...),
     ):
         if isinstance(file, str) and file.strip() == "":
             file = None
@@ -51,7 +52,7 @@ class ContractCreateSchema(CleanableBaseModel):
             comment=comment,
             file=file,
             status=status,
-            company=company
+            company=company,
         )
 
     class Config:
@@ -96,7 +97,7 @@ class ContractEditSchema(CleanableBaseModel):
     buyer: Optional[UUID4] = None
     seller: Optional[UUID4] = None
     comment: Optional[str] = None
-    file: Optional[UploadFile] = None
+    file: Optional[UploadFile | str] = None
     status: Optional[str] = None
     company: Optional[UUID4] = None
 
@@ -110,18 +111,17 @@ class ContractEditSchema(CleanableBaseModel):
         comment: Optional[str] = Form(None),
         file: Optional[str | UploadFile] = File(None),
         status: Optional[str] = Form(None),
-        company: Optional[UUID4] = Form(None)
+        company: Optional[UUID4] = Form(None),
     ):
         return cls(
             contract_name=normalize_form_field(contract_name, str),
             contract_date=normalize_form_field(contract_date, int),
-            buyer=normalize_form_field(buyer, UUID4),
-            seller=normalize_form_field(seller, UUID4),
+            buyer=normalize_form_field(buyer, UUID),
+            seller=normalize_form_field(seller, UUID),
             comment=normalize_form_field(comment, str),
-            file=None if isinstance(
-                file, str) and file.strip() == "" else file,
+            file=None if isinstance(file, str) and file.strip() == "" else file,
             status=normalize_form_field(status, str),
-            company=normalize_form_field(company, UUID4)
+            company=normalize_form_field(company, UUID),
         )
 
     class Config:
@@ -133,14 +133,10 @@ def contract_filter_params(
     seller: Optional[UUID4] = Query(None, description="Фильтр по продавцу"),
     company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
-    contract_date_to: Optional[int] = Query(
-        None, description="Фильтр по дате от"),
-    contract_date_from: Optional[int] = Query(
-        None, description="Фильтр по дате до"),
-    sort_by: Optional[str] = Query(
-        "contract_name", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc"),
+    contract_date_to: Optional[int] = Query(None, description="Фильтр по дате от"),
+    contract_date_from: Optional[int] = Query(None, description="Фильтр по дате до"),
+    sort_by: Optional[str] = Query("contract_name", description="Поле сортировки"),
+    order: Optional[str] = Query("asc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

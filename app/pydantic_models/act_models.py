@@ -1,7 +1,9 @@
-from typing import Optional, List
 from decimal import Decimal
-from pydantic import UUID4, field_validator, Field, model_validator
-from fastapi import Query, HTTPException
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator, model_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -13,9 +15,7 @@ class ActCreateSchema(CleanableBaseModel):
     seller: Optional[UUID4] = Field(None)
     company: UUID4 = Field(...)
 
-    @field_validator(
-        "act_number", "act_date", "contract"
-    )
+    @field_validator("act_number", "act_date", "contract")
     @classmethod
     def validate_required_fields(cls, value: str, info):
         """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
@@ -27,12 +27,13 @@ class ActCreateSchema(CleanableBaseModel):
         return value
 
     @model_validator(mode="after")
-    def check_contract_or_parties(self) -> 'ActCreateSchema':
+    def check_contract_or_parties(self) -> "ActCreateSchema":
         if not self.contract:
             if not self.buyer or not self.seller:
                 raise HTTPException(
                     status_code=400,
-                    detail="Either 'contract' must be provided, or both 'buyer' and 'seller' must be specified."
+                    detail="""Either 'contract' must be provided, 
+                    or both 'buyer' and 'seller' must be specified.""",
                 )
         return self
 
@@ -67,7 +68,7 @@ class ActListResponseSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 class ActEditSchema(CleanableBaseModel):
@@ -88,12 +89,9 @@ def act_filter_params(
     buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
     seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
     act_date_to: Optional[int] = Query(None, description="Фильтр по дате до"),
-    act_date_from: Optional[int] = Query(
-        None, description="Фильтр по дате от"),
-    sort_by: Optional[str] = Query(
-        "act_number", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+    act_date_from: Optional[int] = Query(None, description="Фильтр по дате от"),
+    sort_by: Optional[str] = Query("act_number", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

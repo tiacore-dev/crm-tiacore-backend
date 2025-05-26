@@ -1,10 +1,13 @@
 import pytest
 from httpx import AsyncClient
+
 from app.database.models import User, UserCompanyRelation
 
 
 @pytest.mark.asyncio
-async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, other_role):
+async def test_add_user(
+    test_app: AsyncClient, jwt_token_admin, seed_company, other_role
+):
     """Тест добавления нового пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
@@ -12,39 +15,44 @@ async def test_add_user(test_app: AsyncClient, jwt_token_admin, seed_company, ot
         "full_name": "Test User",
         "position": "Developer",
         "password": "securepassword123",
-        "company": seed_company['company_id']
+        "company": seed_company["company_id"],
     }
 
-    response = test_app.post(
-        "/api/users/add", headers=headers, json=data)
-    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
+    response = await test_app.post("/api/users/add", headers=headers, json=data)
+    assert response.status_code == 201, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     # Проверяем, что пользователь добавлен в базу
     response_data = response.json()
     user = await User.filter(email="testuser").first()
-    relation = await UserCompanyRelation.filter(user=user).prefetch_related("company").first()
+    relation = (
+        await UserCompanyRelation.filter(user=user).prefetch_related("company").first()
+    )
+    if relation:
+        assert user is not None, "Пользователь не был сохранён в БД"
+        assert response_data["user_id"] == str(user.user_id)
 
-    assert user is not None, "Пользователь не был сохранён в БД"
-    assert response_data["user_id"] == str(user.user_id)
-    assert str(relation.company.company_id) == seed_company['company_id']
+        assert str(relation.company.company_id) == seed_company["company_id"]
 
 
 @pytest.mark.asyncio
-async def test_edit_user(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company):
+async def test_edit_user(
+    test_app: AsyncClient, jwt_token_admin, seed_user, seed_company
+):
     """Тест редактирования пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
-    data = {
-        "full_name": "Updated User",
-        "position": "Senior Developer"
-    }
+    data = {"full_name": "Updated User", "position": "Senior Developer"}
 
-    response = test_app.patch(
+    response = await test_app.patch(
         f"/api/users/{seed_user['user_id']}?company={seed_company['company_id']}",
         headers=headers,
-        json=data
+        json=data,
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     # Проверяем, что пользователь обновился в базе
     response_data = response.json()
@@ -61,12 +69,11 @@ async def test_view_user(test_app: AsyncClient, jwt_token_admin, seed_user):
     """Тест просмотра пользователя по ID."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.get(
-        f"/api/users/{seed_user['user_id']}",
-        headers=headers
-    )
+    response = await test_app.get(f"/api/users/{seed_user['user_id']}", headers=headers)
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     response_data = response.json()
     print(response_data)  # Посмотрим, какие поля реально пришли
@@ -77,16 +84,20 @@ async def test_view_user(test_app: AsyncClient, jwt_token_admin, seed_user):
 
 
 @pytest.mark.asyncio
-async def test_delete_user(test_app: AsyncClient, jwt_token_admin, seed_user, seed_company):
+async def test_delete_user(
+    test_app: AsyncClient, jwt_token_admin, seed_user, seed_company
+):
     """Тест удаления пользователя."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.delete(
+    response = await test_app.delete(
         f"/api/users/{seed_user['user_id']}?company={seed_company['company_id']}",
-        headers=headers
+        headers=headers,
     )
 
-    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 204, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     # Проверяем, что пользователь больше не существует в базе
     user = await User.filter(user_id=seed_user["user_id"]).first()
@@ -98,18 +109,18 @@ async def test_get_users(test_app: AsyncClient, jwt_token_admin, seed_user):
     """Тест получения списка пользователей с фильтрацией."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.get(
-        "/api/users/all",
-        headers=headers
+    response = await test_app.get("/api/users/all", headers=headers)
+
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
-
     response_data = response.json()
-    users = response_data.get('users')
+    users = response_data.get("users")
     assert isinstance(users, list), "Ответ должен быть списком"
 
     # Проверяем, что в списке есть наш тестовый пользователь
     user_ids = [user["user_id"] for user in users]
-    assert str(
-        seed_user["user_id"]) in user_ids, "Тестовый пользователь отсутствует в списке"
+    assert str(seed_user["user_id"]) in user_ids, (
+        "Тестовый пользователь отсутствует в списке"
+    )

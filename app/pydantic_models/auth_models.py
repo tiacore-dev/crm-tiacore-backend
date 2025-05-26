@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional
-from pydantic import BaseModel, UUID4, model_validator
+
+from fastapi import HTTPException
+from pydantic import UUID4, BaseModel, model_validator
 
 
 class TokenResponse(BaseModel):
@@ -15,8 +17,9 @@ class TokenResponse(BaseModel):
             if self.permissions is not None:
                 # Если есть компании, проверяем, что у них есть права
                 if any(len(perms) == 0 for perms in self.permissions.values()):
-                    raise ValueError(
-                        "permissions must be provided if user is not a superadmin"
+                    raise HTTPException(
+                        status_code=403,
+                        detail="permissions must be provided",
                     )
         return self
 

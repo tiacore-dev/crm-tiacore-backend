@@ -1,20 +1,22 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
-from tortoise.expressions import Q
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from loguru import logger
-from app.database.models import Contract, ContractStatus, LegalEntity,  Company
+from tortoise.expressions import Q
+
+from app.database.models import Company, Contract, ContractStatus, LegalEntity
+from app.dependencies.permissions import with_permission_and_seller_contract_check
+from app.handlers.depends import require_permission_in_context
 from app.pydantic_models.contract_models import (
     ContractCreateSchema,
-    ContractResponseSchema,
     ContractEditSchema,
-    contract_filter_params,
+    ContractListResponseSchema,
+    ContractResponseSchema,
     ContractSchema,
-    ContractListResponseSchema
+    contract_filter_params,
 )
-from app.handlers.depends import require_permission_in_context
-from app.dependencies.permissions import with_permission_and_seller_contract_check
-from app.utils.permissions_get import ensure_seller_belongs_to_company
 from app.s3.s3_manager import AsyncS3Manager
+from app.utils.permissions_get import ensure_seller_belongs_to_company
 
 contract_router = APIRouter()
 
@@ -23,11 +25,11 @@ contract_router = APIRouter()
     "/add",
     response_model=ContractResponseSchema,
     summary="Добавить контракт",
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def add_contract(
     data: ContractCreateSchema = Depends(ContractCreateSchema.as_form),
-    context=Depends(require_permission_in_context("add_contract"))
+    context=Depends(require_permission_in_context("add_contract")),
 ):
     try:
         logger.debug(f"Полученные данные: {data.model_dump()}")
@@ -48,13 +50,14 @@ async def add_contract(
 
         if not buyer or not seller or not status_obj or not company:
             raise HTTPException(
-                status_code=400,
-                detail="Покупатель, продавец или статус не найдены"
+                status_code=400, detail="Покупатель, продавец или статус не найдены"
             )
         if not context.get("is_superadmin"):
             await ensure_seller_belongs_to_company(seller, context["company"])
 
         s3_key = None
+        if data.file and not isinstance(data.file, UploadFile):
+            raise HTTPException(status_code=400, detail="Недопустимый тип файла")
         if data.file:
             logger.debug(f"Обработка файла: {data.file.filename}")
 
@@ -62,24 +65,20 @@ async def add_contract(
             if not file_bytes:
                 logger.warning("Файл пустой или не прочитан.")
                 raise HTTPException(
-                    status_code=400,
-                    detail="Не удалось загрузить данные файла"
+                    status_code=400, detail="Не удалось загрузить данные файла"
                 )
 
             logger.info(
-                f"Тип загружаемых данных: {type(file_bytes)}, размер: {len(file_bytes)} байт"
+                f"""Тип загружаемых данных: {type(file_bytes)}, 
+                размер: {len(file_bytes)} байт"""
             )
 
-            filename = data.file.filename
+            filename = data.file.filename or "Unknown"
             manager = AsyncS3Manager()
             s3_key = await manager.upload_bytes(
-                file_bytes,
-                f"{data.buyer}+{data.seller}",
-                filename,
-                entity="contract"
+                file_bytes, f"{data.buyer}+{data.seller}", filename, entity="contract"
             )
-            logger.info(
-                f"Файл успешно загружен в S3, ключ: {s3_key}")
+            logger.info(f"Файл успешно загружен в S3, ключ: {s3_key}")
 
         contract = await Contract.create(
             contract_name=data.contract_name,
@@ -89,28 +88,24 @@ async def add_contract(
             comment=data.comment,
             s3_key=s3_key,
             status=status_obj,
-            company=company
+            company=company,
         )
 
-        logger.info(
-            f"Контракт успешно создан: {contract.contract_id}")
+        logger.info(f"Контракт успешно создан: {contract.contract_id}")
         return {"contract_id": str(contract.contract_id)}
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @contract_router.patch(
-    "/{contract_id}",
-    response_model=ContractResponseSchema,
-    summary="Изменить контракт"
+    "/{contract_id}", response_model=ContractResponseSchema, summary="Изменить контракт"
 )
 async def update_contract(
-        contract_id: UUID,
-        data: ContractEditSchema = Depends(ContractEditSchema.as_form),
-        check_access=with_permission_and_seller_contract_check("edit_contract")
+    contract_id: UUID,
+    data: ContractEditSchema = Depends(ContractEditSchema.as_form),
+    _=with_permission_and_seller_contract_check("edit_contract"),
 ):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
@@ -139,29 +134,36 @@ async def update_contract(
         company = await Company.get_or_none(company_id=data.company)
         if not company:
             raise HTTPException(status_code=400, detail="Компмания не найдена")
-        update_data['company'] = company
+        update_data["company"] = company
+
+    if data.file and not isinstance(data.file, UploadFile):
+        raise HTTPException(status_code=400, detail="Недопустимый тип файла")
 
     if data.file:
         manager = AsyncS3Manager()
         file_bytes = await data.file.read()
         if not file_bytes:
-            raise HTTPException(
-                status_code=400, detail="Не удалось загрузить файл")
+            raise HTTPException(status_code=400, detail="Не удалось загрузить файл")
 
         # Удаляем старый файл
         if contract.s3_key:
             await manager.delete_file(contract.s3_key)
-
+        filename = data.file.filename or "Unknown"
         # Загружаем новый
-        new_s3_key = await manager.upload_bytes(file_bytes, f"{data.buyer}+{data.seller}", data.file.filename, entity="contract")
+        new_s3_key = await manager.upload_bytes(
+            file_bytes,
+            f"{data.buyer}+{data.seller}",
+            filename,
+            entity="contract",
+        )
         update_data["s3_key"] = new_s3_key
 
     if data.contract_name:
-        update_data['contract_name'] = data.contract_name
+        update_data["contract_name"] = data.contract_name
     if data.contract_date:
-        update_data['contract_date'] = data.contract_date
+        update_data["contract_date"] = data.contract_date
     if data.comment:
-        update_data['comment'] = data.comment
+        update_data["comment"] = data.comment
 
     await contract.update_from_dict(update_data)
     await contract.save()
@@ -170,14 +172,11 @@ async def update_contract(
 
 
 @contract_router.delete(
-    "/{contract_id}",
-    summary="Удалить контракт",
-    status_code=status.HTTP_204_NO_CONTENT
+    "/{contract_id}", summary="Удалить контракт", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_contract(
-        contract_id: UUID,
-        check_access=with_permission_and_seller_contract_check(
-            "delete_contract")
+    contract_id: UUID,
+    _=with_permission_and_seller_contract_check("delete_contract"),
 ):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
@@ -189,18 +188,20 @@ async def delete_contract(
 @contract_router.get(
     "/all",
     response_model=ContractListResponseSchema,
-    summary="Получение списка контрактов"
+    summary="Получение списка контрактов",
 )
-async def get_contracts(filters: dict = Depends(contract_filter_params), context=Depends(require_permission_in_context("get_all_contracts"))):
+async def get_contracts(
+    filters: dict = Depends(contract_filter_params),
+    context=Depends(require_permission_in_context("get_all_contracts")),
+):
     try:
-
         query = Q()
         if context["is_superadmin"]:
             company_filter = filters.get("company")
             if company_filter:
                 query &= Q(company_id=company_filter)
         else:
-            query &= Q(company_id=context['company'])
+            query &= Q(company_id=context["company"])
 
         if filters.get("buyer"):
             query &= Q(buyer_id=filters["buyer"])
@@ -219,7 +220,7 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
             except ValueError as e:
                 raise HTTPException(
                     status_code=422,
-                    detail="contract_date_from должен быть целым числом (timestamp)"
+                    detail="contract_date_from должен быть целым числом (timestamp)",
                 ) from e
 
         if filters.get("contract_date_to"):
@@ -229,33 +230,32 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
             except ValueError as e:
                 raise HTTPException(
                     status_code=422,
-                    detail="contract_date_to должен быть целым числом (timestamp)"
+                    detail="contract_date_to должен быть целым числом (timestamp)",
                 ) from e
         sort_field = filters["sort_by"]
         order = filters["order"]
 
-        # Проверка и безопасное составление сортировочного поля
-        # добавь другие поля, если нужно
         if sort_field not in {"contract_name", "contract_date"}:
             raise HTTPException(
-                status_code=400,
-                detail=f"Неверное поле сортировки: {sort_field}"
+                status_code=400, detail=f"Неверное поле сортировки: {sort_field}"
             )
 
         if order not in {"asc", "desc"}:
             raise HTTPException(
                 status_code=400,
-                detail="Порядок сортировки должен быть 'asc' или 'desc'"
+                detail="Порядок сортировки должен быть 'asc' или 'desc'",
             )
 
         # Префикс для порядка сортировки
         order_prefix = "" if order == "asc" else "-"
         total_count = await Contract.filter(query).count()
-        contracts = await Contract.filter(query) \
-            .prefetch_related("buyer", "seller", "status", "company") \
-            .order_by(f"{order_prefix}{sort_field}") \
-            .offset((filters["page"] - 1) * filters["page_size"]) \
+        contracts = (
+            await Contract.filter(query)
+            .prefetch_related("buyer", "seller", "status", "company")
+            .order_by(f"{order_prefix}{sort_field}")
+            .offset((filters["page"] - 1) * filters["page_size"])
             .limit(filters["page_size"])
+        )
 
         return ContractListResponseSchema(
             total=total_count,
@@ -264,31 +264,26 @@ async def get_contracts(filters: dict = Depends(contract_filter_params), context
                     contract_id=contract.contract_id,
                     contract_name=contract.contract_name,
                     contract_date=contract.contract_date,
-                    buyer=contract.buyer.legal_entity_id,  # Теперь ID
-                    seller=contract.seller.legal_entity_id,  # Теперь ID
-                    status=contract.status.contract_status_id,  # Теперь ID
+                    buyer=contract.buyer.legal_entity_id,
+                    seller=contract.seller.legal_entity_id,
+                    status=contract.status.contract_status_id,
                     s3_key=contract.s3_key,
                     comment=contract.comment,
-                    company=contract.company.company_id
+                    company=contract.company.company_id,
                 )
                 for contract in contracts
-            ]
+            ],
         )
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
-@contract_router.get(
-    "/{contract_id}/download",
-    summary="Скачивание файла контракта"
-)
+@contract_router.get("/{contract_id}/download", summary="Скачивание файла контракта")
 async def download_contract(
-        contract_id: UUID,
-        check_access=with_permission_and_seller_contract_check(
-            "download_contract")
+    contract_id: UUID,
+    _=with_permission_and_seller_contract_check("download_contract"),
 ):
     contract = await Contract.filter(contract_id=contract_id).first()
     if not contract:
@@ -299,15 +294,17 @@ async def download_contract(
 
 
 @contract_router.get(
-    "/{contract_id}",
-    response_model=ContractSchema,
-    summary="Просмотр одного контракта"
+    "/{contract_id}", response_model=ContractSchema, summary="Просмотр одного контракта"
 )
 async def get_contract(
-        contract_id: UUID,
-        check_access=with_permission_and_seller_contract_check("view_contract")
+    contract_id: UUID,
+    _=with_permission_and_seller_contract_check("view_contract"),
 ):
-    contract = await Contract.filter(contract_id=contract_id).prefetch_related("buyer", "seller", "status", "company").first()
+    contract = (
+        await Contract.filter(contract_id=contract_id)
+        .prefetch_related("buyer", "seller", "status", "company")
+        .first()
+    )
 
     if not contract:
         raise HTTPException(status_code=404, detail="Контракт не найден")
@@ -321,5 +318,5 @@ async def get_contract(
         status=contract.status.contract_status_id,
         s3_key=contract.s3_key,
         comment=contract.comment,
-        company=contract.company.company_id
+        company=contract.company.company_id,
     )

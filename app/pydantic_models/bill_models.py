@@ -1,13 +1,15 @@
-from typing import Optional, List
 from decimal import Decimal
-from pydantic import UUID4, field_validator, Field, model_validator
-from fastapi import Query, HTTPException
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator, model_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class BillCreateSchema(CleanableBaseModel):
     bank_account: UUID4 = Field(...)
-    bill_number: str = Field(...,  max_length=255)
+    bill_number: str = Field(..., max_length=255)
     bill_date: int = Field(..., ge=0)  # Unix timestamp
     contract: Optional[UUID4] = Field(None)
     buyer: Optional[UUID4] = Field(None)
@@ -26,12 +28,13 @@ class BillCreateSchema(CleanableBaseModel):
         return value
 
     @model_validator(mode="after")
-    def check_contract_or_parties(self) -> 'BillCreateSchema':
+    def check_contract_or_parties(self) -> "BillCreateSchema":
         if not self.contract:
             if not self.buyer or not self.seller:
                 raise HTTPException(
                     status_code=400,
-                    detail="Either 'contract' must be provided, or both 'buyer' and 'seller' must be specified."
+                    detail="""Either 'contract' must be provided, 
+                    or both 'buyer' and 'seller' must be specified.""",
                 )
         return self
 
@@ -75,29 +78,30 @@ class BillSchema(CleanableBaseModel):
 
 
 class BillListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Количество записей по фильтру
-    bills: List[BillSchema]  # ✅ Используем `list`, а не `List[BillSchema]`
+    total: int
+    bills: List[BillSchema]
 
     class Config:
         from_attributes = True
-        arbitrary_types_allowed = True  # Разрешаем нестандартные типы
+        arbitrary_types_allowed = True
 
 
 def bill_filter_params(
     bank_account: Optional[UUID4] = Query(
-        None, description="Фильтр по банковскому счету"),
+        None, description="Фильтр по банковскому счету"
+    ),
     contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
     company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
     buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
     seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
     bill_date_from: Optional[int] = Query(
-        None, description="Фильтр по дате от (timestamp)"),
+        None, description="Фильтр по дате от (timestamp)"
+    ),
     bill_date_to: Optional[int] = Query(
-        None, description="Фильтр по дате до (timestamp)"),
-    sort_by: Optional[str] = Query(
-        "bill_number", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+        None, description="Фильтр по дате до (timestamp)"
+    ),
+    sort_by: Optional[str] = Query("bill_number", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

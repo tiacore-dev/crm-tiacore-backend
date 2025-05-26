@@ -1,8 +1,10 @@
-from decimal import Decimal
 from datetime import datetime
-from typing import Optional, List
+from decimal import Decimal
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
 from pydantic import UUID4, Field, field_validator
-from fastapi import Query, HTTPException
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -20,7 +22,8 @@ class BillDetailCreateSchema(CleanableBaseModel):
         if value in [None, "", " ", 0]:
             raise HTTPException(
                 status_code=400,
-                detail=f"Поле {info.field_name} обязательно для заполнения и не может быть пустым или нулевым.",
+                detail=f"""Поле {info.field_name} обязательно 
+                для заполнения и не может быть пустым или нулевым.""",
             )
         return value
 
@@ -69,10 +72,8 @@ class BillDetailListResponseSchema(CleanableBaseModel):
 def bill_detail_filter_params(
     bill: Optional[UUID4] = Query(None, description="Фильтр по счету"),
     service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),
-    sort_by: Optional[str] = Query(
-        "created_at", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

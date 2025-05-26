@@ -1,8 +1,10 @@
-from decimal import Decimal
 from datetime import datetime
-from typing import Optional, List
-from pydantic import UUID4, field_validator, Field
-from fastapi import Query, HTTPException
+from decimal import Decimal
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -32,9 +34,9 @@ class ActDetailSchema(CleanableBaseModel):
     act_detail_id: UUID4
     act: UUID4  # ✅ Передаем UUID вместо объекта
     service: UUID4  # ✅ Передаем UUID вместо объекта
-    quantity: float
-    summ: float
-    price: float
+    quantity: Decimal
+    summ: Decimal
+    price: Decimal
     created_at: datetime
 
     class Config:
@@ -72,10 +74,8 @@ class ActDetailEditSchema(CleanableBaseModel):
 def act_detail_filter_params(
     act: Optional[UUID4] = Query(None, description="Фильтр по акту"),
     service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),
-    sort_by: Optional[str] = Query(
-        "created_at", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

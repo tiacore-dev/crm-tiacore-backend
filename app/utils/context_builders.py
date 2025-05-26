@@ -1,5 +1,6 @@
 import datetime
-from app.database.models import Bills, Acts
+
+from app.database.models import Acts, Bills
 
 
 def format_date(timestamp: int) -> str:
@@ -9,7 +10,7 @@ def format_date(timestamp: int) -> str:
         return "–"
 
 
-def flatten_context(obj, parent_key='', sep='.') -> dict:
+def flatten_context(obj, parent_key="", sep=".") -> dict:
     """
     Рекурсивно разворачивает вложенные dict и списки в плоский словарь:
     {
@@ -32,7 +33,6 @@ def flatten_context(obj, parent_key='', sep='.') -> dict:
 
 
 async def build_bill_context(bill: Bills) -> dict:
-
     def legal_entity_to_dict(entity):
         return {
             "legal_entity_name": entity.legal_entity_name,
@@ -41,7 +41,7 @@ async def build_bill_context(bill: Bills) -> dict:
             "vat_rate": entity.vat_rate,
             "address": entity.address,
             "signer": entity.signer,
-            "entity_type": getattr(entity.entity_type, "status_name", None)
+            "entity_type": getattr(entity.entity_type, "status_name", None),
         }
 
     return {
@@ -50,19 +50,29 @@ async def build_bill_context(bill: Bills) -> dict:
             "bill_number": bill.bill_number,
             "bill_date": format_date(bill.bill_date),
             "contract": {
-                "contract_id": str(bill.contract.contract_id),
-                "contract_name": bill.contract.contract_name,
-                "contract_date": format_date(bill.contract.contract_date),
-                "buyer": legal_entity_to_dict(bill.contract.buyer),
-                "seller": legal_entity_to_dict(bill.contract.seller),
+                "contract_id": str(bill.contract.contract_id)
+                if bill.contract
+                else None,
+                "contract_name": bill.contract.contract_name if bill.contract else None,
+                "contract_date": format_date(bill.contract.contract_date)
+                if bill.contract
+                else None,
+                "buyer": legal_entity_to_dict(bill.contract.buyer)
+                if bill.contract
+                else None,
+                "seller": legal_entity_to_dict(bill.contract.seller)
+                if bill.contract
+                else None,
                 "status": getattr(bill.contract.status, "status_name", None)
+                if bill.contract
+                else None,
             },
             "bank_account": {
                 "account_number": bill.bank_account.account_number,
                 "bank_name": bill.bank_account.bank_name,
                 "bank_bic": bill.bank_account.bank_bic,
                 "bank_corr_account": bill.bank_account.bank_corr_account,
-                "legal_entity": legal_entity_to_dict(bill.bank_account.legal_entity)
+                "legal_entity": legal_entity_to_dict(bill.bank_account.legal_entity),
             },
             "details": [
                 {
@@ -71,16 +81,17 @@ async def build_bill_context(bill: Bills) -> dict:
                         "service_id": str(detail.service.service_id),
                     },
                     "quantity": float(detail.quantity),
-                    "summ": float(detail.summ)
+                    "summ": float(detail.summ),
                 }
-                for detail in await bill.details_in_bill.all().prefetch_related("service")
-            ]
+                for detail in await bill.details_in_bill.all().prefetch_related(
+                    "service"
+                )
+            ],
         }
     }
 
 
 async def build_act_context(act: Acts) -> dict:
-
     def legal_entity_to_dict(entity):
         return {
             "legal_entity_name": entity.legal_entity_name,
@@ -89,7 +100,7 @@ async def build_act_context(act: Acts) -> dict:
             "vat_rate": entity.vat_rate,
             "address": entity.address,
             "signer": entity.signer,
-            "entity_type": getattr(entity.entity_type, "status_name", None)
+            "entity_type": getattr(entity.entity_type, "status_name", None),
         }
 
     return {
@@ -98,24 +109,32 @@ async def build_act_context(act: Acts) -> dict:
             "act_number": act.act_number,
             "act_date": format_date(act.act_date),
             "contract": {
-                "contract_id": str(act.contract.contract_id),
-                "contract_name": act.contract.contract_name,
-                "contract_date": format_date(act.contract.contract_date),
-                "comment": act.contract.comment,
-                "buyer": legal_entity_to_dict(act.contract.buyer),
-                "seller": legal_entity_to_dict(act.contract.seller),
+                "contract_id": str(act.contract.contract_id) if act.contract else None,
+                "contract_name": act.contract.contract_name if act.contract else None,
+                "contract_date": format_date(act.contract.contract_date)
+                if act.contract
+                else None,
+                "comment": act.contract.comment if act.contract else None,
+                "buyer": legal_entity_to_dict(act.contract.buyer)
+                if act.contract
+                else None,
+                "seller": legal_entity_to_dict(act.contract.seller)
+                if act.contract
+                else None,
                 "status": getattr(act.contract.status, "status_name", None)
+                if act.contract
+                else None,
             },
             "details": [
                 {
                     "service": {
                         "service_id": str(detail.service.service_id),
-                        "service_name": detail.service.service_name
+                        "service_name": detail.service.service_name,
                     },
                     "quantity": float(detail.quantity),
-                    "summ": float(detail.summ)
+                    "summ": float(detail.summ),
                 }
                 for detail in await act.details_in_act.all().prefetch_related("service")
-            ]
+            ],
         }
     }

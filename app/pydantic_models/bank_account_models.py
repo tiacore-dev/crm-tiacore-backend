@@ -1,6 +1,8 @@
-from typing import Optional, List
-from pydantic import UUID4, field_validator, Field
-from fastapi import Query, HTTPException
+from typing import List, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -30,7 +32,7 @@ class BankAccountCreateSchema(CleanableBaseModel):
 
 class BankAccountSchema(CleanableBaseModel):
     bank_account_id: UUID4
-    legal_entity: UUID4  # ✅ Передаем UUID вместо объекта
+    legal_entity: UUID4
     bank_name: str
     account_number: str
     bank_bic: str
@@ -48,8 +50,8 @@ class BankAccountResponseSchema(CleanableBaseModel):
 
 
 class BankAccountListResponseSchema(CleanableBaseModel):
-    total: int  # 🔥 Общее количество банковских счетов по фильтру
-    # ✅ Используем `list`, а не `List[BankAccountSchema]`
+    total: int
+
     bank_accounts: List[BankAccountSchema]
 
     class Config:
@@ -61,8 +63,7 @@ class BankAccountEditSchema(CleanableBaseModel):
     account_number: Optional[str] = Field(None, min_length=20, max_length=20)
     bank_name: Optional[str] = Field(None, min_length=3, max_length=255)
     bank_bic: Optional[str] = Field(None, min_length=9, max_length=9)
-    bank_corr_account: Optional[str] = Field(
-        None, min_length=20, max_length=20)
+    bank_corr_account: Optional[str] = Field(None, min_length=20, max_length=20)
     legal_entity: Optional[UUID4] = None
 
     class Config:
@@ -70,10 +71,8 @@ class BankAccountEditSchema(CleanableBaseModel):
 
 
 def bank_account_filter_params(
-    legal_entity: Optional[UUID4] = Query(
-        None, description="Фильтр по юр. лицу"),
-    bank_name: Optional[str] = Query(
-        None, description="Фильтр по названию банка"),
+    legal_entity: Optional[UUID4] = Query(None, description="Фильтр по юр. лицу"),
+    bank_name: Optional[str] = Query(None, description="Фильтр по названию банка"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

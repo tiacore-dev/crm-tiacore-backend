@@ -1,4 +1,5 @@
 import os
+
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 
@@ -14,5 +15,5 @@ async def teapot_check():
     return FileResponse(
         path=file_path,
         media_type="image/png",
-        status_code=418  # 💥 вот оно, волшебство
+        status_code=418,  # 💥 вот оно, волшебство
     )

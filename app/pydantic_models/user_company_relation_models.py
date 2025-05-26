@@ -1,14 +1,15 @@
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
 from uuid import UUID
-from pydantic import Field
+
 from fastapi import Query
+from pydantic import Field
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
 class UserCompanyRelationCreateSchema(CleanableBaseModel):
-    user: UUID = Field(...,
-                       description="UUID пользователя, связанного с компанией")
+    user: UUID = Field(..., description="UUID пользователя, связанного с компанией")
     company: UUID = Field(..., description="UUID компании")
     role: UUID = Field(..., description="UUID роли пользователя в компании")
 
@@ -56,10 +57,8 @@ def user_company_filter_params(
     user: Optional[UUID] = Query(None, description="Фильтр по пользователю"),
     company: Optional[UUID] = Query(None, description="Фильтр по компании"),
     role: Optional[UUID] = Query(None, description="Фильтр по роли"),
-    sort_by: Optional[str] = Query(
-        "created_at", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

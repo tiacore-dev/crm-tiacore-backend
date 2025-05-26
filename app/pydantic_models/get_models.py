@@ -1,5 +1,7 @@
 from typing import List, Optional
+
 from fastapi import Query
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -30,9 +32,7 @@ class ContractStatusListResponse(CleanableBaseModel):
 # ✅ Фильтры и параметры поиска
 class FilterParams(CleanableBaseModel):
     search: Optional[str] = Query(None, description="Фильтр по названию")
-    sort_by: Optional[str] = Query(
-        "name", description="Сортировка (по умолчанию name)")
-    order: Optional[str] = Query(
-        "asc", description="Порядок сортировки: asc/desc")
-    page: Optional[int] = Query(1, description="Номер страницы")
-    page_size: Optional[int] = Query(10, description="Размер страницы")
+    sort_by: str = Query("name", description="Сортировка (по умолчанию name)")
+    order: str = Query("asc", description="Порядок сортировки: asc/desc")
+    page: int = Query(1, description="Номер страницы")
+    page_size: int = Query(10, description="Размер страницы")

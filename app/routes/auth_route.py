@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Body, HTTPException
 from jose import JWTError
 from loguru import logger
+
+from app.database.models import User
 from app.handlers.auth import (
-    login_handler,
-    create_refresh_token,
     create_access_token,
-    verify_token
+    create_refresh_token,
+    login_handler,
+    verify_token,
+)
+from app.pydantic_models.auth_models import (
+    LoginRequest,
+    TokenResponse,
 )
 from app.utils.permissions_get import get_company_permissions_for_user
-from app.database.models import User
-from app.pydantic_models.auth_models import (
-    TokenResponse,
-    LoginRequest,
-)
-
 
 auth_router = APIRouter()
 
@@ -27,23 +27,22 @@ async def login(data: LoginRequest):
     user, company_permissions = result
     logger.debug(f"Полученные разрешения: {company_permissions}")
     return TokenResponse(
-        access_token=create_access_token({
-            "sub": user.email
-        }),
+        access_token=create_access_token({"sub": user.email}),
         refresh_token=create_refresh_token({"sub": user.email}),
         permissions=None if user.is_superadmin else company_permissions,
         is_superadmin=user.is_superadmin,
-        user_id=user.user_id
+        user_id=user.user_id,
     )
 
 
-@auth_router.post("/refresh", response_model=TokenResponse, summary="Обновление Access Token")
+@auth_router.post(
+    "/refresh", response_model=TokenResponse, summary="Обновление Access Token"
+)
 async def refresh_access_token(data: dict = Body(...)):
     try:
         refresh_token = data.get("refresh_token")
         if not refresh_token:
-            raise HTTPException(
-                status_code=400, detail="Refresh token is required")
+            raise HTTPException(status_code=400, detail="Refresh token is required")
 
         payload = await verify_token(refresh_token)
         email = payload["email"]
@@ -55,13 +54,15 @@ async def refresh_access_token(data: dict = Body(...)):
         company_permissions = await get_company_permissions_for_user(user)
 
         return TokenResponse(
-            access_token=create_access_token({
-                "sub": email,
-            }),
+            access_token=create_access_token(
+                {
+                    "sub": email,
+                }
+            ),
             refresh_token=create_refresh_token({"sub": email}),
             permissions=None if user.is_superadmin else company_permissions,
             is_superadmin=user.is_superadmin,
-            user_id=user.user_id
+            user_id=user.user_id,
         )
 
     except JWTError as exc:

@@ -1,51 +1,51 @@
 from datetime import timedelta
+
 import pytest
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from tortoise import Tortoise
+
 from app import create_app
-from app.database.models import create_user, Service
-from app.handlers.auth import create_access_token, create_refresh_token, login_handler
 from app.config import Settings
+from app.database.models import Service, create_user
+from app.handlers.auth import create_access_token, create_refresh_token, login_handler
+from app.utils.db_helpers import drop_all_tables
 
 settings = Settings()
 
 
 @pytest.fixture(scope="session")
-def test_app():
-    """Фикстура для тестового приложения."""
+async def test_app():
     app = create_app(config_name="Test")
-
-    # ✨ ИНИЦИАЛИЗИРУЕМ КЭШ ЯВНО
     FastAPICache.init(InMemoryBackend())
-
-    client = TestClient(app)
-
-    yield client  # Отдаём клиент тестам
-
-    # Закрываем соединения после тестов
-    import asyncio
-    asyncio.run(Tortoise.close_connections())
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
+    await Tortoise.close_connections()
 
 
 @pytest.fixture(scope="function", autouse=True)
 @pytest.mark.asyncio
-async def setup_db():
-    """Гарантируем, что Tortoise ORM инициализирован перед тестами."""
-    await Tortoise.init(config={
-        # Используем in-memory базу
-        "connections": {"default": "sqlite://:memory:"},
-        "apps": {
-            "models": {
-                "models": ["app.database.models"],
-                "default_connection": "default",
+async def setup_and_clean_db():
+    settings = Settings()
+    await Tortoise.init(
+        config={
+            "connections": {"default": settings.TEST_DATABASE_URL},
+            "apps": {
+                "models": {
+                    "models": ["app.database.models"],
+                    "default_connection": "default",
+                },
             },
-        },
-    })
+        }
+    )
+
     await Tortoise.generate_schemas()
+
     yield
+    await drop_all_tables()  # 💥 удаляем все таблицы
     await Tortoise.close_connections()
+
 
 pytest_plugins = [
     "tests.fixtures.names",  # Фикстуры, связанные с именами, статусами, ролями
@@ -55,7 +55,7 @@ pytest_plugins = [
     "tests.fixtures.bank_account",
     "tests.fixtures.acts",
     "tests.fixtures.bills",
-    "tests.fixtures.permissions"
+    "tests.fixtures.permissions",
 ]
 
 
@@ -65,10 +65,7 @@ pytest_plugins = [
 async def seed_user():
     """Добавляет тестового пользователя в базу перед тестом."""
     user = await create_user(
-        email="test_user",
-        password="qweasdzcx",
-        position="user",
-        full_name="Test User"
+        email="test_user", password="qweasdzcx", position="user", full_name="Test User"
     )
     user.is_verified = True
     await user.save()
@@ -76,7 +73,7 @@ async def seed_user():
         "user_id": str(user.user_id),
         "email": user.email,
         "position": user.position,
-        "full_name": user.full_name
+        "full_name": user.full_name,
     }
 
 
@@ -89,7 +86,7 @@ async def seed_admin():
         email="test_admin",
         password="adminpass",
         position="admin",
-        full_name="Test Admin"
+        full_name="Test Admin",
     )
     admin.is_superadmin = True
     await admin.save()
@@ -97,7 +94,7 @@ async def seed_admin():
         "user_id": str(admin.user_id),
         "email": admin.email,
         "position": admin.position,
-        "full_name": admin.full_name
+        "full_name": admin.full_name,
     }
 
 
@@ -105,12 +102,10 @@ async def seed_admin():
 @pytest.mark.asyncio
 async def jwt_token_user(seed_user):
     """Генерирует JWT токен для обычного пользователя."""
-    token_data = {
-        "sub": seed_user["email"]
-    }
+    token_data = {"sub": seed_user["email"]}
     return {
         "access_token": create_access_token(token_data),
-        "refresh_token": create_refresh_token(token_data)
+        "refresh_token": create_refresh_token(token_data),
     }
 
 
@@ -118,12 +113,10 @@ async def jwt_token_user(seed_user):
 @pytest.mark.asyncio
 async def jwt_token_admin(seed_admin):
     """Генерирует JWT токен для администратора."""
-    token_data = {
-        "sub": seed_admin["email"]
-    }
+    token_data = {"sub": seed_admin["email"]}
     return {
         "access_token": create_access_token(token_data),
-        "refresh_token": create_refresh_token(token_data)
+        "refresh_token": create_refresh_token(token_data),
     }
 
 
@@ -133,13 +126,12 @@ async def jwt_token_admin(seed_admin):
 async def seed_service(seed_company):
     """Добавляет тестового пользователя в базу перед тестом."""
     service = await Service.create(
-        service_name="Test Service",
-        company_id=seed_company['company_id']
+        service_name="Test Service", company_id=seed_company["company_id"]
     )
     return {
         "service_id": str(service.service_id),
         "service_name": service.service_name,
-        "company": str(service.company)
+        "company": str(service.company),
     }
 
 
@@ -149,8 +141,7 @@ def get_token_for_user():
     async def _get_token(user, password="123"):
         auth_result = await login_handler(user.email, password)
         if not auth_result:
-            raise Exception(
-                f"Не удалось залогиниться для пользователя {user.email}")
+            raise Exception(f"Не удалось залогиниться для пользователя {user.email}")
 
         user_obj, company_permissions = auth_result
 
@@ -158,7 +149,7 @@ def get_token_for_user():
             "sub": user_obj.email,
         }
 
-        token = create_access_token(
-            token_data, expires_delta=timedelta(minutes=30))
+        token = create_access_token(token_data, expires_delta=timedelta(minutes=30))
         return token
+
     return _get_token

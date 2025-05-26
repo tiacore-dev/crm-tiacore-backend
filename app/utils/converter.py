@@ -1,6 +1,6 @@
+import os
 import subprocess
 import tempfile
-import os
 
 
 def convert_to_pdf(file_bytes: bytes, input_ext: str) -> bytes:
@@ -14,13 +14,18 @@ def convert_to_pdf(file_bytes: bytes, input_ext: str) -> bytes:
             f.write(file_bytes)
 
         # Запускаем LibreOffice в headless-режиме
-        subprocess.run([
-            "libreoffice",
-            "--headless",
-            "--convert-to", "pdf",
-            "--outdir", tmpdir,
-            input_path
-        ], check=True)
+        subprocess.run(
+            [
+                "libreoffice",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                tmpdir,
+                input_path,
+            ],
+            check=True,
+        )
 
         # Читаем PDF-файл и возвращаем его байты
         with open(output_path, "rb") as f:

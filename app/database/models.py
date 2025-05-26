@@ -1,14 +1,15 @@
 import uuid
-import bcrypt
-from tortoise.models import Model
-from tortoise import fields
 
+import bcrypt
+from tortoise import fields
+from tortoise.fields.relational import ReverseRelation
+from tortoise.models import Model
 
 # Списки
 
+
 class LegalEntityType(Model):
-    legal_entity_type_id = fields.CharField(
-        pk=True, max_length=255)
+    legal_entity_type_id = fields.CharField(pk=True, max_length=255)
     entity_name = fields.CharField(max_length=255)
 
     class Meta:
@@ -30,11 +31,17 @@ class UserRole(Model):
 class RolePermissionRelation(Model):
     role_permission_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     role = fields.ForeignKeyField(
-        "models.UserRole", related_name="role_permission_relations",
-        on_delete=fields.CASCADE)
+        "models.UserRole",
+        related_name="role_permission_relations",
+        on_delete=fields.CASCADE,
+    )
+    role_id: uuid.UUID
     permission = fields.ForeignKeyField(
-        "models.Permissions", related_name="role_permission_relations",
-        on_delete=fields.CASCADE)
+        "models.Permissions",
+        related_name="role_permission_relations",
+        on_delete=fields.CASCADE,
+    )
+    permission_id: uuid.UUID
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
@@ -61,11 +68,17 @@ class ContractStatus(Model):
         table = "contract_statuses"
 
 
-async def create_user(email: str, password: str, full_name: str, position: str):
+async def create_user(
+    email: str, password: str, full_name: str, position: str | None = None
+):
     # Хэшируем пароль
-    hashed_password = bcrypt.hashpw(
-        password.encode(), bcrypt.gensalt()).decode()
-    user = await User.create(email=email, password_hash=hashed_password, position=position, full_name=full_name)
+    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = await User.create(
+        email=email,
+        password_hash=hashed_password,
+        position=position,
+        full_name=full_name,
+    )
     return user
 
 
@@ -102,17 +115,15 @@ class UserCompanyRelation(Model):
     company = fields.ForeignKeyField(
         "models.Company",
         related_name="user_company_relations",
-        on_delete=fields.CASCADE
+        on_delete=fields.CASCADE,
     )
     user = fields.ForeignKeyField(
-        "models.User",
-        related_name="user_company_relations",
-        on_delete=fields.CASCADE
+        "models.User", related_name="user_company_relations", on_delete=fields.CASCADE
     )
     role = fields.ForeignKeyField(
         "models.UserRole",
         related_name="user_company_relations",
-        on_delete=fields.CASCADE
+        on_delete=fields.CASCADE,
     )
     created_at = fields.DatetimeField(auto_now_add=True)
 
@@ -124,10 +135,15 @@ class UserCompanyRelation(Model):
 class EntityCompanyRelation(Model):
     entity_company_relation_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     company = fields.ForeignKeyField(
-        "models.Company", related_name="entity_company_relations",
-        on_delete=fields.CASCADE)
+        "models.Company",
+        related_name="entity_company_relations",
+        on_delete=fields.CASCADE,
+    )
     legal_entity = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="entity_company_relations", on_delete=fields.CASCADE)
+        "models.LegalEntity",
+        related_name="entity_company_relations",
+        on_delete=fields.CASCADE,
+    )
     relation_type = fields.CharField(max_length=10)
     description = fields.TextField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
@@ -148,6 +164,8 @@ class LegalEntity(Model):
     )
     signer = fields.CharField(max_length=255, null=True)
 
+    entity_company_relations: ReverseRelation["EntityCompanyRelation"]
+
     class Meta:
         table = "legal_entities"
         unique_together = (("inn", "kpp"),)
@@ -157,16 +175,14 @@ class Contract(Model):
     contract_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     contract_name = fields.CharField(max_length=255)
     contract_date = fields.BigIntField()
-    buyer = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="contract_buyer")
+    buyer = fields.ForeignKeyField("models.LegalEntity", related_name="contract_buyer")
     seller = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="contract_seller")
+        "models.LegalEntity", related_name="contract_seller"
+    )
     comment = fields.TextField(null=True)
     s3_key = fields.CharField(max_length=255, null=True)
-    status = fields.ForeignKeyField(
-        "models.ContractStatus", related_name="contracts")
-    company = fields.ForeignKeyField(
-        "models.Company", related_name="contracts")
+    status = fields.ForeignKeyField("models.ContractStatus", related_name="contracts")
+    company = fields.ForeignKeyField("models.Company", related_name="contracts")
 
     class Meta:
         table = "contracts"
@@ -179,7 +195,8 @@ class BankAccount(Model):
     bank_bic = fields.CharField(max_length=9)
     bank_corr_account = fields.CharField(max_length=20)
     legal_entity = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="bank_accounts")
+        "models.LegalEntity", related_name="bank_accounts"
+    )
 
     class Meta:
         table = "bank_accounts"
@@ -189,13 +206,12 @@ class Acts(Model):
     act_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     act_number = fields.CharField(max_length=255)
     act_date = fields.BigIntField()
-    contract = fields.ForeignKeyField(
-        "models.Contract", related_name="acts", null=True)
-    buyer = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="act_buyer")
-    seller = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="act_seller")
+    contract = fields.ForeignKeyField("models.Contract", related_name="acts", null=True)
+    buyer = fields.ForeignKeyField("models.LegalEntity", related_name="act_buyer")
+    seller = fields.ForeignKeyField("models.LegalEntity", related_name="act_seller")
     company = fields.ForeignKeyField("models.Company", related_name="acts")
+
+    details_in_act: ReverseRelation["ActDetails"]
 
     class Meta:
         table = "acts"
@@ -203,17 +219,17 @@ class Acts(Model):
 
 class Bills(Model):
     bill_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    bank_account = fields.ForeignKeyField(
-        "models.BankAccount", related_name="bills")
+    bank_account = fields.ForeignKeyField("models.BankAccount", related_name="bills")
     bill_number = fields.CharField(max_length=255)
     bill_date = fields.BigIntField()
     contract = fields.ForeignKeyField(
-        "models.Contract", related_name="bills", null=True)
-    buyer = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="bill_buyer")
-    seller = fields.ForeignKeyField(
-        "models.LegalEntity", related_name="bill_seller")
+        "models.Contract", related_name="bills", null=True
+    )
+    buyer = fields.ForeignKeyField("models.LegalEntity", related_name="bill_buyer")
+    seller = fields.ForeignKeyField("models.LegalEntity", related_name="bill_seller")
     company = fields.ForeignKeyField("models.Company", related_name="bills")
+
+    details_in_bill: ReverseRelation["BillDetails"]
 
     class Meta:
         table = "bills"
@@ -231,10 +247,9 @@ class Service(Model):
 class BillDetails(Model):
     bill_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
     bill = fields.ForeignKeyField(
-        "models.Bills", related_name="details_in_bill",
-        on_delete=fields.CASCADE)
-    service = fields.ForeignKeyField(
-        "models.Service", related_name="services_in_bill")
+        "models.Bills", related_name="details_in_bill", on_delete=fields.CASCADE
+    )
+    service = fields.ForeignKeyField("models.Service", related_name="services_in_bill")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
     price = fields.DecimalField(max_digits=8, decimal_places=2)
@@ -246,10 +261,10 @@ class BillDetails(Model):
 
 class ActDetails(Model):
     act_detail_id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    act = fields.ForeignKeyField("models.Acts", related_name="details_in_act",
-                                 on_delete=fields.CASCADE)
-    service = fields.ForeignKeyField(
-        "models.Service", related_name="services_in_act")
+    act = fields.ForeignKeyField(
+        "models.Acts", related_name="details_in_act", on_delete=fields.CASCADE
+    )
+    service = fields.ForeignKeyField("models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
     price = fields.DecimalField(max_digits=8, decimal_places=2)

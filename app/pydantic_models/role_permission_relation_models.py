@@ -1,8 +1,10 @@
-from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+from uuid import UUID
+
 from fastapi import Query
 from pydantic import Field
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -49,12 +51,9 @@ class RolePermissionRelationListResponseSchema(CleanableBaseModel):
 
 def role_permission_filter_params(
     role: Optional[UUID] = Query(None, description="Фильтр по роли"),
-    permission: Optional[str] = Query(
-        None, description="Фильтр по разрешению"),
-    sort_by: Optional[str] = Query(
-        "created_at", description="Поле сортировки"),
-    order: Optional[str] = Query(
-        "desc", description="Порядок сортировки: asc/desc"),
+    permission: Optional[str] = Query(None, description="Фильтр по разрешению"),
+    sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
+    order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

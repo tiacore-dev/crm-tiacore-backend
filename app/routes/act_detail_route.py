@@ -1,18 +1,20 @@
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from tortoise.expressions import Q
 from loguru import logger
-from app.database.models import ActDetails, Acts, Service, EntityCompanyRelation
-from app.pydantic_models.act_detail_models import (
-    ActDetailCreateSchema,
-    ActDetailResponseSchema,
-    ActDetailEditSchema,
-    act_detail_filter_params,
-    ActDetailSchema,
-    ActDetailListResponseSchema
-)
+from tortoise.expressions import Q
+
+from app.database.models import ActDetails, Acts, EntityCompanyRelation, Service
 from app.dependencies.permissions import with_permission_through_act
 from app.handlers.depends import require_permission_in_context
+from app.pydantic_models.act_detail_models import (
+    ActDetailCreateSchema,
+    ActDetailEditSchema,
+    ActDetailListResponseSchema,
+    ActDetailResponseSchema,
+    ActDetailSchema,
+    act_detail_filter_params,
+)
 
 act_detail_router = APIRouter()
 
@@ -21,11 +23,11 @@ act_detail_router = APIRouter()
     "/add",
     response_model=ActDetailResponseSchema,
     summary="Добавить детали акта",
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def add_act_detail(
     data: ActDetailCreateSchema,
-    context=Depends(require_permission_in_context("add_act_detail"))
+    context=Depends(require_permission_in_context("add_act_detail")),
 ):
     act = await Acts.get_or_none(act_id=data.act).prefetch_related("seller")
     if not act:
@@ -35,52 +37,49 @@ async def add_act_detail(
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company"],
             legal_entity=act.seller,
-            relation_type="seller"
+            relation_type="seller",
         )
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете добавлять детали к акту другой компании"
+                detail="Вы не можете добавлять детали к акту другой компании",
             )
 
     try:
         service = await Service.get_or_none(service_id=data.service)
 
         if not act or not service:
-            raise HTTPException(
-                status_code=400, detail="Акт или услуга не найдены"
-            )
+            raise HTTPException(status_code=400, detail="Акт или услуга не найдены")
 
         act_detail = await ActDetails.create(
             act=act,
             service=service,
             quantity=data.quantity,
-            summ=data.quantity*data.price,
-            price=data.price
+            summ=data.quantity * data.price,
+            price=data.price,
         )
         return {"act_detail_id": str(act_detail.act_detail_id)}
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @act_detail_router.patch(
     "/{act_detail_id}",
     response_model=ActDetailResponseSchema,
-    summary="Изменить детали акта"
+    summary="Изменить детали акта",
 )
 async def update_act_detail(
     act_detail_id: UUID,
     data: ActDetailEditSchema,
-    context=with_permission_through_act("edit_act_detail")
+    context=with_permission_through_act("edit_act_detail"),
 ):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
-    update_data = data.dict(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)
 
     if "act" in update_data:
         act = await Acts.get_or_none(act_id=update_data["act"])
@@ -105,9 +104,11 @@ async def update_act_detail(
 @act_detail_router.delete(
     "/{act_detail_id}",
     summary="Удалить детали акта",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_act_detail(act_detail_id: UUID, context=with_permission_through_act("delete_act_detail")):
+async def delete_act_detail(
+    act_detail_id: UUID, context=with_permission_through_act("delete_act_detail")
+):
     act_detail = await ActDetails.filter(act_detail_id=act_detail_id).first()
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -119,11 +120,11 @@ async def delete_act_detail(act_detail_id: UUID, context=with_permission_through
 @act_detail_router.get(
     "/all",
     response_model=ActDetailListResponseSchema,
-    summary="Получение списка деталей акта"
+    summary="Получение списка деталей акта",
 )
 async def get_act_details(
     filters: dict = Depends(act_detail_filter_params),
-    context=Depends(require_permission_in_context("get_all_act_details"))
+    context=Depends(require_permission_in_context("get_all_act_details")),
 ):
     try:
         query = Q()
@@ -131,7 +132,7 @@ async def get_act_details(
         if not context.get("is_superadmin"):
             allowed_act_ids = await Acts.filter(
                 seller__entity_company_relations__company_id=context["company"],
-                seller__entity_company_relations__relation_type="seller"
+                seller__entity_company_relations__relation_type="seller",
             ).values_list("act_id", flat=True)
 
             query &= Q(act_id__in=allowed_act_ids)
@@ -149,14 +150,18 @@ async def get_act_details(
         order = filters.get("order", "asc").lower()
         if order not in ("asc", "desc"):
             raise HTTPException(
-                status_code=422, detail="order должен быть 'asc' или 'desc'")
+                status_code=422, detail="order должен быть 'asc' или 'desc'"
+            )
 
         sort_field = sort_by if order == "asc" else f"-{sort_by}"
 
-        act_details = await ActDetails.filter(query).order_by(sort_field) \
-            .prefetch_related("act", "service") \
-            .offset((page - 1) * page_size) \
+        act_details = (
+            await ActDetails.filter(query)
+            .order_by(sort_field)
+            .prefetch_related("act", "service")
+            .offset((page - 1) * page_size)
             .limit(page_size)
+        )
 
         return ActDetailListResponseSchema(
             total=total_count,
@@ -168,25 +173,30 @@ async def get_act_details(
                     quantity=act_detail.quantity,
                     summ=act_detail.summ,
                     price=act_detail.price,
-                    created_at=act_detail.created_at
+                    created_at=act_detail.created_at,
                 )
                 for act_detail in act_details
-            ]
+            ],
         )
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @act_detail_router.get(
     "/{act_detail_id}",
     response_model=ActDetailSchema,
-    summary="Просмотр одной детали акта"
+    summary="Просмотр одной детали акта",
 )
-async def get_act_detail(act_detail_id: UUID, context=with_permission_through_act("view_act_detail")):
-    act_detail = await ActDetails.filter(act_detail_id=act_detail_id).prefetch_related("act", "service").first()
+async def get_act_detail(
+    act_detail_id: UUID, context=with_permission_through_act("view_act_detail")
+):
+    act_detail = (
+        await ActDetails.filter(act_detail_id=act_detail_id)
+        .prefetch_related("act", "service")
+        .first()
+    )
 
     if not act_detail:
         raise HTTPException(status_code=404, detail="Деталь акта не найдена")
@@ -198,5 +208,5 @@ async def get_act_detail(act_detail_id: UUID, context=with_permission_through_ac
         quantity=act_detail.quantity,
         summ=act_detail.summ,
         price=act_detail.price,
-        created_at=act_detail.created_at
+        created_at=act_detail.created_at,
     )

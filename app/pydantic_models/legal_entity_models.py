@@ -1,6 +1,8 @@
-from typing import Optional, List, Literal
-from pydantic import UUID4, field_validator, Field
-from fastapi import Query, HTTPException
+from typing import List, Literal, Optional
+
+from fastapi import HTTPException, Query
+from pydantic import UUID4, Field, field_validator
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -11,10 +13,10 @@ class LegalEntityCreateSchema(CleanableBaseModel):
     vat_rate: Optional[int] = Field(0, ge=0, le=100)
     address: str = Field(..., min_length=5, max_length=255)
     entity_type: Optional[str] = Field(
-        None, description="ID типа юр. лица (внешний ключ)")
+        None, description="ID типа юр. лица (внешний ключ)"
+    )
     signer: Optional[str] = Field(None, min_length=3, max_length=255)
-    company: UUID4 = Field(...,
-                           description="ID компании (внешний ключ), UUID4")
+    company: UUID4 = Field(..., description="ID компании (внешний ключ), UUID4")
     relation_type: Literal["seller", "buyer"] = Field(...)
     description: Optional[str] = Field(None, max_length=500)
 
@@ -43,41 +45,33 @@ class LegalEntitySchema(CleanableBaseModel):
 
 def inn_kpp_filter_params(
     inn: str = Query(..., description="Инн юр. лица"),
-    kpp: Optional[str] = Query(None, description="Кпп юр. лица")
+    kpp: Optional[str] = Query(None, description="Кпп юр. лица"),
 ):
     # Проверка, что ИНН состоит только из цифр
     if not inn.isdigit():
-        raise HTTPException(
-            status_code=400, detail="ИНН должен содержать только цифры")
+        raise HTTPException(status_code=400, detail="ИНН должен содержать только цифры")
 
     # Проверка, что КПП либо None, либо только цифры
     if kpp is not None and not kpp.isdigit():
-        raise HTTPException(
-            status_code=400, detail="КПП должен содержать только цифры")
+        raise HTTPException(status_code=400, detail="КПП должен содержать только цифры")
 
     # Вариант 1: ИНН = 10 цифр и КПП = 9 цифр
     if len(inn) == 10:
         if kpp is None or len(kpp) != 9:
             raise HTTPException(
-                status_code=400,
-                detail="При ИНН из 10 цифр требуется КПП из 9 цифр"
+                status_code=400, detail="При ИНН из 10 цифр требуется КПП из 9 цифр"
             )
     # Вариант 2: ИНН = 12 цифр и КПП отсутствует
     elif len(inn) == 12:
         if kpp is not None:
             raise HTTPException(
-                status_code=400,
-                detail="При ИНН из 12 цифр КПП указывать не нужно"
+                status_code=400, detail="При ИНН из 12 цифр КПП указывать не нужно"
             )
     else:
         raise HTTPException(
-            status_code=400,
-            detail="ИНН должен содержать либо 10, либо 12 цифр"
+            status_code=400, detail="ИНН должен содержать либо 10, либо 12 цифр"
         )
-    return {
-        "inn": inn,
-        "kpp": kpp
-    }
+    return {"inn": inn, "kpp": kpp}
 
 
 class LegalEntityShortSchema(CleanableBaseModel):
@@ -118,10 +112,8 @@ class LegalEntityEditSchema(CleanableBaseModel):
 
 
 def legal_entity_filter_params(
-    company: Optional[UUID4] = Query(
-        None, description="Фильтр по компании"),
-    entity_type: Optional[str] = Query(
-        None, description="Фильтр по типу юр. лица"),
+    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
+    entity_type: Optional[str] = Query(None, description="Фильтр по типу юр. лица"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
 ):

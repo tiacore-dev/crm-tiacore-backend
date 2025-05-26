@@ -1,19 +1,21 @@
-from uuid import UUID
 from typing import Annotated
-from fastapi import APIRouter, Depends, Path, HTTPException, Body, status, Response
+from uuid import UUID
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Response, status
 from loguru import logger
 from tortoise.expressions import Q
-from app.handlers.auth import require_superadmin, get_current_user, get_cached_user_data
+
+from app.database.models import RolePermissionRelation, User, UserRole
+from app.handlers.auth import get_cached_user_data, get_current_user, require_superadmin
 from app.handlers.cache import invalidate_user_cache
-from app.database.models import UserRole, RolePermissionRelation, User
 from app.pydantic_models.roles_models import (
+    UserRoleCreateManySchema,
     UserRoleCreateSchema,
     UserRoleEditSchema,
-    role_filter_params,
-    UserRoleResponseSchema,
     UserRoleListResponseSchema,
+    UserRoleResponseSchema,
     UserRoleSchema,
-    UserRoleCreateManySchema
+    role_filter_params,
 )
 
 role_router = APIRouter()
@@ -23,63 +25,59 @@ role_router = APIRouter()
     "/add",
     response_model=UserRoleResponseSchema,
     summary="Добавление новой роли",
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def add_role(
     data: UserRoleCreateSchema = Body(...),
-    user_data: dict = Depends(require_superadmin)
+    _: dict = Depends(require_superadmin),
 ):
-    logger.info(f"Создание роли: {data.dict()}")
+    logger.info(f"Создание роли: {data.model_dump()}")
     try:
         role = await UserRole.create(role_name=data.role_name)
-        logger.success(
-            f"Роль {role.role_name} ({role.role_id}) успешно создана")
+        logger.success(f"Роль {role.role_name} ({role.role_id}) успешно создана")
         return {"role_id": role.role_id}
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.post(
     "/add-many",
     response_model=UserRoleResponseSchema,
     summary="Добавление новой роли",
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def add_many_roles(
     data: UserRoleCreateManySchema = Body(...),
-    user_data: dict = Depends(require_superadmin)
+    _: dict = Depends(require_superadmin),
 ):
-    logger.info(f"Создание роли: {data.dict()}")
+    logger.info(f"Создание роли: {data.model_dump()}")
     try:
         role = await UserRole.create(role_name=data.role_name)
-        await RolePermissionRelation.bulk_create([
-            RolePermissionRelation(role_id=role.role_id,
-                                   permission_id=permission_id)
-            for permission_id in data.permissions
-        ])
-        logger.success(
-            f"Роль {role.role_name} ({role.role_id}) успешно создана")
+        await RolePermissionRelation.bulk_create(
+            [
+                RolePermissionRelation(
+                    role_id=role.role_id, permission_id=permission_id
+                )
+                for permission_id in data.permissions
+            ]
+        )
+        logger.success(f"Роль {role.role_name} ({role.role_id}) успешно создана")
         return {"role_id": role.role_id}
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.patch(
-    "/{role_id}",
-    response_model=UserRoleResponseSchema,
-    summary="Изменение роли"
+    "/{role_id}", response_model=UserRoleResponseSchema, summary="Изменение роли"
 )
 async def edit_role(
-    role_id: UUID = Path(..., title="ID роли",
-                         description="ID изменяемой роли"),
+    role_id: UUID = Path(..., title="ID роли", description="ID изменяемой роли"),
     data: UserRoleEditSchema = Body(...),
-    user_data: dict = Depends(require_superadmin)
+    _: dict = Depends(require_superadmin),
 ):
-    logger.info(f"Обновление роли {role_id}: {data.dict(exclude_unset=True)}")
+    logger.info(f"Обновление роли {role_id}: {data.model_dump(exclude_unset=True)}")
     try:
         role = await UserRole.filter(role_id=role_id).first()
         if not role:
@@ -91,11 +89,9 @@ async def edit_role(
                 status_code=403, detail="Нельзя изменить системную роль"
             )
 
-        await role.update_from_dict(data.dict(exclude_unset=True))
+        await role.update_from_dict(data.model_dump(exclude_unset=True))
         await role.save()
-        related_users = await User.filter(
-            user_company_relations__role=role
-        ).distinct()
+        related_users = await User.filter(user_company_relations__role=role).distinct()
 
         for user in related_users:
             await invalidate_user_cache(user.email)
@@ -104,19 +100,15 @@ async def edit_role(
         return UserRoleResponseSchema(role_id=role.role_id)
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.delete(
-    "/{role_id}",
-    summary="Удаление роли",
-    status_code=status.HTTP_204_NO_CONTENT
+    "/{role_id}", summary="Удаление роли", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_role(
-    role_id: UUID = Path(..., title="ID роли",
-                         description="ID удаляемой роли"),
-    user_data: dict = Depends(require_superadmin)
+    role_id: UUID = Path(..., title="ID роли", description="ID удаляемой роли"),
+    _: dict = Depends(require_superadmin),
 ):
     logger.info(f"Удаление роли {role_id}")
     try:
@@ -126,8 +118,7 @@ async def delete_role(
             raise HTTPException(status_code=404, detail="Роль не найдена")
 
         if role.role_system_name:
-            raise HTTPException(
-                status_code=403, detail="Нельзя удалить системную роль")
+            raise HTTPException(status_code=403, detail="Нельзя удалить системную роль")
 
         await role.delete()
 
@@ -136,18 +127,17 @@ async def delete_role(
 
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
 @role_router.get(
     "/all",
     response_model=UserRoleListResponseSchema,
-    summary="Получение списка ролей с фильтрацией"
+    summary="Получение списка ролей с фильтрацией",
 )
 async def get_roles(
     filters: Annotated[dict, Depends(role_filter_params)],
-    user_data: dict = Depends(get_current_user)
+    _: dict = Depends(get_current_user),
 ):
     logger.info(f"Запрос на список ролей: {filters}")
 
@@ -157,38 +147,37 @@ async def get_roles(
         if search_value:
             query &= Q(role_name__icontains=search_value)
 
-        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{filters.get('sort_by', 'role_name')}"
+        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{
+            filters.get('sort_by', 'role_name')
+        }"
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
         total_count = await UserRole.filter(query).count()
 
-        roles = await UserRole.filter(query).order_by(order_by).offset(
-            (page - 1) * page_size
-        ).limit(page_size).values("role_id", "role_name")
+        roles = (
+            await UserRole.filter(query)
+            .order_by(order_by)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .values("role_id", "role_name")
+        )
 
         if not roles:
             logger.info("Список ролей пуст")
 
         return UserRoleListResponseSchema(
-            total=total_count,
-            roles=[UserRoleSchema(**role) for role in roles]
+            total=total_count, roles=[UserRoleSchema(**role) for role in roles]
         )
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
-@role_router.get(
-    "/{role_id}",
-    response_model=UserRoleSchema,
-    summary="Просмотр роли"
-)
+@role_router.get("/{role_id}", response_model=UserRoleSchema, summary="Просмотр роли")
 async def get_role(
-    role_id: UUID = Path(..., title="ID роли",
-                         description="ID просматриваемой роли"),
-    username: str = Depends(get_current_user)
+    role_id: UUID = Path(..., title="ID роли", description="ID просматриваемой роли"),
+    _: str = Depends(get_current_user),
 ):
     logger.info(f"Запрос на просмотр роли: {role_id}")
     try:
@@ -200,11 +189,10 @@ async def get_role(
         role_schema = UserRoleSchema(
             role_id=role.role_id,
             role_name=role.role_name,
-            role_system_name=role.role_system_name
+            role_system_name=role.role_system_name,
         )
         logger.success(f"Роль найдена: {role_schema}")
         return role_schema
     except (KeyError, TypeError, ValueError) as e:
         logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(
-            status_code=400, detail="Некорректные данные") from e
+        raise HTTPException(status_code=400, detail="Некорректные данные") from e

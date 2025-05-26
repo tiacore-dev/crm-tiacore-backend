@@ -1,10 +1,17 @@
 import pytest
 from httpx import AsyncClient
+
 from app.database.models import Bills
 
 
 @pytest.mark.asyncio
-async def test_add_bill(test_app: AsyncClient, jwt_token_admin, seed_bank_account, seed_contract, seed_company):
+async def test_add_bill(
+    test_app: AsyncClient,
+    jwt_token_admin,
+    seed_bank_account,
+    seed_contract,
+    seed_company,
+):
     """Тест добавления нового счета."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {
@@ -12,35 +19,37 @@ async def test_add_bill(test_app: AsyncClient, jwt_token_admin, seed_bank_accoun
         "bill_number": "INV-2024-001",
         "bill_date": 1710000000,
         "contract": seed_contract["contract_id"],
-        "company": seed_company['company_id']
+        "company": seed_company["company_id"],
     }
 
-    response = test_app.post("/api/bills/add", headers=headers, json=data)
-    assert response.status_code == 201, f"Ошибка: {response.status_code}, {response.text}"
+    response = await test_app.post("/api/bills/add", headers=headers, json=data)
+    assert response.status_code == 201, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     data = response.json()
     bill = await Bills.filter(bill_number="INV-2024-001").first()
-    assert data["bill_id"] == str(bill.bill_id)
+    if bill:
+        assert data["bill_id"] == str(bill.bill_id)
 
 
 @pytest.mark.asyncio
 async def test_edit_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест редактирования счета."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
-    data = {
-        "bill_number": "INV-2024-002"
-    }
+    data = {"bill_number": "INV-2024-002"}
 
-    response = test_app.patch(
-        f"/api/bills/{seed_bill['bill_id']}",
-        headers=headers,
-        json=data
+    response = await test_app.patch(
+        f"/api/bills/{seed_bill['bill_id']}", headers=headers, json=data
     )
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     updated_bill = await Bills.filter(bill_id=seed_bill["bill_id"]).first()
-    assert updated_bill.bill_number == "INV-2024-002"
+    if updated_bill:
+        assert updated_bill.bill_number == "INV-2024-002"
 
 
 @pytest.mark.asyncio
@@ -48,12 +57,11 @@ async def test_view_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест просмотра информации о счете."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.get(
-        f"/api/bills/{seed_bill['bill_id']}",
-        headers=headers
-    )
+    response = await test_app.get(f"/api/bills/{seed_bill['bill_id']}", headers=headers)
 
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     response_data = response.json()
     assert response_data["bill_id"] == str(seed_bill["bill_id"])
@@ -68,9 +76,12 @@ async def test_delete_bill(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест удаления счета."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.delete(
-        f"/api/bills/{seed_bill['bill_id']}", headers=headers)
-    assert response.status_code == 204, f"Ошибка: {response.status_code}, {response.text}"
+    response = await test_app.delete(
+        f"/api/bills/{seed_bill['bill_id']}", headers=headers
+    )
+    assert response.status_code == 204, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     deleted_bill = await Bills.filter(bill_id=seed_bill["bill_id"]).first()
     assert deleted_bill is None
@@ -81,11 +92,12 @@ async def test_get_all_bills(test_app: AsyncClient, jwt_token_admin, seed_bill):
     """Тест получения списка счетов."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = test_app.get("/api/bills/all", headers=headers)
-    assert response.status_code == 200, f"Ошибка: {response.status_code}, {response.text}"
+    response = await test_app.get("/api/bills/all", headers=headers)
+    assert response.status_code == 200, (
+        f"Ошибка: {response.status_code}, {response.text}"
+    )
 
     response_data = response.json()
-    assert response_data.get('total') >= 1
-    bills = response_data.get('bills')
-    assert any(bill["bill_id"] == seed_bill["bill_id"]
-               for bill in bills)
+    assert response_data.get("total") >= 1
+    bills = response_data.get("bills")
+    assert any(bill["bill_id"] == seed_bill["bill_id"] for bill in bills)

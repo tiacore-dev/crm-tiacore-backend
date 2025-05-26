@@ -1,7 +1,9 @@
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
-from pydantic import Field
+
 from fastapi import Query
+from pydantic import Field
+
 from app.pydantic_models.clean_model import CleanableBaseModel
 
 
@@ -15,7 +17,8 @@ class UserRoleCreateSchema(CleanableBaseModel):
 class UserRoleCreateManySchema(CleanableBaseModel):
     role_name: str = Field(...)
     permissions: List[str] = Field(
-        ..., description="Список ID разрешений, которые будут назначены этой роли")
+        ..., description="Список ID разрешений, которые будут назначены этой роли"
+    )
 
     class Config:
         from_attributes = True

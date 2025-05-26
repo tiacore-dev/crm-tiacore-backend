@@ -1,17 +1,25 @@
 import pytest
-from app.database.models import Company, LegalEntity, LegalEntityType, EntityCompanyRelation
+
+from app.database.models import (
+    Company,
+    EntityCompanyRelation,
+    LegalEntity,
+    LegalEntityType,
+)
 
 
-@pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
 async def seed_legal_entity(seed_company, seed_legal_entity_type):
     company = await Company.get_or_none(company_id=seed_company["company_id"])
-    entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=seed_legal_entity_type["legal_entity_type_id"])
+    entity_type = await LegalEntityType.get_or_none(
+        legal_entity_type_id=seed_legal_entity_type["legal_entity_type_id"]
+    )
 
     if not company or not entity_type:
         raise ValueError(
-            "Ошибка: Не удалось получить объекты Company или LegalEntityType")
+            "Ошибка: Не удалось получить объекты Company или LegalEntityType"
+        )
 
     legal_entity = await LegalEntity.create(
         legal_entity_name="Test Legal Entity",
@@ -27,7 +35,7 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
     await EntityCompanyRelation.create(
         company=company,
         legal_entity=legal_entity,
-        relation_type="seller"  # или "buyer"
+        relation_type="seller",  # или "buyer"
     )
 
     return {
@@ -39,11 +47,9 @@ async def seed_legal_entity(seed_company, seed_legal_entity_type):
         "address": legal_entity.address,
         "signer": legal_entity.signer,
         "entity_type": str(entity_type.legal_entity_type_id),
-
     }
 
 
-@pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
 async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
@@ -51,11 +57,14 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
 
     # Получаем объекты из базы
     company = await Company.get_or_none(company_id=seed_company["company_id"])
-    entity_type = await LegalEntityType.get_or_none(legal_entity_type_id=seed_legal_entity_type["legal_entity_type_id"])
+    entity_type = await LegalEntityType.get_or_none(
+        legal_entity_type_id=seed_legal_entity_type["legal_entity_type_id"]
+    )
 
     if not company or not entity_type:
         raise ValueError(
-            "Ошибка: Не удалось получить объекты Company или LegalEntityType")
+            "Ошибка: Не удалось получить объекты Company или LegalEntityType"
+        )
 
     # Создаем юридическое лицо, передавая объекты
     legal_entity = await LegalEntity.create(
@@ -68,7 +77,9 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
         signer="Test Signer",
     )
 
-    await EntityCompanyRelation.create(legal_entity=legal_entity, company=company, relation_type="buyer")
+    await EntityCompanyRelation.create(
+        legal_entity=legal_entity, company=company, relation_type="buyer"
+    )
 
     return {
         "legal_entity_id": str(legal_entity.legal_entity_id),
@@ -78,5 +89,7 @@ async def seed_legal_entity_buyer(seed_company, seed_legal_entity_type):
         "vat_rate": legal_entity.vat_rate,
         "address": legal_entity.address,
         "signer": legal_entity.signer,
-        "entity_type": str(legal_entity.entity_type.legal_entity_type_id),
+        "entity_type": str(legal_entity.entity_type.legal_entity_type_id)
+        if legal_entity.entity_type
+        else None,
     }

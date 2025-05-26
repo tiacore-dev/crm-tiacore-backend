@@ -1,39 +1,44 @@
-from typing import Dict, List, Type
+from typing import Any, Callable, Dict, List, Type, cast
 from uuid import UUID
-from tortoise.models import Model
+
+from fastapi import Depends, HTTPException, Path
 from loguru import logger
-from fastapi import HTTPException, Depends, Path
-from app.handlers.depends import require_permission_in_context
-from app.handlers.auth import get_current_user
+from tortoise.models import Model
+
 from app.database.models import (
+    ActDetails,
+    Acts,
+    BankAccount,
+    BillDetails,
+    Bills,
+    Contract,
+    EntityCompanyRelation,
+    Permissions,
+    Service,
+    Templates,
     User,
     UserCompanyRelation,
-    Permissions,
-    EntityCompanyRelation,
-    ActDetails,
-    BillDetails,
-    Service,
-    BankAccount,
-    Templates,
-    Contract,
-    Acts,
-    Bills
 )
+from app.handlers.auth import get_current_user
+from app.handlers.depends import require_permission_in_context
 
 
 async def get_company_permissions_for_user(user: User) -> Dict[str, List[str]]:
     logger.debug(
-        f"🧩 user: {user} | type: {type(user)} | has is_superadmin: {hasattr(user, 'is_superadmin')}")
+        f"""🧩 user: {user} | type: {type(user)} | 
+        has is_superadmin: {hasattr(user, "is_superadmin")}"""
+    )
 
     is_superadmin = getattr(user, "is_superadmin", False)
     if is_superadmin:
-        logger.debug(
-            "👑 Пользователь супер админ — возвращаем универсальные права")
+        logger.debug("👑 Пользователь супер админ — возвращаем универсальные права")
         return {"*": ["*"]}
 
     logger.debug("🔒 Пользователь не суперадмин — ищем права по компаниям")
 
-    relations = await UserCompanyRelation.filter(user_id=user.user_id).select_related("company", "role")
+    relations = await UserCompanyRelation.filter(user_id=user.user_id).select_related(
+        "company", "role"
+    )
 
     company_permissions = {}
 
@@ -62,7 +67,8 @@ def with_permission_and_company_check(permission: str):
         if user_id not in related_user_ids:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете выполнять это действие над пользователями других компаний"
+                detail="""Вы не можете выполнять это действие 
+                над пользователями других компаний""",
             )
 
         return context
@@ -77,25 +83,26 @@ def with_exact_company_permission(permission: str):
     ):
         permissions = user_data.get("permissions")
 
-        is_superadmin = permissions == {'*': ['*']}
-        user_data["is_superadmin"] = is_superadmin
+        is_superadmin = user_data["is_superadmin"]
 
         if is_superadmin:
             return user_data
-
-        if str(company_id) not in permissions or permission not in permissions[str(company_id)]:
+        if not isinstance(permissions, dict):
+            raise HTTPException(status_code=403, detail="Недостаточно прав")
+        if (
+            str(company_id) not in permissions
+            or permission not in permissions[str(company_id)]
+        ):
             raise HTTPException(status_code=403, detail="Недостаточно прав")
 
         email = user_data["email"]
 
         relation_exists = await UserCompanyRelation.filter(
-            user__email=email,
-            company__company_id=company_id
+            user__email=email, company__company_id=company_id
         ).exists()
 
         if not relation_exists:
-            raise HTTPException(
-                status_code=403, detail="Нет доступа к компании")
+            raise HTTPException(status_code=403, detail="Нет доступа к компании")
 
         return user_data
 
@@ -112,14 +119,13 @@ def with_permission_and_entity_company_check(permission: str):
 
         # Проверка, связано ли это юр. лицо с компанией пользователя
         is_related = await EntityCompanyRelation.exists(
-            legal_entity_id=legal_entity_id,
-            company_id=context["company"]
+            legal_entity_id=legal_entity_id, company_id=context["company"]
         )
 
         if not is_related:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете изменять юридические лица другой компании"
+                detail="Вы не можете изменять юридические лица другой компании",
             )
 
         return context
@@ -131,18 +137,22 @@ async def context_maker(
     context: dict,
     model: Type[Model],
     model_name: str,
-    model_id: UUID
+    model_id: UUID,
+    company_id_getter: Callable[[Model], UUID],
 ):
-    instance = await model.filter(**{f"{model_name}_id": model_id}).prefetch_related("company").first()
+    instance = (
+        await model.filter(**{f"{model_name}_id": model_id})
+        .prefetch_related("company")
+        .first()
+    )
     if not instance:
         raise HTTPException(
-            status_code=404, detail=f"{model_name.capitalize()} не найден")
+            status_code=404, detail=f"{model_name.capitalize()} не найден"
+        )
 
-    is_seller = instance.company.company_id == context['company']
-    if not is_seller:
+    if company_id_getter(instance) != context["company"]:
         raise HTTPException(
-            status_code=403,
-            detail=f"Вы не можете управлять {model_name} с чужой компанией"
+            status_code=403, detail="Вы не можете управлять этим объектом"
         )
 
     return context
@@ -151,11 +161,17 @@ async def context_maker(
 def with_permission_and_seller_contract_check(permission: str):
     async def dependency(
         contract_id: UUID = Path(..., description="ID контракта"),
-        context: dict = Depends(require_permission_in_context(permission))
+        context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
-        return await context_maker(context, Contract, "contract", contract_id)
+        return await context_maker(
+            context,
+            Contract,
+            "contract",
+            contract_id,
+            lambda x: cast(Any, x).company.company_id,
+        )
 
     return Depends(dependency)
 
@@ -163,11 +179,17 @@ def with_permission_and_seller_contract_check(permission: str):
 def with_permission_and_seller_act_check(permission: str):
     async def dependency(
         act_id: UUID = Path(..., description="ID акта"),
-        context: dict = Depends(require_permission_in_context(permission))
+        context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
-        return await context_maker(context, Acts, "act", act_id)
+        return await context_maker(
+            context,
+            Acts,
+            "act",
+            act_id,
+            lambda x: cast(Any, x).company.company_id,
+        )
 
     return Depends(dependency)
 
@@ -175,11 +197,17 @@ def with_permission_and_seller_act_check(permission: str):
 def with_permission_and_seller_bill_check(permission: str):
     async def dependency(
         bill_id: UUID = Path(..., description="ID счёта"),
-        context: dict = Depends(require_permission_in_context(permission))
+        context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
-        return await context_maker(context, Bills, "bill", bill_id)
+        return await context_maker(
+            context,
+            Bills,
+            "bill",
+            bill_id,
+            lambda x: cast(Any, x).company.company_id,
+        )
 
     return Depends(dependency)
 
@@ -187,26 +215,27 @@ def with_permission_and_seller_bill_check(permission: str):
 def with_permission_through_act(permission: str):
     async def dependency(
         act_detail_id: UUID = Path(...),
-        context=Depends(require_permission_in_context(permission))
+        context=Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
 
-        detail = await ActDetails.get_or_none(act_detail_id=act_detail_id).prefetch_related("act__seller")
+        detail = await ActDetails.get_or_none(
+            act_detail_id=act_detail_id
+        ).prefetch_related("act__seller")
         if not detail:
-            raise HTTPException(
-                status_code=404, detail="Деталь акта не найдена")
+            raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company"],
             legal_entity=detail.act.seller,
-            relation_type="seller"
+            relation_type="seller",
         )
 
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете работать с деталями акта чужой компании"
+                detail="Вы не можете работать с деталями акта чужой компании",
             )
 
         return context
@@ -217,26 +246,27 @@ def with_permission_through_act(permission: str):
 def with_permission_through_bill(permission: str):
     async def dependency(
         bill_detail_id: UUID = Path(...),
-        context=Depends(require_permission_in_context(permission))
+        context=Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
 
-        detail = await BillDetails.get_or_none(bill_detail_id=bill_detail_id).prefetch_related("bill__seller")
+        detail = await BillDetails.get_or_none(
+            bill_detail_id=bill_detail_id
+        ).prefetch_related("bill__seller")
         if not detail:
-            raise HTTPException(
-                status_code=404, detail="Деталь акта не найдена")
+            raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company"],
             legal_entity=detail.bill.seller,
-            relation_type="seller"
+            relation_type="seller",
         )
 
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете работать с деталями акта чужой компании"
+                detail="Вы не можете работать с деталями акта чужой компании",
             )
 
         return context
@@ -253,12 +283,14 @@ def with_permission_and_service_check(permission: str):
             return context
 
         # Проверка принадлежности услуги компании
-        service = await Service.get_or_none(service_id=service_id)
+        service = await Service.get_or_none(service_id=service_id).prefetch_related(
+            "company"
+        )
 
-        if not service or str(service.company_id) != str(context['company']):
+        if not service or str(service.company.company_id) != str(context["company"]):
             raise HTTPException(
                 status_code=403,
-                detail="Услуга не принадлежит указанной компании или не найдена"
+                detail="Услуга не принадлежит указанной компании или не найдена",
             )
 
         return context
@@ -276,21 +308,24 @@ def with_permission_and_entity_company_check_for_bank(
         if context.get("is_superadmin"):
             return context
 
-        account = await BankAccount.get_or_none(bank_account_id=bank_account_id).prefetch_related("legal_entity")
+        account = await BankAccount.get_or_none(
+            bank_account_id=bank_account_id
+        ).prefetch_related("legal_entity")
         if not account:
             raise HTTPException(
-                status_code=404, detail=f"BankAccount {bank_account_id} не найден")
+                status_code=404, detail=f"BankAccount {bank_account_id} не найден"
+            )
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company"],
             legal_entity=account.legal_entity,
-            relation_type="seller"
+            relation_type="seller",
         )
 
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете управлять банковским счетом с чужим продавцом"
+                detail="Вы не можете управлять банковским счетом с чужим продавцом",
             )
 
         return context
@@ -307,13 +342,21 @@ def with_permission_and_template_check(permission: str):
             return context
 
         # Проверка принадлежности услуги компании
-        template = await Templates.get_or_none(template_id=template_id)
+        template = await Templates.get_or_none(
+            template_id=template_id
+        ).prefetch_related("company")
 
-        if not template or str(template.company_id) != str(context['company']):
+        if not template:
             raise HTTPException(
                 status_code=403,
-                detail="Услуга не принадлежит указанной компании или не найдена"
+                detail="Услуга не найдена",
             )
+        if template.company:
+            if str(template.company.company_id) != str(context["company"]):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Услуга не принадлежит указанной компании",
+                )
 
         return context
 
@@ -322,19 +365,20 @@ def with_permission_and_template_check(permission: str):
 
 def with_permission_and_legal_entity_company_check(permission: str):
     async def dependency(
-        relation_id: UUID = Path(...,
-                                 description="ID связи компании и юрлица"),
+        relation_id: UUID = Path(..., description="ID связи компании и юрлица"),
         context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
 
-        relation = await EntityCompanyRelation.get_or_none(entity_company_relation_id=relation_id).prefetch_related("company")
+        relation = await EntityCompanyRelation.get_or_none(
+            entity_company_relation_id=relation_id
+        ).prefetch_related("company")
 
         if not relation or str(relation.company.company_id) != str(context["company"]):
             raise HTTPException(
                 status_code=403,
-                detail="Связь не принадлежит компании пользователя или не найдена"
+                detail="Связь не принадлежит компании пользователя или не найдена",
             )
 
         return context
@@ -344,19 +388,23 @@ def with_permission_and_legal_entity_company_check(permission: str):
 
 def with_permission_and_user_company_check(permission: str):
     async def dependency(
-        user_company_id: UUID = Path(...,
-                                     description="ID связи пользователя с компанией"),
+        user_company_id: UUID = Path(
+            ..., description="ID связи пользователя с компанией"
+        ),
         context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
 
-        relation = await UserCompanyRelation.get_or_none(user_company_id=user_company_id).prefetch_related("company")
+        relation = await UserCompanyRelation.get_or_none(
+            user_company_id=user_company_id
+        ).prefetch_related("company")
 
         if not relation or str(relation.company.company_id) != str(context["company"]):
             raise HTTPException(
                 status_code=403,
-                detail="Связь пользователя с компанией не найдена или не принадлежит вашей компании"
+                detail="""Связь пользователя с компанией не 
+                найдена или не принадлежит вашей компании""",
             )
 
         return context
