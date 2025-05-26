@@ -195,7 +195,7 @@ async def get_users(
             .order_by(sort_field)
             .offset((page - 1) * page_size)
             .limit(page_size)
-            .values("user_id", "email", "full_name", "position")
+            .values("user_id", "email", "full_name", "position", "is_verified")
         )
 
         return UserListResponseSchema(
