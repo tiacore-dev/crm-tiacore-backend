@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Path, Query
 from loguru import logger
 
 from app.database.models import UserCompanyRelation
@@ -56,6 +56,39 @@ def require_permission_in_context(permission: str):
             return ctx
         if permission in ctx["permissions"]:
             return ctx
+        logger.warning(
+            f"Недостаточно прав для пользователя {ctx['user']}, требуется: {permission}"
+        )
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+
+    return dependency
+
+
+def require_permission_or_self_view(permission: str):
+    async def dependency(
+        ctx=Depends(get_current_context),
+        user_id: UUID = Path(..., description="ID просматриваемого пользователя"),
+    ):
+        if ctx["is_superadmin"]:
+            return ctx
+
+        if not ctx["has_relations"]:
+            logger.info(
+                f"""Пользователь {ctx["user"]} без 
+                связей — доступ разрешён без проверки прав"""
+            )
+            return ctx
+
+        # 👤 Если пользователь запрашивает сам себя — разрешаем
+        if str(ctx["user"]) == str(user_id):
+            logger.info(
+                f"Пользователь {ctx['user']} запрашивает сам себя — доступ разрешён"
+            )
+            return ctx
+
+        if permission in ctx["permissions"]:
+            return ctx
+
         logger.warning(
             f"Недостаточно прав для пользователя {ctx['user']}, требуется: {permission}"
         )

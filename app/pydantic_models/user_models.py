@@ -36,6 +36,7 @@ class UserSchema(CleanableBaseModel):
     email: str
     full_name: str
     position: Optional[str] = None
+    is_verified: bool
 
 
 class UserListResponseSchema(CleanableBaseModel):

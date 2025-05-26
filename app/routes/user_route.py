@@ -14,7 +14,10 @@ from app.database.models import (
 )
 from app.dependencies.permissions import with_permission_and_company_check
 from app.handlers.auth import require_superadmin
-from app.handlers.depends import require_permission_in_context
+from app.handlers.depends import (
+    require_permission_in_context,
+    require_permission_or_self_view,
+)
 from app.pydantic_models.user_models import (
     UserCreateSchema,
     UserEditSchema,
@@ -185,10 +188,8 @@ async def get_users(
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
-        # ✅ Получаем общее количество записей
         total_count = await User.filter(query).count()
 
-        # ✅ Достаём сразу в виде словарей (ускоряет работу)
         users = (
             await User.filter(query)
             .order_by(sort_field)
@@ -214,7 +215,7 @@ async def get_user(
     user_id: UUID = Path(
         ..., title="ID пользователя", description="ID просматриваемого пользователя"
     ),
-    context: dict = Depends(require_permission_in_context("view_user")),
+    context: dict = Depends(require_permission_or_self_view("view_user")),
 ):
     logger.info(f"Получен запрос на просмотр пользователя: {user_id}")
     try:
