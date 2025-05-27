@@ -70,46 +70,69 @@ async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
     "/register-with-token", response_model=TokenResponse, status_code=201
 )
 async def register_with_token(data: RegisterRequest, token: str = Query(...)):
-    existing_user = await User.exists(email=data.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
-    user = await create_user(
-        email=data.email,
-        password=data.password,
-        full_name=data.full_name,
-        position=data.position,
-    )
-    user.is_verified = True
-    await user.save()
+    logger.info(f"📥 Запрос на регистрацию по токену: {data.email}")
 
-    token_data = verify_jwt_token(token)
-    company_id = token_data.get("company_id")
-    role_id = token_data.get("role_id")
-    if not company_id or not role_id:
-        raise HTTPException(status_code=400, detail="Invalid invitation token")
-    existing_relation = await UserCompanyRelation.exists(
-        user=user, company_id=company_id, role_id=role_id
-    )
-    if existing_relation:
+    try:
+        if await User.exists(email=data.email):
+            logger.warning(f"❌ Пользователь уже существует: {data.email}")
+            raise HTTPException(status_code=400, detail="User already exists")
+
+        user = await create_user(
+            email=data.email,
+            password=data.password,
+            full_name=data.full_name,
+            position=data.position,
+        )
+        user.is_verified = True
+        await user.save()
+        logger.info(f"✅ Пользователь создан: {user.email}")
+
+        try:
+            token_data = verify_jwt_token(token)
+        except Exception as e:
+            logger.error(f"❌ Ошибка верификации токена: {e}")
+            raise HTTPException(status_code=400, detail="Invalid token")
+
+        company_id = token_data.get("company_id")
+        role_id = token_data.get("role_id")
+
+        if not company_id or not role_id:
+            logger.error(
+                f"❌ Отсутствует company_id или role_id в токене: {token_data}"
+            )
+            raise HTTPException(status_code=400, detail="Invalid invitation token data")
+
+        existing_relation = await UserCompanyRelation.exists(
+            user=user, company_id=company_id, role_id=role_id
+        )
+
+        if existing_relation:
+            logger.info("🔁 Связь уже существует")
+        else:
+            await UserCompanyRelation.create(
+                user=user, company_id=company_id, role_id=role_id
+            )
+            logger.info("🔗 Связь создана")
+
+        permissions = (
+            None if user.is_superadmin else await get_company_permissions_for_user(user)
+        )
+
         return TokenResponse(
             access_token=create_access_token({"sub": user.email}),
             refresh_token=create_refresh_token({"sub": user.email}),
-            permissions=None
-            if user.is_superadmin
-            else await get_company_permissions_for_user(user),
+            permissions=permissions,
             is_superadmin=user.is_superadmin,
             user_id=user.user_id,
         )
-    await UserCompanyRelation.create(user=user, company_id=company_id, role_id=role_id)
-    return TokenResponse(
-        access_token=create_access_token({"sub": user.email}),
-        refresh_token=create_refresh_token({"sub": user.email}),
-        permissions=None
-        if user.is_superadmin
-        else await get_company_permissions_for_user(user),
-        is_superadmin=user.is_superadmin,
-        user_id=user.user_id,
-    )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            f"💥 Необработанная ошибка при регистрации пользователя {data.email}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @invite_router.get("/accept-invite", status_code=201)

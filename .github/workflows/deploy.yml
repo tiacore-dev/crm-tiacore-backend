@@ -197,10 +197,11 @@ jobs:
 
           ESCAPED_COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed -E 's/([*_`\[\]()])/\\\1/g')
           TEXT="${STATUS}
+          AUTHOR_USERNAME="${{ github.actor }}"
 
           📦 *Ветка:* \`$REF_NAME\`
           🔖 *Тег:* \`$SHA\`
-          👤 *Автор деплоя:* [$AUTHOR](https://github.com/$AUTHOR)
+          👤 *Автор деплоя:* [$AUTHOR_USERNAME](https://github.com/$AUTHOR_USERNAME)
           📝 *Коммит:* $ESCAPED_COMMIT_MESSAGE${EXTRA_LINK}"
 
 
