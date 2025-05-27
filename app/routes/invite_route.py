@@ -48,7 +48,7 @@ async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
 
         Если вас пригласили по ошибке, проигнорируйте это письмо.
         """
-        send_email(data.email, body)
+        await send_email(data.email, body)
         return
 
     verification_link = (
@@ -62,7 +62,7 @@ async def invite_user(data: InviteRequest, _=Depends(get_current_user)):
     {verification_link}
 
     """
-    send_email(data.email, body)
+    await send_email(data.email, body)
     return
 
 

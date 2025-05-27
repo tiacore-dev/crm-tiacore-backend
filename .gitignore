@@ -9,6 +9,8 @@ __pycache__/
 # C extensions
 *.so
 
+data.txt
+docker-compose.dev.yml
 celery_docker
 
 beack_up_process_audio

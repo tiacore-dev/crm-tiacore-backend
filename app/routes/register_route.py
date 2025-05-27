@@ -38,7 +38,7 @@ async def register(data: RegisterRequest):
 
     Если это были не вы, проигнорируйте это письмо.
     """
-    send_email(user.email, body)
+    await send_email(user.email, body)
     return RegisterResponse(user_id=user.user_id)
 
 
@@ -61,7 +61,7 @@ async def resend_verification(email: str = Body(..., embed=True)):
 
     Если вы не регистрировались, проигнорируйте это письмо.
     """
-    send_email(user.email, body)
+    await send_email(user.email, body)
     logger.info(f"Письмо с подтверждением повторно отправлено: {user.email}")
     return {"message": "Письмо отправлено повторно"}
 

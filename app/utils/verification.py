@@ -1,6 +1,6 @@
-import smtplib
 from email.mime.text import MIMEText
 
+from aiosmtplib import SMTP
 from fastapi import HTTPException
 from loguru import logger
 
@@ -9,7 +9,7 @@ from app.config import Settings
 settings = Settings()
 
 
-def send_email(to_email: str, body: str):
+async def send_email(to_email: str, body: str):
     if (
         not settings.SMTP_PASSWORD
         or not settings.SMTP_PORT
@@ -25,11 +25,19 @@ def send_email(to_email: str, body: str):
     msg["To"] = to_email
 
     try:
-        with smtplib.SMTP(settings.SMTP_SERVER, int(settings.SMTP_PORT)) as server:
-            server.starttls()
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-            server.sendmail(msg["From"], [msg["To"]], msg.as_string())
-            logger.info(f"Письмо отправлено на {to_email}")
+        smtp = SMTP(
+            hostname=settings.SMTP_SERVER,
+            port=int(settings.SMTP_PORT),
+            start_tls=True,
+            timeout=10,
+        )
+        logger.info("🔌 Подключение к SMTP...")
+        await smtp.connect()
+        logger.info("✅ SMTP подключен")
+        await smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+        await smtp.send_message(msg)
+        await smtp.quit()
+        logger.info(f"Письмо отправлено на {to_email}")
     except Exception as e:
         logger.error(f"Ошибка при отправке письма на {to_email}: {e}")
         raise
