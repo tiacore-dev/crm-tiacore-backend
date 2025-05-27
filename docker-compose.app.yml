@@ -10,7 +10,7 @@ services:
 
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
-    container_name: crm-backend
+    container_name: crm-backend${CONFIG_NAME}
     tty: true
     stdin_open: true
     restart: always
