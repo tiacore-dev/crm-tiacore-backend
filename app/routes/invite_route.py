@@ -114,9 +114,7 @@ async def register_with_token(data: RegisterRequest, token: str = Query(...)):
             )
             logger.info("🔗 Связь создана")
 
-        permissions = (
-            None if user.is_superadmin else await get_company_permissions_for_user(user)
-        )
+        permissions = await get_company_permissions_for_user(user)
 
         return TokenResponse(
             access_token=create_access_token({"sub": user.email}),
