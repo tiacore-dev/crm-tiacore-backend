@@ -15,7 +15,7 @@ def create_app(config_name) -> FastAPI:
     settings = Settings()
     if config_name == "Test":
         db_url = settings.TEST_DATABASE_URL
-    elif config_name == "Development":
+    elif config_name == "Local_Development":
         db_url = settings.DOCKER_DATABASE_URL
     else:
         db_url = settings.DATABASE_URL
@@ -28,7 +28,7 @@ def create_app(config_name) -> FastAPI:
     )
 
     app.mount("/metrics", make_asgi_app())
-    if config_name == "Production":
+    if config_name == "Production" or config_name == "Development":
         from app.tracer import init_tracer
 
         init_tracer(app)
