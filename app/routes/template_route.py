@@ -243,9 +243,10 @@ async def genereate_file(
     except Exception as e:
         logger.exception(f"⚠️ Ошибка при обработке сущности: {e}")
         raise
-
+    manager = AsyncS3Manager()
+    s3_url = await manager.generate_presigned_url(template.s3_key)
     payload = {
-        "s3_key": template.s3_key,
+        "url": s3_url,
         "document_data": document_data,
         "name": f"{template.entity}_{entity_number}",
         "is_pdf": data.is_pdf,
