@@ -195,13 +195,15 @@ jobs:
 
           CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
 
-          ESCAPED_COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed -E 's/([*_`\[\]()])/\\\1/g')
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed 's/\\n/\'$'\n''/g')
+
           TEXT="${STATUS}
 
           📦 *Ветка:* \`$REF_NAME\`
           🔖 *Тег:* \`$SHA\`
           👤 *Автор деплоя:* [$AUTHOR_USERNAME](https://github.com/$AUTHOR_USERNAME)
-          📝 *Коммит:* $ESCAPED_COMMIT_MESSAGE${EXTRA_LINK}"
+          📝 *Коммит:* $COMMIT_MESSAGE${EXTRA_LINK}"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="$CHAT_ID" \

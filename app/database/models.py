@@ -5,8 +5,6 @@ from tortoise import fields
 from tortoise.fields.relational import ReverseRelation
 from tortoise.models import Model
 
-# Списки
-
 
 class LegalEntityType(Model):
     legal_entity_type_id = fields.CharField(pk=True, max_length=255)
@@ -54,7 +52,8 @@ class Permissions(Model):
     comment = fields.CharField(max_length=255, null=True)
 
     def __repr__(self):
-        return f"<Permissions(permission_id={self.permission_id}, permission_name={self.permission_name})>"
+        return f"""<Permissions(permission_id={self.permission_id}, 
+        permission_name={self.permission_name})>"""
 
     class Meta:
         table = "permissions"
