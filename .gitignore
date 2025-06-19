@@ -5,6 +5,7 @@ examples/
 __pycache__/
 *.py[cod]
 *$py.class
+docker-compose.dev.yml
 
 # C extensions
 *.so
