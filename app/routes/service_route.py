@@ -112,9 +112,13 @@ async def get_services(
         if search_value:
             query &= Q(name__icontains=search_value)
 
-        order_by = f"{'-' if filters.get('order') == 'desc' else ''}{
-            filters.get('sort_by', 'name')
-        }"
+        sort_by = filters.get("sort_by", "name")
+        if sort_by == "service_name":
+            sort_by = "name"
+
+        order = filters.get("order", "asc")
+        order_by = f"{'-' if order == 'desc' else ''}{sort_by}"
+
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 

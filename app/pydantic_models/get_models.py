@@ -1,26 +1,17 @@
 from typing import List, Optional
 
 from fastapi import Query
+from pydantic import Field
 from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
 
 
-class LegalEntityTypeSchema(CleanableBaseModel):
-    legal_entity_type_id: str
-    entity_name: str
-
-    model_config = {"from_attributes": True}
-
-
-class LegalEntityTypeListResponse(CleanableBaseModel):
-    total: int
-    legal_entity_types: List[LegalEntityTypeSchema]
-
-
 class ContractStatusSchema(CleanableBaseModel):
-    contract_status_id: str
-    status_name: str
+    id: str = Field(..., alias="contract_status_id")
+    name: str = Field(..., alias="status_name")
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True
+        populate_by_name = True
 
 
 class ContractStatusListResponse(CleanableBaseModel):

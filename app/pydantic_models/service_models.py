@@ -52,7 +52,7 @@ class ServiceEditSchema(CleanableBaseModel):
 def service_filter_params(
     search: Optional[str] = Query(None, description="Фильтр по названию"),
     company: Optional[UUID] = Query(None, description="Фильтр по компании"),
-    sort_by: Optional[str] = Query("service_name", description="Поле сортировки"),
+    sort_by: Optional[str] = Query("name", description="Поле сортировки"),
     order: Optional[str] = Query("asc", description="Порядок сортировки: asc/desc"),
     page: Optional[int] = Query(1, ge=1, description="Номер страницы"),
     page_size: Optional[int] = Query(10, ge=1, le=100, description="Размер страницы"),

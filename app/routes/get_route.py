@@ -19,15 +19,15 @@ get_router = APIRouter()
     summary="Получение списка статусов контрактов",
 )
 async def get_contract_statuses(
-    filters: FilterParams = Depends(), username: str = Depends(get_current_user)
+    filters: FilterParams = Depends(), _: str = Depends(get_current_user)
 ):
     try:
         query = ContractStatus.all()
 
         if filters.search:
-            query = query.filter(Q(status_name__icontains=filters.search))
+            query = query.filter(Q(name__icontains=filters.search))
 
-        order_by = f"{'-' if filters.order == 'desc' else ''}status_name"
+        order_by = f"{'-' if filters.order == 'desc' else ''}name"
         query = query.order_by(order_by)
         total_count = await query.count()
         statuses = (
