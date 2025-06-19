@@ -14,6 +14,7 @@ from tortoise import Tortoise
 
 from app.config import TestConfig, _load_settings
 from app.routes import register_routes
+from app.utils.db_helpers import create_test_data
 from metrics.logger import setup_logger
 from metrics.tracer import init_tracer
 
@@ -35,13 +36,14 @@ def create_app(config_name: ConfigName) -> FastAPI:
 
             await Tortoise.init(config=TORTOISE_ORM)
             Tortoise.init_models(["app.database.models"], "models")
+            await create_test_data()
             redis_url = settings.REDIS_URL
             redis_client = redis.from_url(redis_url)
             print("🔥 Redis инициализируется")
             FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
             consumer = EventConsumer(
                 rabbit_url=settings.AUTH_BROKER_URL,
-                queue_name="reference-service",
+                queue_name="crm-service",
                 routing_keys=["user.*"],
             )
             task = asyncio.create_task(

@@ -27,6 +27,7 @@ class BaseConfig(SharedBaseConfig):
     FOLDER_ID: Optional[str] = None
 
     AUTH_BROKER_URL: str = ""
+    REFERENCE_URL: str = ""
 
     class Config:
         env_file = ".env"
@@ -51,6 +52,7 @@ class TestConfig(SharedTestConfig):
     YANDEX_API_KEY: str = ""
     FOLDER_ID: str = ""
     AUTH_BROKER_URL: str = ""
+    REFERENCE_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env.test",

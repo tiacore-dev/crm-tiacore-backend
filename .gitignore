@@ -8,7 +8,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+text.txt
 data.txt
 docker-compose.dev.yml
 celery_docker

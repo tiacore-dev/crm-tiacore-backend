@@ -133,7 +133,6 @@ async def get_entity_company_relations(
     relations = (
         await EntityCompanyRelation.filter(query)
         .order_by(sort_field)
-        .prefetch_related("legal_entity")
         .offset((filters["page"] - 1) * filters["page_size"])
         .limit(filters["page_size"])
     )
@@ -165,11 +164,7 @@ async def get_entity_company_relation(
         "view_legal_entity_company_relation"
     ),
 ):
-    relation = (
-        await EntityCompanyRelation.filter(id=relation_id)
-        .prefetch_related("legal_entity")
-        .first()
-    )
+    relation = await EntityCompanyRelation.filter(id=relation_id).first()
 
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")

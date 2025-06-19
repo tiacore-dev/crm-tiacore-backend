@@ -269,3 +269,27 @@ def with_permission_and_legal_entity_company_check(permission: str):
         return context
 
     return Depends(dependency)
+
+
+def with_permission_and_entity_company_check(permission: str):
+    async def dependency(
+        legal_entity_id: UUID = Path(..., description="ID юридического лица"),
+        context: dict = Depends(require_permission_in_context(permission)),
+    ):
+        if context.get("is_superadmin"):
+            return context
+
+        # Проверка, связано ли это юр. лицо с компанией пользователя
+        is_related = await EntityCompanyRelation.exists(
+            legal_entity_id=legal_entity_id, company_id=context["company"]
+        )
+
+        if not is_related:
+            raise HTTPException(
+                status_code=403,
+                detail="Вы не можете изменять юридические лица другой компании",
+            )
+
+        return context
+
+    return Depends(dependency)

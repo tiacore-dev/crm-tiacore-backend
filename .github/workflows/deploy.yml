@@ -2,11 +2,11 @@ name: CI/CD to Server
 
 on:
   push:
-    branches: [master, stage, dev]
+    branches: [master, dev, stage]
 
 jobs:
   build-test-push:
-    if: github.ref_name == 'dev' || github.ref_name == 'master' || github.ref_name == 'stage'
+    if: github.ref_name == 'dev' || github.ref_name == 'master'
     runs-on: ubuntu-latest
 
     services:
@@ -27,10 +27,14 @@ jobs:
     env:
       TEST_DATABASE_URL: postgres://test:test@localhost:5432/test_db
       PYTHONUNBUFFERED: 1
+      TEST_DB_HOST: host.docker.internal
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Generate cache buster
+        run: echo "CACHE_BUSTER=$(date +%s)" >> $GITHUB_ENV
 
 
       - name: Log in to Docker Hub
@@ -43,11 +47,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           install: true
-
+    
       - name: Run Tests in Docker
         run: |
           docker buildx build \
             --target test \
+            --build-arg LIB_REPO_TOKEN=${{ secrets.TOKEN_SHARED_LIB }} \
+            --build-arg CACHE_BUSTER=${{ env.CACHE_BUSTER }} \
             --cache-from=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache \
             --cache-to=type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max \
             --load \
@@ -76,6 +82,9 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/crm-backend:buildcache,mode=max
+          build-args: |
+            LIB_REPO_TOKEN=${{ secrets.TOKEN_SHARED_LIB }}
+            CACHE_BUSTER=${{ env.CACHE_BUSTER }}
 
 
 
@@ -154,18 +163,20 @@ jobs:
           EOF
 
 
-
       - name: 🚀 Start Backend
         run: |
           echo "🚀 Перезапускаем backend..."
           ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << EOF
             cd $DEPLOY_PATH || exit 1
 
-            docker compose -f docker-compose.app.yml up -d --force-recreate web > /dev/null \
-              && echo "✅ Контейнер перезапущен" \
-              || { echo "❌ Контейнер не запустился"; exit 1; }
+            docker compose -f docker-compose.app.yml down && \
+            docker compose -f docker-compose.app.yml up -d --force-recreate && \
+            echo "✅ Контейнер перезапущен" || {
+              echo "❌ Контейнер не запустился"
+              exit 1
+            }
 
-            docker system prune -af > /dev/null
+            docker image prune -f > /dev/null
           EOF
 
 
