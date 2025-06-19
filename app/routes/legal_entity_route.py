@@ -21,6 +21,7 @@ from tiacore_lib.pydantic_models.legal_entity_models import (
     legal_entity_filter_params,
 )
 
+from app.database.models import EntityCompanyRelation
 from app.dependencies.permissions import with_permission_and_entity_company_check
 
 entity_router = APIRouter()
@@ -43,7 +44,7 @@ async def add_legal_entity(
 
     response_data, status_code = await http_client.request(
         "POST",
-        f"{settings.REFERENCE_URL}/api/legal_entities/add",
+        f"{settings.REFERENCE_URL}/api/legal-entities/add",
         headers=headers,
         json=data.model_dump(),
     )
@@ -66,7 +67,7 @@ async def add_legal_entity_by_inn(
 
     response_data, status_code = await http_client.request(
         "POST",
-        f"{settings.REFERENCE_URL}/api/legal_entities/add-by-inn",
+        f"{settings.REFERENCE_URL}/api/legal-entities/add-by-inn",
         headers=headers,
         json=data.model_dump(),
     )
@@ -90,7 +91,7 @@ async def update_legal_entity(
 
     response_data, status_code = await http_client.request(
         "PATCH",
-        f"{settings.REFERENCE_URL}/api/legal_entities/{legal_entity_id}",
+        f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
         json=data.model_dump(),
     )
@@ -113,7 +114,7 @@ async def delete_legal_entity(
 
     _, status_code = await http_client.request(
         "DELETE",
-        f"{settings.REFERENCE_URL}/api/legal_entities/{legal_entity_id}",
+        f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
     )
     if status_code != 204:
@@ -140,7 +141,7 @@ async def get_legal_entities(
 
     response_data, status_code = await http_client.request(
         "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/all",
+        f"{settings.REFERENCE_URL}/api/legal-entities/all",
         headers=headers,
         params=query_params,
     )
@@ -150,40 +151,62 @@ async def get_legal_entities(
 @entity_router.get(
     "/get-buyers",
     response_model=LegalEntityListResponseSchema,
-    summary="Получение списка buyers",
+    summary="Получение списка buyers по локальным связям",
 )
 async def get_buyers(
     request: Request,
     context: dict = Depends(require_permission_in_context("get_buyers")),
     settings=Depends(get_settings),
 ):
+    # Получаем все id юр. лиц, у которых relation_type == buyer
+    legal_entity_ids = await EntityCompanyRelation.filter(
+        relation_type="buyer", company_id=context["company_id"]
+    ).values_list("legal_entity_id", flat=True)
+
+    if not legal_entity_ids:
+        return LegalEntityListResponseSchema(total=0, entities=[])
+
     headers = get_auth_headers(request)
 
+    # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
-        "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/get-buyers",
+        "POST",
+        f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
+        json={"ids": legal_entity_ids},
     )
+
     return LegalEntityListResponseSchema(**response_data)
 
 
 @entity_router.get(
     "/get-sellers",
     response_model=LegalEntityListResponseSchema,
-    summary="Получение списка sellers",
+    summary="Получение списка sellers по локальным связям",
 )
 async def get_sellers(
     request: Request,
     context: dict = Depends(require_permission_in_context("get_sellers")),
     settings=Depends(get_settings),
 ):
+    # Получаем все id юр. лиц, у которых relation_type == buyer
+    legal_entity_ids = await EntityCompanyRelation.filter(
+        relation_type="seller", company_id=context["company_id"]
+    ).values_list("legal_entity_id", flat=True)
+
+    if not legal_entity_ids:
+        return LegalEntityListResponseSchema(total=0, entities=[])
+
     headers = get_auth_headers(request)
 
+    # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
-        "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/get-sellers",
+        "POST",
+        f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
+        json={"ids": legal_entity_ids},
     )
+
     return LegalEntityListResponseSchema(**response_data)
 
 
@@ -198,14 +221,24 @@ async def get_by_company(
     _: dict = Depends(require_permission_in_context("get_by_company")),
     settings=Depends(get_settings),
 ):
+    # Получаем все id юр. лиц, у которых relation_type == buyer
+    legal_entity_ids = await EntityCompanyRelation.filter(
+        company_id=company_id
+    ).values_list("legal_entity_id", flat=True)
+
+    if not legal_entity_ids:
+        return LegalEntityListResponseSchema(total=0, entities=[])
+
     headers = get_auth_headers(request)
-    params = {"company_id": company_id}
+
+    # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
-        "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/all",
+        "POST",
+        f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        params=params,
+        json={"ids": legal_entity_ids},
     )
+
     return LegalEntityListResponseSchema(**response_data)
 
 
@@ -227,7 +260,7 @@ async def get_legal_entity_by_inn_kpp(
 
     response_data, status_code = await http_client.request(
         "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/all",
+        f"{settings.REFERENCE_URL}/api/legal-entities/all",
         headers=headers,
         params=query_params,
     )
@@ -249,7 +282,7 @@ async def get_legal_entity(
 
     response_data, status_code = await http_client.request(
         "GET",
-        f"{settings.REFERENCE_URL}/api/legal_entities/{legal_entity_id}",
+        f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
     )
     return LegalEntitySchema(**response_data)
