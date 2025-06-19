@@ -1,8 +1,7 @@
 from typing import List, Optional
 
 from fastapi import Query
-
-from app.pydantic_models.clean_model import CleanableBaseModel
+from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
 
 
 class LegalEntityTypeSchema(CleanableBaseModel):

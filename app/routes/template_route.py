@@ -7,12 +7,12 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from tiacore_lib.config import get_settings
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tortoise.expressions import Q
 
-from app.config import Settings
-from app.database.models import Company, Templates, UserCompanyRelation
+from app.database.models import Templates
 from app.dependencies.permissions import with_permission_and_template_check
-from app.handlers.depends import require_permission_in_context
 from app.handlers.template_handler import handle_acts, handle_bills
 from app.pydantic_models.template_models import (
     GenerateFileSchema,
@@ -25,7 +25,11 @@ from app.pydantic_models.template_models import (
 )
 from app.s3.s3_manager import AsyncS3Manager
 
-settings = Settings()
+MEDIA_TYPES = {
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
 
 template_router = APIRouter()
 
@@ -40,49 +44,35 @@ async def add_template(
     data: TemplateCreateSchema = Depends(TemplateCreateSchema.as_form),
     context: dict = Depends(require_permission_in_context("add_template")),
 ):
-    try:
-        company_obj = await Company.get_or_none(company_id=data.company)
-        if not company_obj and not context["is_superadmin"]:
-            raise HTTPException(status_code=400, detail="Компания не найдена")
-
-        if not context.get("is_superadmin"):
-            is_related = await UserCompanyRelation.exists(
-                user_id=context["user"], company=company_obj
-            )
-            if not is_related:
-                raise HTTPException(
-                    status_code=403, detail="Вы не имеете доступа к этой компании"
-                )
-
-        file_bytes = await data.file.read()
-        if not file_bytes:
-            raise HTTPException(
-                status_code=400, detail="Не удалось загрузить данные файла"
-            )
-
-        logger.info(
-            f"""Тип загружаемых данных: {type(file_bytes)}, 
-            размер: {len(file_bytes)} байт"""
+    if not context.get("is_superadmin") and str(data.company) != context["company_id"]:
+        raise HTTPException(
+            status_code=403, detail="Вы не имеете доступа к этой компании"
         )
 
-        filename = data.file.filename or "Unknown"
-        manager = AsyncS3Manager()
-        company_id = str(data.company) if data.company else "general"
-        s3_key = await manager.upload_bytes(
-            file_bytes, company_id, filename, entity="template"
-        )
+    file_bytes = await data.file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Не удалось загрузить данные файла")
 
-        template = await Templates.create(
-            template_name=data.template_name,
-            company=company_obj,
-            description=data.description,
-            entity=data.entity,
-            s3_key=s3_key,
-        )
-        return {"template_id": str(template.template_id)}
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+    logger.info(
+        f"""Тип загружаемых данных: {type(file_bytes)}, 
+        размер: {len(file_bytes)} байт"""
+    )
+
+    filename = data.file.filename or "Unknown"
+    manager = AsyncS3Manager()
+    company_id = str(data.company) if data.company else "general"
+    s3_key = await manager.upload_bytes(
+        file_bytes, company_id, filename, entity="template"
+    )
+
+    template = await Templates.create(
+        name=data.template_name,
+        company_id=data.company,
+        description=data.description,
+        entity=data.entity,
+        s3_key=s3_key,
+    )
+    return TemplateResponseSchema(template_id=template.id)
 
 
 @template_router.patch(
@@ -93,24 +83,17 @@ async def update_template(
     data: TemplateEditSchema = Depends(TemplateEditSchema.as_form),
     _=with_permission_and_template_check("edit_template"),
 ):
-    template = (
-        await Templates.filter(template_id=template_id)
-        .prefetch_related("company")
-        .first()
-    )
+    template = await Templates.filter(id=template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
 
     update_data = {}
-    if template.company:
-        company_id = template.company.company_id
+    if template.company_id:
+        company_id = template.company_id
 
-        # Обновление компании, если нужно
-        if data.company and data.company != template.company.company_id:
-            company_obj = await Company.get_or_none(company_id=data.company)
-            if not company_obj:
-                raise HTTPException(status_code=400, detail="Компания не найдена")
-            update_data["company"] = company_obj
+        if data.company and data.company != template.company_id:
+            update_data["company_id"] = data.company
+            update_data.pop("company")
             company_id = data.company
 
     # Обновление файла
@@ -134,7 +117,8 @@ async def update_template(
 
     # Обновление прочих полей
     if data.template_name:
-        update_data["template_name"] = data.template_name
+        update_data["name"] = data.template_name
+        update_data.pop("template_name")
     if data.description:
         update_data["description"] = data.description
     if data.entity:
@@ -143,7 +127,7 @@ async def update_template(
     await template.update_from_dict(update_data)
     await template.save()
 
-    return {"template_id": str(template.template_id)}
+    return TemplateResponseSchema(template_id=template.id)
 
 
 @template_router.delete(
@@ -152,7 +136,7 @@ async def update_template(
 async def delete_template(
     template_id: UUID, _=with_permission_and_template_check("delete_template")
 ):
-    template = await Templates.filter(template_id=template_id).first()
+    template = await Templates.filter(id=template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Шаблон не найден")
 
@@ -178,7 +162,7 @@ async def get_templates(
             if company_filter:
                 query &= Q(company_id=company_filter) | Q(company_id=None)
         else:
-            query &= Q(company_id=context["company"]) | Q(company_id=None)
+            query &= Q(company_id=context["company_id"]) | Q(company_id=None)
         if filters.get("entity"):
             query &= Q(entity=filters["entity"])
 
@@ -190,7 +174,6 @@ async def get_templates(
 
         templates = (
             await Templates.filter(query)
-            .prefetch_related("company")
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -199,10 +182,10 @@ async def get_templates(
             total=total_count,
             templates=[
                 TemplateSchema(
-                    template_id=template.template_id,
-                    template_name=template.template_name,
+                    template_id=template.id,
+                    template_name=template.name,
                     description=template.description or "",
-                    company=template.company.company_id if template.company else None,
+                    company=template.company_id,
                     entity=template.entity,
                     s3_key=template.s3_key,
                 )
@@ -219,13 +202,14 @@ async def get_templates(
 async def genereate_file(
     data: GenerateFileSchema,
     _=Depends(require_permission_in_context("generate_template")),
+    settings=Depends(get_settings),
 ):
     logger.info(
         f"""🔧 Генерация файла запрошена пользователем: 
           шаблон: {data.template_id}, PDF: {data.is_pdf}"""
     )
 
-    template = await Templates.get_or_none(template_id=data.template_id)
+    template = await Templates.get_or_none(id=data.template_id)
     if not template:
         logger.warning(f"📂 Шаблон не найден: {data.template_id}")
         raise HTTPException(status_code=404, detail="Шаблон не найден")
@@ -303,11 +287,7 @@ async def download_template(
     template_id: UUID,
     _=Depends(require_permission_in_context("download_template")),
 ):
-    template = (
-        await Templates.filter(template_id=template_id)
-        .prefetch_related("company")
-        .first()
-    )
+    template = await Templates.filter(id=template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Счет не найден")
     manager = AsyncS3Manager()
@@ -321,25 +301,14 @@ async def download_template(
 async def get_template(
     template_id: UUID, _=Depends(require_permission_in_context("view_template"))
 ):
-    template = (
-        await Templates.filter(template_id=template_id)
-        .prefetch_related("company")
-        .first()
-    )
+    template = await Templates.filter(id=template_id).first()
     if not template:
         raise HTTPException(status_code=404, detail="Счет не найден")
     return TemplateSchema(
-        template_id=template.template_id,
-        template_name=template.template_name,
+        template_id=template.id,
+        template_name=template.name,
         description=template.description or "",
-        company=template.company.company_id if template.company else None,
+        company=template.company_id,
         entity=template.entity,
         s3_key=template.s3_key,
     )
-
-
-MEDIA_TYPES = {
-    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "pdf": "application/pdf",
-}

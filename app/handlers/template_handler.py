@@ -7,10 +7,10 @@ from app.utils.context_builders import build_act_context, build_bill_context
 
 
 async def handle_bills(bill_id: UUID):
-    bill = await Bills.get_or_none(bill_id=bill_id).prefetch_related(
+    bill = await Bills.get_or_none(id=bill_id).prefetch_related(
         "bank_account__legal_entity__entity_type",
-        "contract__buyer",
-        "contract__seller",
+        "contract__buyer_id",
+        "contract__seller_id",
         "contract__status",
         "details_in_bill__service",
     )
@@ -20,13 +20,13 @@ async def handle_bills(bill_id: UUID):
 
     context = await build_bill_context(bill)
 
-    return context, bill.bill_number
+    return context, bill.number
 
 
 async def handle_acts(act_id: UUID):
-    act = await Acts.get_or_none(act_id=act_id).prefetch_related(
-        "contract__buyer",
-        "contract__seller",
+    act = await Acts.get_or_none(id=act_id).prefetch_related(
+        "contract__buyer_id",
+        "contract__seller_id",
         "details_in_act__service",
     )
 
@@ -35,4 +35,4 @@ async def handle_acts(act_id: UUID):
 
     context = await build_act_context(act)
 
-    return context, act.act_number
+    return context, act.number

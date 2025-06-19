@@ -4,11 +4,11 @@ import pytest
 from httpx import AsyncClient
 from loguru import logger
 
-from app.database.models import Company
+from app.database.models import Service
 
 
 @pytest.mark.asyncio
-async def test_mass_create_companies(
+async def test_mass_create_services(
     test_app: AsyncClient, jwt_token_admin, seed_company
 ):
     """Создаем 100 компаний подряд и проверяем, не падает ли API"""
@@ -17,7 +17,7 @@ async def test_mass_create_companies(
     for i in range(100):
         data = {"company_name": f"Company {i}"}
         response = await test_app.post(
-            f"/api/companies/add?company={seed_company['company_id']}",
+            f"/api/services/add?company={seed_company['company_id']}",
             headers=headers,
             json=data,
         )
@@ -25,7 +25,7 @@ async def test_mass_create_companies(
 
 
 @pytest.mark.asyncio
-async def test_mass_create_companies_async(
+async def test_mass_create_services_async(
     test_app: AsyncClient, jwt_token_admin, seed_company
 ):
     """Создаем 100 компаний конкурентно"""
@@ -34,7 +34,7 @@ async def test_mass_create_companies_async(
     async def create_company(i):
         data = {"company_name": f"Company {i}"}
         response = await test_app.post(
-            f"/api/companies/add?company={seed_company['company_id']}",
+            f"/api/services/add?company={seed_company['company_id']}",
             headers=headers,
             json=data,
         )
@@ -54,14 +54,14 @@ async def test_mass_create_companies_async(
 @pytest.mark.asyncio
 async def test_unauthorized_access(test_app: AsyncClient, headers):
     """Проверка, что API отказывает в доступе без авторизации"""
-    response = await test_app.get("/api/companies/all", headers=headers)
+    response = await test_app.get("/api/services/all", headers=headers)
     assert response.status_code == 401, (
         f"Ожидали 401, но получили {response.status_code}"
     )
 
 
 @pytest.mark.asyncio
-async def test_mass_delete_companies(
+async def test_mass_delete_services(
     test_app: AsyncClient, jwt_token_admin, seed_company
 ):
     """Создаем 10 компаний, затем удаляем их всех"""
@@ -72,7 +72,7 @@ async def test_mass_delete_companies(
     for i in range(10):
         data = {"company_name": f"ToDelete {i}"}
         response = await test_app.post(
-            f"/api/companies/add?company={seed_company['company_id']}",
+            f"/api/services/add?company={seed_company['company_id']}",
             headers=headers,
             json=data,
         )
@@ -81,12 +81,12 @@ async def test_mass_delete_companies(
     await asyncio.sleep(0.1)
     # Удаляем компании
     for company_id in created_ids:
-        entity = await Company.filter(company_id=company_id).first()
+        entity = await Service.filter(company_id=company_id).first()
         assert entity is not None, f"Компания {company_id} не найдена перед удалением!"
         logger.info(f"Компания {company_id} найдена перед удалением")
 
         response = await test_app.delete(
-            f"/api/companies/{company_id}?company={seed_company['company_id']}",
+            f"/api/services/{company_id}?company={seed_company['company_id']}",
             headers=headers,
         )
         assert response.status_code == 204, f"Ошибка при удалении {company_id}"
@@ -102,7 +102,7 @@ async def test_large_data_handling(
 
     data = {"company_name": large_text, "description": large_text}
     response = await test_app.post(
-        f"/api/companies/add?company={seed_company['company_id']}",
+        f"/api/services/add?company={seed_company['company_id']}",
         headers=headers,
         json=data,
     )

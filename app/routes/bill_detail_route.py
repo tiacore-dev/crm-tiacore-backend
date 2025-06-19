@@ -2,11 +2,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 
 from app.database.models import BillDetails, Bills, EntityCompanyRelation, Service
 from app.dependencies.permissions import with_permission_through_bill
-from app.handlers.depends import require_permission_in_context
 from app.pydantic_models.bill_detail_models import (
     BillDetailCreateSchema,
     BillDetailEditSchema,
@@ -22,86 +23,90 @@ bill_detail_router = APIRouter()
 @bill_detail_router.post(
     "/add",
     response_model=BillDetailResponseSchema,
-    summary="Добавить деталь счета",
+    summary="Добавить детали счета",
     status_code=status.HTTP_201_CREATED,
 )
 async def add_bill_detail(
     data: BillDetailCreateSchema,
     context=Depends(require_permission_in_context("add_bill_detail")),
 ):
-    bill = await Bills.get_or_none(bill_id=data.bill).prefetch_related("seller")
-    service = await Service.get_or_none(service_id=data.service)
-
-    if not bill or not service:
-        raise HTTPException(status_code=400, detail="Счет или услуга не найдены")
+    bill = await Bills.get_or_none(id=data.bill)
+    if not bill:
+        raise HTTPException(status_code=400, detail="Счет не найден")
 
     if not context.get("is_superadmin"):
         is_seller = await EntityCompanyRelation.exists(
-            company_id=context["company"],
-            legal_entity=bill.seller,
+            company_id=context["company_id"],
+            legal_entity_id=bill.seller_id,
             relation_type="seller",
         )
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Нельзя добавлять детали к счету другой компании",
+                detail="Вы не можете добавлять детали к счету другой компании",
             )
-    try:
-        bill_detail = await BillDetails.create(
-            bill=bill,
-            service=service,
-            quantity=data.quantity,
-            summ=data.quantity * data.price,
-            price=data.price,
-        )
-        return {"bill_detail_id": str(bill_detail.bill_detail_id)}
+    await validate_exists(Service, data.service, "Услуга")
 
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+    bill_detail = await BillDetails.create(
+        bill=bill,
+        service_id=data.service,
+        quantity=data.quantity,
+        summ=data.quantity * data.price,
+        price=data.price,
+    )
+    return BillDetailResponseSchema(bill_detail_id=bill_detail.id)
 
 
-# --- Обновление существующей детали счета ---
 @bill_detail_router.patch(
     "/{bill_detail_id}",
     response_model=BillDetailResponseSchema,
-    summary="Изменить деталь счета",
+    summary="Изменить детали счета",
 )
 async def update_bill_detail(
     bill_detail_id: UUID,
     data: BillDetailEditSchema,
-    context=with_permission_through_bill("edit_bill_detail"),
+    _=with_permission_through_bill("edit_bill_detail"),
 ):
-    bill_detail = await BillDetails.filter(bill_detail_id=bill_detail_id).first()
+    bill_detail = await BillDetails.filter(id=bill_detail_id).first()
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")
 
     update_data = data.model_dump(exclude_unset=True)
 
+    if "bill" in update_data:
+        bill = await Bills.get_or_none(bill_id=update_data["bill"])
+        if not bill:
+            raise HTTPException(status_code=400, detail="Счет не найден")
+        update_data["bill"] = bill
+
+    if "service" in update_data:
+        service = await Service.get_or_none(service_id=update_data["service"])
+        if not service:
+            raise HTTPException(status_code=400, detail="Услуга не найдена")
+        update_data["service"] = service
+
     await bill_detail.update_from_dict(update_data)
-    # Пересчитываем сумму только если изменились price или quantity
     if "price" in update_data or "quantity" in update_data:
         bill_detail.summ = bill_detail.price * bill_detail.quantity
-
     await bill_detail.save()
 
-    return {"bill_detail_id": str(bill_detail.bill_detail_id)}
+    return BillDetailResponseSchema(bill_detail_id=bill_detail.id)
 
 
-# --- Удаление детали счета ---
 @bill_detail_router.delete(
     "/{bill_detail_id}",
-    summary="Удалить деталь счета",
+    summary="Удалить детали счета",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_bill_detail(
-    bill_detail_id: UUID, context=with_permission_through_bill("delete_bill_detail")
+    bill_detail_id: UUID, _=with_permission_through_bill("delete_bill_detail")
 ):
-    bill_detail = await BillDetails.filter(bill_detail_id=bill_detail_id).first()
+    bill_detail = await BillDetails.filter(id=bill_detail_id).first()
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")
 
     await bill_detail.delete()
+    # return {"message": "Деталь счета удалена"}
 
 
 @bill_detail_router.get(
@@ -111,40 +116,35 @@ async def delete_bill_detail(
 )
 async def get_bill_details(
     filters: dict = Depends(bill_detail_filter_params),
-    context=Depends(require_permission_in_context("get_all_bill_details")),
+    _=Depends(require_permission_in_context("get_all_bill_details")),
 ):
     try:
         query = Q()
 
-        if not context.get("is_superadmin"):
-            allowed_bill_ids = await Bills.filter(
-                seller__entity_company_relations__company_id=context["company"],
-                seller__entity_company_relations__relation_type="seller",
-            ).values_list("bill_id", flat=True)
+        # if not context.get("is_superadmin"):
+        #     allowed_bill_ids = await Bills.filter(
+        #         seller__entity_company_relations__company_id=context["company_id"],
+        #         seller__entity_company_relations__relation_type="seller",
+        #     ).values_list("bill_id", flat=True)
 
-            query &= Q(bill_id__in=allowed_bill_ids)
+        #     query &= Q(bill_id__in=allowed_bill_ids)
 
         if filters.get("bill"):
             query &= Q(bill_id=filters["bill"])
         if filters.get("service"):
             query &= Q(service_id=filters["service"])
-        if filters.get("bill"):
-            query &= Q(bill_id=filters["bill"])
-        if filters.get("service"):
-            query &= Q(service_id=filters["service"])
 
-        # ✅ Общее число записей
         total_count = await BillDetails.filter(query).count()
 
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
-
-        sort_by = filters.get("sort_by", "act_date")
+        sort_by = filters.get("sort_by", "bill_date")
         order = filters.get("order", "asc").lower()
         if order not in ("asc", "desc"):
             raise HTTPException(
                 status_code=422, detail="order должен быть 'asc' или 'desc'"
             )
+
         sort_field = sort_by if order == "asc" else f"-{sort_by}"
 
         bill_details = (
@@ -159,9 +159,9 @@ async def get_bill_details(
             total=total_count,
             bill_details=[
                 BillDetailSchema(
-                    bill_detail_id=bill_detail.bill_detail_id,
-                    bill=bill_detail.bill.bill_id,
-                    service=bill_detail.service.service_id,
+                    bill_detail_id=bill_detail.id,
+                    bill=bill_detail.bill.id,
+                    service=bill_detail.service.id,
                     quantity=bill_detail.quantity,
                     summ=bill_detail.summ,
                     price=bill_detail.price,
@@ -176,27 +176,27 @@ async def get_bill_details(
         raise HTTPException(status_code=400, detail="Некорректные данные") from e
 
 
-# --- Получение одной детали счета по ID ---
 @bill_detail_router.get(
     "/{bill_detail_id}",
     response_model=BillDetailSchema,
     summary="Просмотр одной детали счета",
 )
 async def get_bill_detail(
-    bill_detail_id: UUID, context=with_permission_through_bill("view_bill_detail")
+    bill_detail_id: UUID, _=with_permission_through_bill("view_bill_detail")
 ):
     bill_detail = (
-        await BillDetails.filter(bill_detail_id=bill_detail_id)
+        await BillDetails.filter(id=bill_detail_id)
         .prefetch_related("bill", "service")
         .first()
     )
+
     if not bill_detail:
         raise HTTPException(status_code=404, detail="Деталь счета не найдена")
 
     return BillDetailSchema(
-        bill_detail_id=bill_detail.bill_detail_id,
-        bill=bill_detail.bill.bill_id,
-        service=bill_detail.service.service_id,
+        bill_detail_id=bill_detail.id,
+        bill=bill_detail.bill.id,
+        service=bill_detail.service.id,
         quantity=bill_detail.quantity,
         summ=bill_detail.summ,
         price=bill_detail.price,

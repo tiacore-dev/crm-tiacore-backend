@@ -12,3 +12,20 @@ async def drop_all_tables():
             await tx.execute_query(
                 f'DROP TABLE IF EXISTS "{table["tablename"]}" CASCADE;'
             )
+
+
+async def create_test_data():
+    from app.database.models import ContractStatus
+
+    try:
+        await ContractStatus.get_or_create(
+            contract_status_id="active", status_name="Активен"
+        )
+        await ContractStatus.get_or_create(
+            contract_status_id="waiting", status_name="Ожидание"
+        )
+        await ContractStatus.get_or_create(
+            contract_status_id="completed", status_name="Завершен"
+        )
+    except Exception as e:
+        print(f"Exception: {e}")

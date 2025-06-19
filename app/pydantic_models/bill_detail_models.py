@@ -1,16 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, Query
-from pydantic import UUID4, Field, field_validator
-
-from app.pydantic_models.clean_model import CleanableBaseModel
+from pydantic import Field, field_validator
+from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
 
 
 class BillDetailCreateSchema(CleanableBaseModel):
-    bill: UUID4 = Field(...)
-    service: UUID4 = Field(...)
+    bill: UUID = Field(...)
+    service: UUID = Field(...)
     quantity: Decimal = Field(..., gt=0)
     # summ: Decimal = Field(..., gt=0)
     price: Decimal = Field(..., gt=0, max_digits=8, decimal_places=2)
@@ -29,13 +29,15 @@ class BillDetailCreateSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillDetailResponseSchema(CleanableBaseModel):
-    bill_detail_id: UUID4
+    bill_detail_id: UUID
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillDetailEditSchema(CleanableBaseModel):
@@ -45,12 +47,13 @@ class BillDetailEditSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillDetailSchema(CleanableBaseModel):
-    bill_detail_id: UUID4
-    bill: UUID4
-    service: UUID4
+    bill_detail_id: UUID
+    bill: UUID
+    service: UUID
     quantity: Decimal
     summ: Decimal
     price: Decimal
@@ -58,6 +61,7 @@ class BillDetailSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillDetailListResponseSchema(CleanableBaseModel):
@@ -70,8 +74,8 @@ class BillDetailListResponseSchema(CleanableBaseModel):
 
 
 def bill_detail_filter_params(
-    bill: Optional[UUID4] = Query(None, description="Фильтр по счету"),
-    service: Optional[UUID4] = Query(None, description="Фильтр по услуге"),
+    bill: Optional[UUID] = Query(None, description="Фильтр по счету"),
+    service: Optional[UUID] = Query(None, description="Фильтр по услуге"),
     sort_by: Optional[str] = Query("created_at", description="Поле сортировки"),
     order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),

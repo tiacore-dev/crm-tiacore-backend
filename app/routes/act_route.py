@@ -3,12 +3,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tiacore_lib.utils.validate_helpers import validate_exists
 from tortoise.expressions import Q
 from tortoise.functions import Sum
 
-from app.database.models import ActDetails, Acts, Company, Contract, LegalEntity
+from app.database.models import ActDetails, Acts, Contract
 from app.dependencies.permissions import with_permission_and_seller_act_check
-from app.handlers.depends import require_permission_in_context
 from app.pydantic_models.act_models import (
     ActCreateSchema,
     ActEditSchema,
@@ -31,90 +32,51 @@ act_router = APIRouter()
 async def add_act(
     data: ActCreateSchema, context=Depends(require_permission_in_context("add_act"))
 ):
-    try:
-        contract = None
-        if data.contract:
-            contract = await Contract.get_or_none(
-                contract_id=data.contract
-            ).prefetch_related("buyer", "seller")
+    contract = None
+    if data.contract_id:
+        contract = await Contract.get_or_none(id=data.contract_id)
 
-            if not contract:
-                raise HTTPException(status_code=400, detail="Контракт не найден")
+        if not contract:
+            raise HTTPException(status_code=400, detail="Контракт не найден")
 
-            data.buyer = contract.buyer.legal_entity_id
-            data.seller = contract.seller.legal_entity_id
-        buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
-        seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
-        company = await Company.get_or_none(company_id=data.company)
-        if not buyer or not seller or not company:
-            raise HTTPException(status_code=400, detail="Юр. лица не найдены")
+        data.buyer_id = contract.buyer_id
+        data.seller_id = contract.seller_id
 
-        if not context.get("is_superadmin"):
-            await ensure_seller_belongs_to_company(seller, context["company"])
+    if not context.get("is_superadmin"):
+        await ensure_seller_belongs_to_company(data.seller_id, context["company_id"])
 
-        act = await Acts.create(
-            act_number=data.act_number,
-            act_date=data.act_date,
-            contract=contract,
-            buyer=buyer,
-            seller=seller,
-            company=company,
-        )
-        return {"act_id": str(act.act_id)}
-
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+    act = await Acts.create(**data.model_dump())
+    return ActResponseSchema(act_id=act.id)
 
 
 @act_router.patch("/{act_id}", response_model=ActResponseSchema, summary="Изменить акт")
 async def update_act(
     act_id: UUID,
     data: ActEditSchema,
-    check_act_access=with_permission_and_seller_act_check("edit_act"),
+    _=with_permission_and_seller_act_check("edit_act"),
 ):
-    act = await Acts.filter(act_id=act_id).first()
+    act = await Acts.filter(id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
 
     update_data = data.model_dump(exclude_unset=True)
 
     if "contract" in update_data:
-        contract = await Contract.get_or_none(contract_id=update_data["contract"])
-        if not contract:
-            raise HTTPException(status_code=400, detail="Контракт не найден")
-        update_data["contract"] = contract
-
-    if data.buyer:
-        buyer = await LegalEntity.get_or_none(legal_entity_id=data.buyer)
-        if not buyer:
-            raise HTTPException(status_code=400, detail="Покупатель не найден")
-        update_data["buyer"] = buyer
-
-    if data.seller:
-        seller = await LegalEntity.get_or_none(legal_entity_id=data.seller)
-        if not seller:
-            raise HTTPException(status_code=400, detail="Продавец не найден")
-        update_data["seller"] = seller
-    if data.company:
-        company = await Company.get_or_none(company_id=data.company)
-        if not company:
-            raise HTTPException(status_code=400, detail="Компмания не найдена")
-        update_data["company"] = company
+        await validate_exists(Contract, data.contract_id, "Контракт")
 
     await act.update_from_dict(update_data)
     await act.save()
 
-    return {"act_id": str(act.act_id)}
+    return ActResponseSchema(act_id=act.id)
 
 
 @act_router.delete(
     "/{act_id}", summary="Удалить акт", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_act(
-    act_id: UUID, check_act_access=with_permission_and_seller_act_check("delete_act")
+    act_id: UUID, _=with_permission_and_seller_act_check("delete_act")
 ):
-    act = await Acts.filter(act_id=act_id).first()
+    act = await Acts.filter(id=act_id).first()
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
 
@@ -135,7 +97,7 @@ async def get_acts(
             if company_filter:
                 query &= Q(company_id=company_filter)
         else:
-            query &= Q(company_id=context["company"])
+            query &= Q(company_id=context["company_id"])
 
         if filters.get("contract"):
             query &= Q(contract_id=filters["contract"])
@@ -149,7 +111,7 @@ async def get_acts(
         if filters.get("act_date_from"):
             try:
                 date_from = int(filters["act_date_from"])
-                query &= Q(act_date__gte=date_from)
+                query &= Q(date__gte=date_from)
             except ValueError as e:
                 raise HTTPException(
                     status_code=422,
@@ -159,7 +121,7 @@ async def get_acts(
         if filters.get("act_date_to"):
             try:
                 date_to = int(filters["act_date_to"])
-                query &= Q(act_date__lte=date_to)
+                query &= Q(date__lte=date_to)
             except ValueError as e:
                 raise HTTPException(
                     status_code=422,
@@ -169,7 +131,7 @@ async def get_acts(
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
-        sort_by = filters.get("sort_by", "act_date")
+        sort_by = filters.get("sort_by", "number")
         order = filters.get("order", "asc").lower()
         if order not in ("asc", "desc"):
             raise HTTPException(
@@ -183,31 +145,31 @@ async def get_acts(
         acts = (
             await Acts.filter(query)
             .order_by(sort_field)
-            .prefetch_related("contract", "buyer", "seller", "company")
+            .prefetch_related("contract")
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
         act_sums = (
-            await ActDetails.filter(act_id__in=[act.act_id for act in acts])
-            .group_by("act_id")
+            await ActDetails.filter(id__in=[act.id for act in acts])
+            .group_by("id")
             .annotate(total_summ=Sum("summ"))
-            .values("act_id", "total_summ")
+            .values("id", "total_summ")
         )
 
-        summ_map = {item["act_id"]: item["total_summ"] for item in act_sums}
+        summ_map = {item["id"]: item["total_summ"] for item in act_sums}
 
         return ActListResponseSchema(
             total=total_count,
             acts=[
                 ActSchema(
-                    act_id=act.act_id,
-                    contract=act.contract.contract_id if act.contract else None,
-                    act_number=act.act_number,
-                    act_date=act.act_date,
-                    buyer=act.buyer.legal_entity_id,
-                    seller=act.seller.legal_entity_id,
-                    company=act.company.company_id,
-                    summ=summ_map.get(act.act_id, Decimal("0.00")),
+                    act_id=act.id,
+                    contract=act.contract.id if act.contract else None,
+                    act_number=act.number,
+                    act_date=act.date,
+                    buyer=act.buyer_id,
+                    seller=act.seller_id,
+                    company=act.company_id,
+                    summ=summ_map.get(act.id, Decimal("0.00")),
                 )
                 for act in acts
             ],
@@ -219,23 +181,17 @@ async def get_acts(
 
 
 @act_router.get("/{act_id}", response_model=ActSchema, summary="Просмотр одного акта")
-async def get_act(
-    act_id: UUID, check_act_access=with_permission_and_seller_act_check("view_act")
-):
-    act = (
-        await Acts.filter(act_id=act_id)
-        .prefetch_related("contract", "buyer", "seller", "company")
-        .first()
-    )
+async def get_act(act_id: UUID, _=with_permission_and_seller_act_check("view_act")):
+    act = await Acts.filter(id=act_id).prefetch_related("contract").first()
 
     if not act:
         raise HTTPException(status_code=404, detail="Акт не найден")
 
     act_summ_records = (
-        await ActDetails.filter(act_id=act_id)
-        .group_by("act_id")
+        await ActDetails.filter(id=act_id)
+        .group_by("id")
         .annotate(total_summ=Sum("summ"))
-        .values("act_id", "total_summ")
+        .values("id", "total_summ")
     )
 
     act_summ = (
@@ -245,12 +201,12 @@ async def get_act(
     )
 
     return ActSchema(
-        act_id=act.act_id,
-        contract=act.contract.contract_id if act.contract else None,
-        act_number=act.act_number,
-        act_date=act.act_date,
-        buyer=act.buyer.legal_entity_id,
-        seller=act.seller.legal_entity_id,
-        company=act.company.company_id,
+        act_id=act.id,
+        contract=act.contract.id if act.contract else None,
+        act_number=act.number,
+        act_date=act.date,
+        buyer=act.buyer_id,
+        seller=act.seller_id,
+        company=act.company_id,
         summ=Decimal(act_summ),
     )

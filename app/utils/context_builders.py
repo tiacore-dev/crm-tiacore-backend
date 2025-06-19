@@ -11,13 +11,6 @@ def format_date(timestamp: int) -> str:
 
 
 def flatten_context(obj, parent_key="", sep=".") -> dict:
-    """
-    Рекурсивно разворачивает вложенные dict и списки в плоский словарь:
-    {
-        "act.details.0.service.service_name": "Имя услуги",
-        ...
-    }
-    """
     items = {}
     if isinstance(obj, dict):
         for k, v in obj.items():
@@ -46,21 +39,19 @@ async def build_bill_context(bill: Bills) -> dict:
 
     return {
         "bill": {
-            "bill_id": str(bill.bill_id),
-            "bill_number": bill.bill_number,
-            "bill_date": format_date(bill.bill_date),
+            "bill_id": str(bill.id),
+            "bill_number": bill.number,
+            "bill_date": format_date(bill.date),
             "contract": {
-                "contract_id": str(bill.contract.contract_id)
+                "contract_id": str(bill.contract.id) if bill.contract else None,
+                "contract_name": bill.contract.name if bill.contract else None,
+                "contract_date": format_date(bill.contract.date)
                 if bill.contract
                 else None,
-                "contract_name": bill.contract.contract_name if bill.contract else None,
-                "contract_date": format_date(bill.contract.contract_date)
+                "buyer": legal_entity_to_dict(bill.contract.buyer_id)
                 if bill.contract
                 else None,
-                "buyer": legal_entity_to_dict(bill.contract.buyer)
-                if bill.contract
-                else None,
-                "seller": legal_entity_to_dict(bill.contract.seller)
+                "seller": legal_entity_to_dict(bill.contract.seller_id)
                 if bill.contract
                 else None,
                 "status": getattr(bill.contract.status, "status_name", None)
@@ -68,17 +59,17 @@ async def build_bill_context(bill: Bills) -> dict:
                 else None,
             },
             "bank_account": {
-                "account_number": bill.bank_account.account_number,
+                "account_number": bill.bank_account.number,
                 "bank_name": bill.bank_account.bank_name,
                 "bank_bic": bill.bank_account.bank_bic,
                 "bank_corr_account": bill.bank_account.bank_corr_account,
-                "legal_entity": legal_entity_to_dict(bill.bank_account.legal_entity),
+                "legal_entity": legal_entity_to_dict(bill.bank_account.legal_entity_id),
             },
             "details": [
                 {
                     "service": {
-                        "service_name": detail.service.service_name,
-                        "service_id": str(detail.service.service_id),
+                        "service_name": detail.service.name,
+                        "service_id": str(detail.service.id),
                     },
                     "quantity": float(detail.quantity),
                     "summ": float(detail.summ),
@@ -105,20 +96,20 @@ async def build_act_context(act: Acts) -> dict:
 
     return {
         "act": {
-            "act_id": str(act.act_id),
-            "act_number": act.act_number,
-            "act_date": format_date(act.act_date),
+            "act_id": str(act.id),
+            "act_number": act.number,
+            "act_date": format_date(act.date),
             "contract": {
-                "contract_id": str(act.contract.contract_id) if act.contract else None,
-                "contract_name": act.contract.contract_name if act.contract else None,
-                "contract_date": format_date(act.contract.contract_date)
+                "contract_id": str(act.contract.id) if act.contract else None,
+                "contract_name": act.contract.name if act.contract else None,
+                "contract_date": format_date(act.contract.date)
                 if act.contract
                 else None,
                 "comment": act.contract.comment if act.contract else None,
-                "buyer": legal_entity_to_dict(act.contract.buyer)
+                "buyer": legal_entity_to_dict(act.contract.buyer_id)
                 if act.contract
                 else None,
-                "seller": legal_entity_to_dict(act.contract.seller)
+                "seller": legal_entity_to_dict(act.contract.seller_id)
                 if act.contract
                 else None,
                 "status": getattr(act.contract.status, "status_name", None)
@@ -128,8 +119,8 @@ async def build_act_context(act: Acts) -> dict:
             "details": [
                 {
                     "service": {
-                        "service_id": str(detail.service.service_id),
-                        "service_name": detail.service.service_name,
+                        "service_id": str(detail.service.id),
+                        "service_name": detail.service.name,
                     },
                     "quantity": float(detail.quantity),
                     "summ": float(detail.summ),
