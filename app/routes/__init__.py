@@ -20,7 +20,7 @@ from .template_route import template_router
 
 
 def register_routes(app: FastAPI):
-    app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+    app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
     app.include_router(invite_router, prefix="/api", tags=["Invite"])
     app.include_router(register_router, prefix="/api", tags=["Register"])
     app.include_router(user_router, prefix="/api/users", tags=["Users"])
