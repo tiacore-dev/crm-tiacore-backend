@@ -13,6 +13,7 @@ from .bill_detail_route import bill_detail_router
 from .bill_route import bill_router
 from .contract_route import contract_router
 from .easter_route import easter_router
+from .entity_company_relation_route import entity_relation_router
 from .get_route import get_router
 from .legal_entity_route import entity_router
 from .service_route import service_router
@@ -46,4 +47,9 @@ def register_routes(app: FastAPI):
     app.include_router(easter_router)
     app.include_router(
         entity_router, prefix="/api/legal-entities", tags=["LegalEntities"]
+    )
+    app.include_router(
+        entity_relation_router,
+        prefix="/api/entity-company-relations",
+        tags=["EntityCompanyRelations"],
     )
