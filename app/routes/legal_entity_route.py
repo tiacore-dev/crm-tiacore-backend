@@ -48,9 +48,16 @@ async def add_legal_entity(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add",
         headers=headers,
-        json=data.model_dump(),
+        json=data.model_dump(mode="json", exclude={"relation_type"}),
         params=query_params,
     )
+    if data.relation_type:
+        await EntityCompanyRelation.create(
+            company_id=data.company_id,
+            legal_entity_id=UUID(response_data["legal_entity_id"]),
+            relation_type=data.relation_type,
+            description=data.description,
+        )
     return LegalEntityResponseSchema(**response_data)
 
 
@@ -74,9 +81,16 @@ async def add_legal_entity_by_inn(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add-by-inn",
         headers=headers,
-        json=data.model_dump(),
+        json=data.model_dump(mode="json", exclude={"relation_type"}),
         params=query_params,
     )
+    if data.relation_type:
+        await EntityCompanyRelation.create(
+            company_id=data.company_id,
+            legal_entity_id=UUID(response_data["legal_entity_id"]),
+            relation_type=data.relation_type,
+            description=data.description,
+        )
 
     return LegalEntityResponseSchema(**response_data)
 
