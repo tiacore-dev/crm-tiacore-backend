@@ -37,7 +37,7 @@ http_client = SharedHttpClient()
 async def add_legal_entity(
     request: Request,
     data: LegalEntityCreateSchema,
-    context=Depends(require_permission_in_context("add_legal_entity")),
+    _=Depends(require_permission_in_context("add_legal_entity")),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
@@ -60,7 +60,7 @@ async def add_legal_entity(
 async def add_legal_entity_by_inn(
     request: Request,
     data: LegalEntityINNCreateSchema,
-    context=Depends(require_permission_in_context("add_legal_entity_by_inn")),
+    _=Depends(require_permission_in_context("add_legal_entity_by_inn")),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
