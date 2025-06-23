@@ -161,16 +161,16 @@ async def get_legal_entities(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
-    query_params = dict(filters)
-    if context.get("company_id"):
-        query_params["company_id"] = str(context["company_id"])
+    # Получаем все id юр. лиц, у которых relation_type == buyer
+    legal_entity_ids = await EntityCompanyRelation.filter(
+        company_id=context["company_id"]
+    ).values_list("legal_entity_id", flat=True)
 
     response_data, status_code = await http_client.request(
-        "GET",
-        f"{settings.REFERENCE_URL}/api/legal-entities/all",
+        "POST",
+        f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        params=query_params,
+        json={"ids": legal_entity_ids},
     )
     return LegalEntityListResponseSchema(**response_data)
 
@@ -194,16 +194,13 @@ async def get_buyers(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-    query_params = (
-        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
-    )
+
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
-        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -228,16 +225,12 @@ async def get_sellers(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-    query_params = (
-        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
-    )
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
-        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -263,16 +256,13 @@ async def get_by_company(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-    query_params = (
-        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
-    )
+
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
-        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
