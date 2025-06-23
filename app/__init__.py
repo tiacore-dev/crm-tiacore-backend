@@ -57,7 +57,7 @@ def create_app(config_name: ConfigName) -> FastAPI:
 
         await Tortoise.close_connections()
 
-    app = FastAPI(title="reference", redirect_slashes=False, lifespan=lifespan)
+    app = FastAPI(title="CRM app", redirect_slashes=False, lifespan=lifespan)
     app.dependency_overrides[get_settings] = provide_settings(config_name)
     setup_logger()
 

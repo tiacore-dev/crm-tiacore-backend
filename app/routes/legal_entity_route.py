@@ -37,16 +37,19 @@ http_client = SharedHttpClient()
 async def add_legal_entity(
     request: Request,
     data: LegalEntityCreateSchema,
-    _=Depends(require_permission_in_context("add_legal_entity")),
+    context=Depends(require_permission_in_context("add_legal_entity")),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add",
         headers=headers,
         json=data.model_dump(),
+        params=query_params,
     )
     return LegalEntityResponseSchema(**response_data)
 
@@ -60,16 +63,19 @@ async def add_legal_entity(
 async def add_legal_entity_by_inn(
     request: Request,
     data: LegalEntityINNCreateSchema,
-    _=Depends(require_permission_in_context("add_legal_entity_by_inn")),
+    context=Depends(require_permission_in_context("add_legal_entity_by_inn")),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add-by-inn",
         headers=headers,
         json=data.model_dump(),
+        params=query_params,
     )
 
     return LegalEntityResponseSchema(**response_data)
@@ -84,16 +90,19 @@ async def update_legal_entity(
     request: Request,
     legal_entity_id: UUID,
     data: LegalEntityEditSchema,
-    _=with_permission_and_entity_company_check("edit_legal_entity"),
+    context=with_permission_and_entity_company_check("edit_legal_entity"),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     response_data, status_code = await http_client.request(
         "PATCH",
         f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
         json=data.model_dump(),
+        params=query_params,
     )
 
     return LegalEntityResponseSchema(**response_data)
@@ -107,15 +116,18 @@ async def update_legal_entity(
 async def delete_legal_entity(
     request: Request,
     legal_entity_id: UUID,
-    _=with_permission_and_entity_company_check("delete_legal_entity"),
+    context=with_permission_and_entity_company_check("delete_legal_entity"),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     _, status_code = await http_client.request(
         "DELETE",
         f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
+        params=query_params,
     )
     if status_code != 204:
         raise HTTPException(
@@ -131,13 +143,14 @@ async def delete_legal_entity(
 async def get_legal_entities(
     request: Request,
     filters: dict = Depends(legal_entity_filter_params),
-    _: dict = Depends(require_permission_in_context("get_all_legal_entities")),
+    context: dict = Depends(require_permission_in_context("get_all_legal_entities")),
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
 
-    # Собираем query-параметры из запроса
-    query_params = filters
+    query_params = dict(filters)
+    if context.get("company_id"):
+        query_params["company_id"] = str(context["company_id"])
 
     response_data, status_code = await http_client.request(
         "GET",
@@ -167,13 +180,16 @@ async def get_buyers(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
+        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -198,13 +214,16 @@ async def get_sellers(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
+        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -218,7 +237,7 @@ async def get_sellers(
 async def get_by_company(
     request: Request,
     company_id: UUID = Query(..., description="ID компании"),
-    _: dict = Depends(require_permission_in_context("get_by_company")),
+    context: dict = Depends(require_permission_in_context("get_by_company")),
     settings=Depends(get_settings),
 ):
     # Получаем все id юр. лиц, у которых relation_type == buyer
@@ -230,13 +249,16 @@ async def get_by_company(
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     # Делаем запрос к reference-сервису
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
         json={"ids": legal_entity_ids},
+        params=query_params,
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -279,10 +301,13 @@ async def get_legal_entity(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-
+    query_params = (
+        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
+    )
     response_data, status_code = await http_client.request(
         "GET",
         f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
         headers=headers,
+        params=query_params,
     )
     return LegalEntitySchema(**response_data)
