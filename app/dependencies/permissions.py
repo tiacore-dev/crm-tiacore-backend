@@ -168,9 +168,7 @@ def with_permission_and_service_check(permission: str):
             return context
 
         # Проверка принадлежности услуги компании
-        service = await Service.get_or_none(service_id=service_id).prefetch_related(
-            "company"
-        )
+        service = await Service.get_or_none(id=service_id)
 
         if not service or str(service.company_id) != str(context["company_id"]):
             raise HTTPException(

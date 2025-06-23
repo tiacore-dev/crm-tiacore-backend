@@ -170,7 +170,7 @@ async def get_legal_entities(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": legal_entity_ids},
+        json={"ids": [str(i) for i in legal_entity_ids]},
     )
     return LegalEntityListResponseSchema(**response_data)
 
@@ -200,7 +200,7 @@ async def get_buyers(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": legal_entity_ids},
+        json={"ids": [str(i) for i in legal_entity_ids]},
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -230,7 +230,7 @@ async def get_sellers(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": legal_entity_ids},
+        json={"ids": [str(i) for i in legal_entity_ids]},
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -262,7 +262,7 @@ async def get_by_company(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": legal_entity_ids},
+        json={"ids": [str(i) for i in legal_entity_ids]},
     )
 
     return LegalEntityListResponseSchema(**response_data)
