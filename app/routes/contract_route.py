@@ -140,98 +140,93 @@ async def get_contracts(
     filters: dict = Depends(contract_filter_params),
     context=Depends(require_permission_in_context("get_all_contracts")),
 ):
-    try:
-        query = Q()
-        if context["is_superadmin"]:
-            company_filter = filters.get("company")
-            if company_filter:
-                query &= Q(company_id=company_filter)
-        else:
-            query &= Q(company_id=context["company_id"])
+    query = Q()
+    if context["is_superadmin"]:
+        company_filter = filters.get("company")
+        if company_filter:
+            query &= Q(company_id=company_filter)
+    else:
+        query &= Q(company_id=context["company_id"])
 
-        if filters.get("buyer"):
-            query &= Q(buyer_id=filters["buyer"])
-        if filters.get("seller"):
-            query &= Q(seller_id=filters["seller"])
-        if filters.get("status"):
-            query &= Q(status_id=filters["status"])
+    if filters.get("buyer"):
+        query &= Q(buyer_id=filters["buyer"])
+    if filters.get("seller"):
+        query &= Q(seller_id=filters["seller"])
+    if filters.get("status"):
+        query &= Q(status_id=filters["status"])
 
-        if filters.get("contract_name"):
-            query &= Q(name__icontains=filters["contract_name"])
+    if filters.get("contract_name"):
+        query &= Q(name__icontains=filters["contract_name"])
 
-        if filters.get("contract_date_from"):
-            try:
-                date_from = int(filters["contract_date_from"])
-                query &= Q(date__gte=date_from)
-            except ValueError as e:
-                raise HTTPException(
-                    status_code=422,
-                    detail="contract_date_from должен быть целым числом (timestamp)",
-                ) from e
-
-        if filters.get("contract_date_to"):
-            try:
-                date_to = int(filters["contract_date_to"])
-                query &= Q(date__lte=date_to)
-            except ValueError as e:
-                raise HTTPException(
-                    status_code=422,
-                    detail="contract_date_to должен быть целым числом (timestamp)",
-                ) from e
-
-        sort_field_map = {
-            "contract_number": "number",
-            "contract_date": "date",
-        }
-
-        sort_by = filters.get("sort_by", "contract_number")
-        sort_field = sort_field_map.get(sort_by)
-
-        order = filters["order"]
-
-        if sort_field not in {"name", "date"}:
+    if filters.get("contract_date_from"):
+        try:
+            date_from = int(filters["contract_date_from"])
+            query &= Q(date__gte=date_from)
+        except ValueError as e:
             raise HTTPException(
-                status_code=400, detail=f"Неверное поле сортировки: {sort_field}"
-            )
+                status_code=422,
+                detail="contract_date_from должен быть целым числом (timestamp)",
+            ) from e
 
-        if order not in {"asc", "desc"}:
+    if filters.get("contract_date_to"):
+        try:
+            date_to = int(filters["contract_date_to"])
+            query &= Q(date__lte=date_to)
+        except ValueError as e:
             raise HTTPException(
-                status_code=400,
-                detail="Порядок сортировки должен быть 'asc' или 'desc'",
-            )
+                status_code=422,
+                detail="contract_date_to должен быть целым числом (timestamp)",
+            ) from e
 
-        # Префикс для порядка сортировки
-        order_prefix = "" if order == "asc" else "-"
-        total_count = await Contract.filter(query).count()
-        contracts = (
-            await Contract.filter(query)
-            .prefetch_related("status")
-            .order_by(f"{order_prefix}{sort_field}")
-            .offset((filters["page"] - 1) * filters["page_size"])
-            .limit(filters["page_size"])
+    sort_field_map = {
+        "contract_name": "name",
+        "contract_date": "date",
+    }
+
+    sort_by = filters.get("sort_by", "contract_name")
+    sort_field = sort_field_map.get(sort_by)
+
+    order = filters["order"]
+
+    if sort_field not in {"name", "date"}:
+        raise HTTPException(
+            status_code=400, detail=f"Неверное поле сортировки: {sort_field}"
         )
 
-        return ContractListResponseSchema(
-            total=total_count,
-            contracts=[
-                ContractSchema(
-                    contract_id=contract.id,
-                    contract_name=contract.name,
-                    contract_date=contract.date,
-                    buyer=contract.buyer_id,
-                    seller=contract.seller_id,
-                    status=contract.status.id,
-                    s3_key=contract.s3_key,
-                    comment=contract.comment,
-                    company=contract.company_id,
-                )
-                for contract in contracts
-            ],
+    if order not in {"asc", "desc"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Порядок сортировки должен быть 'asc' или 'desc'",
         )
 
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+    # Префикс для порядка сортировки
+    order_prefix = "" if order == "asc" else "-"
+    total_count = await Contract.filter(query).count()
+    contracts = (
+        await Contract.filter(query)
+        .prefetch_related("status")
+        .order_by(f"{order_prefix}{sort_field}")
+        .offset((filters["page"] - 1) * filters["page_size"])
+        .limit(filters["page_size"])
+    )
+
+    return ContractListResponseSchema(
+        total=total_count,
+        contracts=[
+            ContractSchema(
+                contract_id=contract.id,
+                contract_name=contract.name,
+                contract_date=contract.date,
+                buyer=contract.buyer_id,
+                seller=contract.seller_id,
+                status=contract.status.id,
+                s3_key=contract.s3_key,
+                comment=contract.comment,
+                company=contract.company_id,
+            )
+            for contract in contracts
+        ],
+    )
 
 
 @contract_router.get("/{contract_id}/download", summary="Скачивание файла контракта")
