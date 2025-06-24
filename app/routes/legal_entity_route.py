@@ -246,6 +246,7 @@ async def get_sellers(
         related_entity_ids = await EntityCompanyRelation.filter(
             company_id=context["company_id"], relation_type="seller"
         ).values_list("legal_entity_id", flat=True)
+    logger.debug(f"related_entity_ids: {related_entity_ids}")
 
     if not related_entity_ids:
         return LegalEntityListResponseSchema(total=0, entities=[])
@@ -258,6 +259,7 @@ async def get_sellers(
         headers=headers,
         json={"ids": [str(i) for i in related_entity_ids]},
     )
+    logger.debug(f"Ответ от reference: {status_code} {response_data}")
 
     return LegalEntityListResponseSchema(**response_data)
 
