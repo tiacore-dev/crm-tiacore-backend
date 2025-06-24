@@ -120,7 +120,23 @@ async def get_entity_company_relations(
     if filters.get("description"):
         query &= Q(description__icontains=filters["description"])
 
-    sort_by = filters.get("sort_by", "act_date")
+        # Маппинг фронтовых alias-ов в реальные поля модели
+    sort_field_map = {
+        "name": "description",  # или другое существующее поле
+        "created_at": "created_at",
+        "description": "description",
+        "relation_type": "relation_type",
+        # ...
+    }
+
+    raw_sort_by = filters.get("sort_by", "created_at")
+    sort_by = sort_field_map.get(raw_sort_by)
+
+    if not sort_by:
+        raise HTTPException(
+            status_code=422, detail=f"Недопустимое поле сортировки: {raw_sort_by}"
+        )
+
     order = filters.get("order", "asc").lower()
     if order not in ("asc", "desc"):
         raise HTTPException(

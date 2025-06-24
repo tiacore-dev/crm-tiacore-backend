@@ -161,17 +161,26 @@ async def get_legal_entities(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
+    query_params = dict(filters)
     if not context["is_superadmin"]:
         legal_entity_ids = await EntityCompanyRelation.filter(
             company_id=context["company_id"]
         ).values_list("legal_entity_id", flat=True)
+        response_data, status_code = await http_client.request(
+            "POST",
+            f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
+            headers=headers,
+            json={"ids": [str(i) for i in legal_entity_ids]},
+            params=query_params,
+        )
 
-    response_data, status_code = await http_client.request(
-        "POST",
-        f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
-        headers=headers,
-        json={"ids": [str(i) for i in legal_entity_ids]},
-    )
+    else:
+        response_data, status_code = await http_client.request(
+            "GET",
+            f"{settings.REFERENCE_URL}/api/legal-entities/all",
+            headers=headers,
+            params=query_params,
+        )
     return LegalEntityListResponseSchema(**response_data)
 
 

@@ -56,6 +56,6 @@ def register_routes(app: FastAPI):
     )
     app.include_router(
         entity_types_router,
-        prefix="/api/entity-company-relations",
-        tags=["EntityCompanyRelations"],
+        prefix="/api/legal-entity-types",
+        tags=["LegalEntityTypes"],
     )
