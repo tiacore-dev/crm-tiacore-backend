@@ -82,7 +82,7 @@ def act_filter_params(
     seller: Optional[UUID] = Query(None, description="Фильтр по исполнителю"),
     act_date_to: Optional[int] = Query(None, description="Фильтр по дате до"),
     act_date_from: Optional[int] = Query(None, description="Фильтр по дате от"),
-    sort_by: Optional[str] = Query("number", description="Поле сортировки"),
+    sort_by: Optional[str] = Query("act_number", description="Поле сортировки"),
     order: Optional[str] = Query("desc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),

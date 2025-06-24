@@ -127,7 +127,7 @@ def contract_filter_params(
     status: Optional[str] = Query(None, description="Фильтр по статусу"),
     contract_date_to: Optional[int] = Query(None, description="Фильтр по дате от"),
     contract_date_from: Optional[int] = Query(None, description="Фильтр по дате до"),
-    sort_by: Optional[str] = Query("name", description="Поле сортировки"),
+    sort_by: Optional[str] = Query("contract_name", description="Поле сортировки"),
     order: Optional[str] = Query("asc", description="Порядок сортировки: asc/desc"),
     page: int = Query(1, ge=1, description="Номер страницы"),
     page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),

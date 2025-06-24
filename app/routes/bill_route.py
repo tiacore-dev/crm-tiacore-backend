@@ -138,20 +138,34 @@ async def get_bills(
         page = filters.get("page", 1)
         page_size = filters.get("page_size", 10)
 
-        sort_by = filters.get("sort_by", "number")
+        sort_field_map = {
+            "bill_number": "number",
+            "date": "date",
+            "status": "status",  # пример других возможных полей
+        }
+
+        sort_by = filters.get("sort_by", "bill_number")
+        sort_field = sort_field_map.get(sort_by)
+
+        if not sort_field:
+            raise HTTPException(
+                status_code=422, detail=f"Некорректное поле сортировки: {sort_by}"
+            )
+
         order = filters.get("order", "asc").lower()
         if order not in ("asc", "desc"):
             raise HTTPException(
                 status_code=422, detail="order должен быть 'asc' или 'desc'"
             )
 
-        sort_field = sort_by if order == "asc" else f"-{sort_by}"
+        # итоговое поле сортировки с направлением
+        sort_expr = sort_field if order == "asc" else f"-{sort_field}"
 
         total_count = await Bills.filter(query).count()
 
         bills = (
             await Bills.filter(query)
-            .order_by(sort_field)
+            .order_by(sort_expr)
             .prefetch_related("contract", "bank_account")
             .offset((page - 1) * page_size)
             .limit(page_size)

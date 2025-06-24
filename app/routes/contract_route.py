@@ -178,7 +178,15 @@ async def get_contracts(
                     status_code=422,
                     detail="contract_date_to должен быть целым числом (timestamp)",
                 ) from e
-        sort_field = filters["sort_by"]
+
+        sort_field_map = {
+            "contract_number": "number",
+            "contract_date": "date",
+        }
+
+        sort_by = filters.get("sort_by", "contract_number")
+        sort_field = sort_field_map.get(sort_by)
+
         order = filters["order"]
 
         if sort_field not in {"name", "date"}:
