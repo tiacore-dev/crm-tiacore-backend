@@ -175,6 +175,7 @@ async def get_legal_entities(
         )
 
     else:
+        query_params["company_id"] = str(context["company_id"])
         response_data, status_code = await http_client.request(
             "GET",
             f"{settings.REFERENCE_URL}/api/legal-entities/all",
