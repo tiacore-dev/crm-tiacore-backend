@@ -39,13 +39,13 @@ async def add_entity_company_relation(
                 status_code=403, detail="Вы не имеете доступа к этой компании"
             )
 
-    relation = await EntityCompanyRelation.create(
+    relation, _ = await EntityCompanyRelation.get_or_create(
         company_id=data.company_id,
         legal_entity_id=data.legal_entity_id,
         relation_type=data.relation_type,
         description=data.description,
     )
-    logger.info(f"Связь успешно создана: {relation.relation_type}")
+    logger.info(f"Связь успешно создана: {relation.relation_type}, {relation.id}")
     return EntityCompanyRelationResponseSchema(entity_company_relation_id=relation.id)
 
 
