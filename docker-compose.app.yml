@@ -24,12 +24,12 @@ services:
 
   template-service:
     image: ${DOCKERHUB_USERNAME}/template-service:latest
-    container_name: template-service
+    container_name: template-service-${CONFIG_NAME}
     tty: true
     stdin_open: true
     restart: always
     ports:
-      - "5000:5000"
+      - "${TEMPLATE_PORT}:5000"
     volumes:
       - ./logs:/app/logs  
       - .env:/app/.env 
