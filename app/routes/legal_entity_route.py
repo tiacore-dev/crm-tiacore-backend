@@ -244,7 +244,7 @@ async def get_sellers(
         ).values_list("legal_entity_id", flat=True)
     else:
         related_entity_ids = await EntityCompanyRelation.filter(
-            company_id=context["company_id"], relation_type="buyer"
+            company_id=context["company_id"], relation_type="seller"
         ).values_list("legal_entity_id", flat=True)
 
     if not related_entity_ids:
