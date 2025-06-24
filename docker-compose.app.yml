@@ -1,14 +1,14 @@
 services:
   redis:
       image: redis:7-alpine
-      container_name: redis
+      container_name: redis-${CONFIG_NAME}
       restart: always
       networks:
       - crm_network
 
   web:
     image: ${DOCKERHUB_USERNAME}/crm-backend:${TAG}
-    container_name: crm-backend${CONFIG_NAME}
+    container_name: crm-backend-${CONFIG_NAME}
     tty: true
     stdin_open: true
     restart: always
