@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tiacore_lib.pydantic_models.entity_company_relation_models import (
     EntityCompanyRelationCreateSchema,
@@ -44,6 +45,7 @@ async def add_entity_company_relation(
         relation_type=data.relation_type,
         description=data.description,
     )
+    logger.info(f"Связь успешно создана: {relation.relation_type}")
     return EntityCompanyRelationResponseSchema(entity_company_relation_id=relation.id)
 
 

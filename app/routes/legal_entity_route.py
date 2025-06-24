@@ -2,6 +2,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from loguru import logger
 from tiacore_lib.config import get_settings
 from tiacore_lib.handlers.auth_handler import get_current_user
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
@@ -85,11 +86,16 @@ async def add_legal_entity_by_inn(
         params=query_params,
     )
 
-    await EntityCompanyRelation.create(
+    relation = await EntityCompanyRelation.create(
         company_id=data.company_id,
         legal_entity_id=UUID(response_data["legal_entity_id"]),
         relation_type=data.relation_type,
         description=data.description,
+    )
+    logger.debug(
+        f"""Созданный релейшн:id: {relation.id}, 
+        relations_type: {relation.relation_type}, 
+        entityt_id: {relation.legal_entity_id}"""
     )
 
     return LegalEntityResponseSchema(**response_data)
