@@ -161,10 +161,10 @@ async def get_legal_entities(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-    # Получаем все id юр. лиц, у которых relation_type == buyer
-    legal_entity_ids = await EntityCompanyRelation.filter(
-        company_id=context["company_id"]
-    ).values_list("legal_entity_id", flat=True)
+    if not context["is_superadmin"]:
+        legal_entity_ids = await EntityCompanyRelation.filter(
+            company_id=context["company_id"]
+        ).values_list("legal_entity_id", flat=True)
 
     response_data, status_code = await http_client.request(
         "POST",
@@ -185,12 +185,16 @@ async def get_buyers(
     context: dict = Depends(require_permission_in_context("get_buyers")),
     settings=Depends(get_settings),
 ):
-    # Получаем все id юр. лиц, у которых relation_type == buyer
-    legal_entity_ids = await EntityCompanyRelation.filter(
-        relation_type="buyer", company_id=context["company_id"]
-    ).values_list("legal_entity_id", flat=True)
+    if context["is_superadmin"]:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            relation_type="buyer"
+        ).values_list("legal_entity_id", flat=True)
+    else:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            company_id=context["company_id"], relation_type="buyer"
+        ).values_list("legal_entity_id", flat=True)
 
-    if not legal_entity_ids:
+    if not related_entity_ids:
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
@@ -200,7 +204,7 @@ async def get_buyers(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": [str(i) for i in legal_entity_ids]},
+        json={"ids": [str(i) for i in related_entity_ids]},
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -216,12 +220,16 @@ async def get_sellers(
     context: dict = Depends(require_permission_in_context("get_sellers")),
     settings=Depends(get_settings),
 ):
-    # Получаем все id юр. лиц, у которых relation_type == buyer
-    legal_entity_ids = await EntityCompanyRelation.filter(
-        relation_type="seller", company_id=context["company_id"]
-    ).values_list("legal_entity_id", flat=True)
+    if context["is_superadmin"]:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            relation_type="seller"
+        ).values_list("legal_entity_id", flat=True)
+    else:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            company_id=context["company_id"], relation_type="buyer"
+        ).values_list("legal_entity_id", flat=True)
 
-    if not legal_entity_ids:
+    if not related_entity_ids:
         return LegalEntityListResponseSchema(total=0, entities=[])
 
     headers = get_auth_headers(request)
@@ -230,7 +238,7 @@ async def get_sellers(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/by-ids",
         headers=headers,
-        json={"ids": [str(i) for i in legal_entity_ids]},
+        json={"ids": [str(i) for i in related_entity_ids]},
     )
 
     return LegalEntityListResponseSchema(**response_data)
@@ -286,7 +294,7 @@ async def get_legal_entity_by_inn_kpp(
 
     response_data, status_code = await http_client.request(
         "GET",
-        f"{settings.REFERENCE_URL}/api/legal-entities/all",
+        f"{settings.REFERENCE_URL}/api/legal-entities/inn-kpp",
         headers=headers,
         params=query_params,
     )
