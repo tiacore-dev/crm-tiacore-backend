@@ -1,7 +1,6 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from loguru import logger
 from tiacore_lib.handlers.dependency_handler import require_permission_in_context
 from tiacore_lib.pydantic_models.entity_company_relation_models import (
     EntityCompanyRelationCreateSchema,
@@ -33,25 +32,19 @@ async def add_entity_company_relation(
         require_permission_in_context("add_legal_entity_company_relation")
     ),
 ):
-    try:
-        if not context.get("is_superadmin"):
-            if data.company_id not in context["companies"]:
-                raise HTTPException(
-                    status_code=403, detail="Вы не имеете доступа к этой компании"
-                )
+    if not context.get("is_superadmin"):
+        if str(data.company_id) != str(context["company_id"]):
+            raise HTTPException(
+                status_code=403, detail="Вы не имеете доступа к этой компании"
+            )
 
-        relation = await EntityCompanyRelation.create(
-            company_id=data.company_id,
-            legal_entity_id=data.legal_entity_id,
-            relation_type=data.relation_type,
-            description=data.description,
-        )
-        return EntityCompanyRelationResponseSchema(
-            entity_company_relation_id=relation.id
-        )
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+    relation = await EntityCompanyRelation.create(
+        company_id=data.company_id,
+        legal_entity_id=data.legal_entity_id,
+        relation_type=data.relation_type,
+        description=data.description,
+    )
+    return EntityCompanyRelationResponseSchema(entity_company_relation_id=relation.id)
 
 
 @entity_relation_router.patch(
