@@ -84,13 +84,13 @@ async def add_legal_entity_by_inn(
         json=data.model_dump(mode="json", exclude={"relation_type"}),
         params=query_params,
     )
-    if data.relation_type:
-        await EntityCompanyRelation.create(
-            company_id=data.company_id,
-            legal_entity_id=UUID(response_data["legal_entity_id"]),
-            relation_type=data.relation_type,
-            description=data.description,
-        )
+
+    await EntityCompanyRelation.create(
+        company_id=data.company_id,
+        legal_entity_id=UUID(response_data["legal_entity_id"]),
+        relation_type=data.relation_type,
+        description=data.description,
+    )
 
     return LegalEntityResponseSchema(**response_data)
 
