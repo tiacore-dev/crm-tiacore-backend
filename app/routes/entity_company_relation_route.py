@@ -2,17 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-from tortoise.expressions import Q
-
-from app.database.models import (
-    Company,
-    EntityCompanyRelation,
-    LegalEntity,
-    UserCompanyRelation,
-)
-from app.dependencies.permissions import with_permission_and_legal_entity_company_check
-from app.handlers.depends import require_permission_in_context
-from app.pydantic_models.entity_company_relation_models import (
+from tiacore_lib.handlers.dependency_handler import require_permission_in_context
+from tiacore_lib.pydantic_models.entity_company_relation_models import (
     EntityCompanyRelationCreateSchema,
     EntityCompanyRelationEditSchema,
     EntityCompanyRelationListResponseSchema,
@@ -20,6 +11,12 @@ from app.pydantic_models.entity_company_relation_models import (
     EntityCompanyRelationSchema,
     entity_company_filter_params,
 )
+from tortoise.expressions import Q
+
+from app.database.models import (
+    EntityCompanyRelation,
+)
+from app.dependencies.permissions import with_permission_and_legal_entity_company_check
 
 entity_relation_router = APIRouter()
 
@@ -36,34 +33,28 @@ async def add_entity_company_relation(
         require_permission_in_context("add_legal_entity_company_relation")
     ),
 ):
-    try:
-        company = await Company.get_or_none(company_id=data.company)
-        legal_entity = await LegalEntity.get_or_none(legal_entity_id=data.legal_entity)
-
-        if not company or not legal_entity:
+    if not context.get("is_superadmin"):
+        if str(data.company_id) != str(context["company_id"]):
             raise HTTPException(
-                status_code=400, detail="Компания или юридическое лицо не найдены"
+                status_code=403, detail="Вы не имеете доступа к этой компании"
             )
 
-        if not context.get("is_superadmin"):
-            is_related = await UserCompanyRelation.exists(
-                user_id=context["user"], company=company
-            )
-            if not is_related:
-                raise HTTPException(
-                    status_code=403, detail="Вы не имеете доступа к этой компании"
-                )
+    relation = await EntityCompanyRelation.filter(
+        company_id=data.company_id,
+        legal_entity_id=data.legal_entity_id,
+        relation_type=data.relation_type,
+    ).first()
 
+    if not relation:
         relation = await EntityCompanyRelation.create(
-            company=company,
-            legal_entity=legal_entity,
+            company_id=data.company_id,
+            legal_entity_id=data.legal_entity_id,
             relation_type=data.relation_type,
             description=data.description,
         )
-        return {"entity_company_relation_id": str(relation.entity_company_relation_id)}
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+
+    logger.info(f"Связь успешно создана: {relation.relation_type}, {relation.id}")
+    return EntityCompanyRelationResponseSchema(entity_company_relation_id=relation.id)
 
 
 @entity_relation_router.patch(
@@ -74,36 +65,20 @@ async def add_entity_company_relation(
 async def update_entity_company_relation(
     relation_id: UUID,
     data: EntityCompanyRelationEditSchema,
-    context=with_permission_and_legal_entity_company_check(
+    _=with_permission_and_legal_entity_company_check(
         "edit_legal_entity_company_relation"
     ),
 ):
-    relation = await EntityCompanyRelation.filter(
-        entity_company_relation_id=relation_id
-    ).first()
+    relation = await EntityCompanyRelation.filter(id=relation_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
 
     update_data = data.model_dump(exclude_unset=True)
 
-    if "company" in update_data:
-        company = await Company.get_or_none(company_id=update_data["company"])
-        if not company:
-            raise HTTPException(status_code=400, detail="Компания не найдена")
-        update_data["company"] = company
-
-    if "legal_entity" in update_data:
-        legal_entity = await LegalEntity.get_or_none(
-            legal_entity_id=update_data["legal_entity"]
-        )
-        if not legal_entity:
-            raise HTTPException(status_code=400, detail="Юрлицо не найдено")
-        update_data["legal_entity"] = legal_entity
-
     await relation.update_from_dict(update_data)
     await relation.save()
 
-    return {"entity_company_relation_id": str(relation.entity_company_relation_id)}
+    return {"entity_company_relation_id": str(relation.id)}
 
 
 @entity_relation_router.delete(
@@ -113,13 +88,11 @@ async def update_entity_company_relation(
 )
 async def delete_entity_company_relation(
     relation_id: UUID,
-    context=with_permission_and_legal_entity_company_check(
+    _=with_permission_and_legal_entity_company_check(
         "delete_legal_entity_company_relation"
     ),
 ):
-    relation = await EntityCompanyRelation.filter(
-        entity_company_relation_id=relation_id
-    ).first()
+    relation = await EntityCompanyRelation.filter(id=relation_id).first()
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
     await relation.delete()
@@ -136,56 +109,67 @@ async def get_entity_company_relations(
         require_permission_in_context("get_all_legal_entity_company_relations")
     ),
 ):
-    try:
-        query = Q()
-        if filters.get("legal_entity"):
-            query &= Q(legal_entity=filters["legal_entity"])
-        if context["is_superadmin"]:
-            company_filter = filters.get("company")
-            if company_filter:
-                query &= Q(company_id=company_filter)
-        else:
-            query &= Q(company_id=context["company"])
-        if filters.get("relation_type"):
-            query &= Q(relation_type__icontains=filters["relation_type"])
-        if filters.get("description"):
-            query &= Q(description__icontains=filters["description"])
+    query = Q()
+    if filters.get("legal_entity_id"):
+        query &= Q(legal_entity_id=filters["legal_entity_id"])
+    if context["is_superadmin"]:
+        company_filter = filters.get("company_id")
+        if company_filter:
+            query &= Q(company_id=company_filter)
+    else:
+        query &= Q(company_id=context["company_id"])
+    if filters.get("relation_type"):
+        query &= Q(relation_type__icontains=filters["relation_type"])
+    if filters.get("description"):
+        query &= Q(description__icontains=filters["description"])
 
-        sort_by = filters.get("sort_by", "act_date")
-        order = filters.get("order", "asc").lower()
-        if order not in ("asc", "desc"):
-            raise HTTPException(
-                status_code=422, detail="order должен быть 'asc' или 'desc'"
+        # Маппинг фронтовых alias-ов в реальные поля модели
+    sort_field_map = {
+        "name": "description",  # или другое существующее поле
+        "created_at": "created_at",
+        "description": "description",
+        "relation_type": "relation_type",
+        # ...
+    }
+
+    raw_sort_by = filters.get("sort_by", "created_at")
+    sort_by = sort_field_map.get(raw_sort_by)
+
+    if not sort_by:
+        raise HTTPException(
+            status_code=422, detail=f"Недопустимое поле сортировки: {raw_sort_by}"
+        )
+
+    order = filters.get("order", "asc").lower()
+    if order not in ("asc", "desc"):
+        raise HTTPException(
+            status_code=422, detail="order должен быть 'asc' или 'desc'"
+        )
+
+    sort_field = sort_by if order == "asc" else f"-{sort_by}"
+
+    total_count = await EntityCompanyRelation.filter(query).count()
+    relations = (
+        await EntityCompanyRelation.filter(query)
+        .order_by(sort_field)
+        .offset((filters["page"] - 1) * filters["page_size"])
+        .limit(filters["page_size"])
+    )
+
+    return EntityCompanyRelationListResponseSchema(
+        total=total_count,
+        relations=[
+            EntityCompanyRelationSchema(
+                entity_company_relation_id=relation.id,
+                company_id=relation.company_id,
+                legal_entity_id=relation.legal_entity_id,
+                relation_type=relation.relation_type,
+                description=relation.description,
+                created_at=relation.created_at,
             )
-
-        sort_field = sort_by if order == "asc" else f"-{sort_by}"
-
-        total_count = await EntityCompanyRelation.filter(query).count()
-        relations = (
-            await EntityCompanyRelation.filter(query)
-            .order_by(sort_field)
-            .prefetch_related("company", "legal_entity")
-            .offset((filters["page"] - 1) * filters["page_size"])
-            .limit(filters["page_size"])
-        )
-
-        return EntityCompanyRelationListResponseSchema(
-            total=total_count,
-            relations=[
-                EntityCompanyRelationSchema(
-                    entity_company_relation_id=relation.entity_company_relation_id,
-                    company_id=relation.company.company_id,
-                    legal_entity_id=relation.legal_entity.legal_entity_id,
-                    relation_type=relation.relation_type,
-                    description=relation.description,
-                    created_at=relation.created_at,
-                )
-                for relation in relations
-            ],
-        )
-    except (KeyError, TypeError, ValueError) as e:
-        logger.warning(f"Ошибка данных: {e}")
-        raise HTTPException(status_code=400, detail="Некорректные данные") from e
+            for relation in relations
+        ],
+    )
 
 
 @entity_relation_router.get(
@@ -195,23 +179,19 @@ async def get_entity_company_relations(
 )
 async def get_entity_company_relation(
     relation_id: UUID,
-    context=with_permission_and_legal_entity_company_check(
+    _=with_permission_and_legal_entity_company_check(
         "view_legal_entity_company_relation"
     ),
 ):
-    relation = (
-        await EntityCompanyRelation.filter(entity_company_relation_id=relation_id)
-        .prefetch_related("company", "legal_entity")
-        .first()
-    )
+    relation = await EntityCompanyRelation.filter(id=relation_id).first()
 
     if not relation:
         raise HTTPException(status_code=404, detail="Связь не найдена")
 
     return EntityCompanyRelationSchema(
-        entity_company_relation_id=relation.entity_company_relation_id,
-        company_id=relation.company.company_id,
-        legal_entity_id=relation.legal_entity.legal_entity_id,
+        entity_company_relation_id=relation.id,
+        company_id=relation.company_id,
+        legal_entity_id=relation.legal_entity_id,
         relation_type=relation.relation_type,
         description=relation.description,
         created_at=relation.created_at,

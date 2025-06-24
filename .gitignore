@@ -5,10 +5,11 @@ examples/
 __pycache__/
 *.py[cod]
 *$py.class
+docker-compose.dev.yml
 
 # C extensions
 *.so
-
+text.txt
 data.txt
 docker-compose.dev.yml
 celery_docker

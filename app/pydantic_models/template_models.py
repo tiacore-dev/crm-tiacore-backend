@@ -2,9 +2,8 @@ from typing import List, Optional, Union
 from uuid import UUID
 
 from fastapi import File, Form, Query, UploadFile
-
-from app.pydantic_models.clean_model import CleanableBaseModel
-from app.utils.validate_helpers import normalize_form_field
+from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
+from tiacore_lib.utils.validate_helpers import normalize_form_field
 
 
 class GenerateFileSchema(CleanableBaseModel):
@@ -18,6 +17,7 @@ class TemplateResponseSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class TemplateSchema(CleanableBaseModel):
@@ -30,6 +30,7 @@ class TemplateSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class TemplateListResponseSchema(CleanableBaseModel):
@@ -81,6 +82,10 @@ class TemplateCreateSchema(CleanableBaseModel):
             file=file,
         )
 
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
 
 class TemplateEditSchema(CleanableBaseModel):
     template_name: Optional[str] = None
@@ -99,9 +104,13 @@ class TemplateEditSchema(CleanableBaseModel):
         file: Optional[Union[str, UploadFile]] = File(None),
     ):
         return cls(
-            template_name=normalize_form_field(template_name, str),
-            description=normalize_form_field(description, str),
-            company=normalize_form_field(company, UUID),
-            entity=normalize_form_field(entity, str),
+            template_name=normalize_form_field(template_name, str),  # type: ignore[arg-type]
+            description=normalize_form_field(description, str),  # type: ignore[arg-type]
+            company=normalize_form_field(company, UUID),  # type: ignore[arg-type]
+            entity=normalize_form_field(entity, str),  # type: ignore[arg-type]
             file=None if isinstance(file, str) and file.strip() == "" else file,
         )
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True

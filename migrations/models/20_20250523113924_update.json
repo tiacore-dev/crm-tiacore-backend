@@ -1,8 +1,0 @@
-{
-  "upgrade": [
-    "ALTER TABLE \"user_to_company_relations\" ADD CONSTRAINT \"uid_user_to_com_user_id_6952b8\" UNIQUE (\"user_id\", \"company_id\", \"role_id\")"
-  ],
-  "downgrade": [
-    "ALTER TABLE \"user_to_company_relations\" DROP CONSTRAINT \"uid_user_to_com_user_id_6952b8\""
-  ]
-}

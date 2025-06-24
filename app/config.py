@@ -1,44 +1,113 @@
-import os
+from typing import Optional
 
-from dotenv import load_dotenv
+from pydantic_settings import SettingsConfigDict
+from tiacore_lib.config import (
+    BaseConfig as SharedBaseConfig,
+)
+from tiacore_lib.config import (
+    ConfigName,
+)
+from tiacore_lib.config import (
+    TestConfig as SharedTestConfig,
+)
 
-ENV_FILE = ".env.test" if os.getenv("CI") == "true" else ".env"
-load_dotenv(dotenv_path=ENV_FILE)
-# Загрузка переменных из .env
+
+class BaseConfig(SharedBaseConfig):
+    ENDPOINT_URL: Optional[str] = None
+    REGION_NAME: Optional[str] = None
+    AWS_ACCESS_KEY_ID: Optional[str] = None
+    AWS_SECRET_ACCESS_KEY: Optional[str] = None
+    BUCKET_NAME: Optional[str] = None
+
+    WEBHOOK_BASE_URL: Optional[str] = None
+
+    YANDEX_SPEECHKIT_API_URL: Optional[str] = None
+    YANDEX_GPT_API_URL: Optional[str] = None
+    YANDEX_API_KEY: Optional[str] = None
+    FOLDER_ID: Optional[str] = None
+
+    AUTH_BROKER_URL: str = ""
+    REFERENCE_URL: str = ""
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
+    @property
+    def db_url(self) -> str:
+        raise NotImplementedError("db_url not implemented in base config")
 
 
-class Settings:
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite://db.sqlite3")
-    TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite://db.sqlite3")
-    DOCKER_DATABASE_URL = os.getenv("DOCKER_DATABASE_URL", None)
+class TestConfig(SharedTestConfig):
+    # ... остальные обязательные поля
+    ENDPOINT_URL: str = ""
+    REGION_NAME: str = ""
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    BUCKET_NAME: str = ""
+    WEBHOOK_BASE_URL: str = ""
+    YANDEX_SPEECHKIT_API_URL: str = ""
+    YANDEX_GPT_API_URL: str = ""
+    YANDEX_API_KEY: str = ""
+    FOLDER_ID: str = ""
+    AUTH_BROKER_URL: str = ""
+    REFERENCE_URL: str = ""
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "default_secret")
+    model_config = SettingsConfigDict(
+        env_file=".env.test",
+        env_file_encoding="utf-8",
+        extra="ignore",  # необязательно, но рекомендую
+    )
 
-    ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60)
-    JWT_EXPIRATION_HOURS = os.getenv("JWT_EXPIRATION_HOURS", "2")
-    REFRESH_TOKEN_EXPIRE_DAYS = os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 1)
+    @property
+    def db_url(self) -> str:
+        return self.TEST_DATABASE_URL
 
-    LOG_LEVEL = "DEBUG"
-    ALGORITHM = "HS256"
 
-    PORT = os.getenv("PORT")
-    ALLOW_ORIGINS = os.getenv("ALLOW_ORIGINS", "").split(",")
-    FRONT_ORIGIN = os.getenv("FRONT_ORIGIN")
-    BACK_ORIGIN = os.getenv("BACK_ORIGIN")
+class DockerConfig(BaseConfig):
+    DOCKER_DATABASE_URL: str = "sqlite:///server.db"
 
-    ENDPOINT_URL = os.getenv("ENDPOINT_URL")
-    REGION_NAME = os.getenv("REGION_NAME")
-    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-    BUCKET_NAME = os.getenv("BUCKET_NAME")
+    @property
+    def db_url(self) -> str:
+        return self.DOCKER_DATABASE_URL
 
-    OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT")
 
-    TEMPLATE_SERVICE_URL = os.getenv("TEMPLATE_SERVICE_URL")
+class DevConfig(BaseConfig):
+    DATABASE_URL: str = "sqlite:///server.db"
 
-    SMTP_SERVER = os.getenv("SMTP_SERVER")
-    SMTP_PORT = os.getenv("SMTP_PORT", 465)
-    SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+    @property
+    def db_url(self) -> str:
+        return self.DATABASE_URL
 
-    ORIGIN = os.getenv("ORIGIN")
+
+class ServerConfig(BaseConfig):
+    DATABASE_URL: str = "sqlite:///server.db"
+
+    @property
+    def db_url(self) -> str:
+        return self.DATABASE_URL
+
+
+class ProdConfig(BaseConfig):
+    DATABASE_URL: str = "sqlite:///server.db"
+
+    @property
+    def db_url(self) -> str:
+        return self.DATABASE_URL
+
+
+def _load_settings(config_name: str):
+    match ConfigName(config_name):
+        case ConfigName.TEST:
+            return TestConfig()
+        case ConfigName.DEV:
+            return DevConfig()
+        case ConfigName.DOCKER:
+            return DockerConfig()
+        case ConfigName.PRODUCTION:
+            return ProdConfig()
+        case ConfigName.SERVER:
+            return ServerConfig()
+        case _:
+            raise ValueError(f"❌ Unknown config_name: {config_name}")

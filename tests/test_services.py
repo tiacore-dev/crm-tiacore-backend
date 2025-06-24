@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from httpx import AsyncClient
 
@@ -5,10 +7,10 @@ from app.database.models import Service
 
 
 @pytest.mark.asyncio
-async def test_add_service(test_app: AsyncClient, jwt_token_admin, seed_company):
+async def test_add_service(test_app: AsyncClient, jwt_token_admin):
     """Тест добавления новой услуги."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
-    data = {"service_name": "Test Service", "company": seed_company["company_id"]}
+    data = {"service_name": "Test Service", "company": str(uuid4())}
 
     response = await test_app.post("/api/services/add", headers=headers, json=data)
     assert response.status_code == 201, (
@@ -17,20 +19,22 @@ async def test_add_service(test_app: AsyncClient, jwt_token_admin, seed_company)
 
     # Проверяем, что услуга добавлена в базу
     response_data = response.json()
-    service = await Service.filter(service_name="Test Service").first()
+    service = await Service.filter(name="Test Service").first()
 
     assert service is not None, "Услуга не была сохранена в БД"
-    assert response_data["service_id"] == str(service.service_id)
+    assert response_data["service_id"] == str(service.id)
 
 
 @pytest.mark.asyncio
-async def test_edit_service(test_app: AsyncClient, jwt_token_admin, seed_service):
+async def test_edit_service(
+    test_app: AsyncClient, jwt_token_admin, seed_service: Service
+):
     """Тест редактирования услуги."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
     data = {"service_name": "New name"}
 
     response = await test_app.patch(
-        f"/api/services/{seed_service['service_id']}", headers=headers, json=data
+        f"/api/services/{seed_service.id}", headers=headers, json=data
     )
 
     assert response.status_code == 200, (
@@ -39,38 +43,40 @@ async def test_edit_service(test_app: AsyncClient, jwt_token_admin, seed_service
 
     # Проверяем, что услуга обновилась в базе
     response_data = response.json()
-    service = await Service.filter(service_id=seed_service["service_id"]).first()
+    service = await Service.filter(id=seed_service.id).first()
 
     assert service is not None, "Услуга не найдена в базе"
-    assert response_data["service_id"] == str(service.service_id)
-    assert service.service_name == "New name"
+    assert response_data["service_id"] == str(service.id)
+    assert service.name == "New name"
 
 
 @pytest.mark.asyncio
-async def test_view_service(test_app: AsyncClient, jwt_token_admin, seed_service):
+async def test_view_service(
+    test_app: AsyncClient, jwt_token_admin, seed_service: Service
+):
     """Тест просмотра услуги по ID."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
-    response = await test_app.get(
-        f"/api/services/{seed_service['service_id']}", headers=headers
-    )
+    response = await test_app.get(f"/api/services/{seed_service.id}", headers=headers)
 
     assert response.status_code == 200, (
         f"Ошибка: {response.status_code}, {response.text}"
     )
 
     response_data = response.json()
-    assert response_data["service_id"] == str(seed_service["service_id"])
-    assert response_data["service_name"] == seed_service["service_name"]
+    assert response_data["service_id"] == str(seed_service.id)
+    assert response_data["service_name"] == seed_service.name
 
 
 @pytest.mark.asyncio
-async def test_delete_service(test_app: AsyncClient, jwt_token_admin, seed_service):
+async def test_delete_service(
+    test_app: AsyncClient, jwt_token_admin, seed_service: Service
+):
     """Тест удаления услуги."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
     response = await test_app.delete(
-        f"/api/services/{seed_service['service_id']}", headers=headers
+        f"/api/services/{seed_service.id}", headers=headers
     )
 
     assert response.status_code == 204, (
@@ -78,12 +84,14 @@ async def test_delete_service(test_app: AsyncClient, jwt_token_admin, seed_servi
     )
 
     # Проверяем, что услуга больше не существует в базе
-    service = await Service.filter(service_id=seed_service["service_id"]).first()
+    service = await Service.filter(id=seed_service.id).first()
     assert service is None, "Услуга не была удалена из базы"
 
 
 @pytest.mark.asyncio
-async def test_get_services(test_app: AsyncClient, jwt_token_admin, seed_service):
+async def test_get_services(
+    test_app: AsyncClient, jwt_token_admin, seed_service: Service
+):
     """Тест получения списка услуг с фильтрацией."""
     headers = {"Authorization": f"Bearer {jwt_token_admin['access_token']}"}
 
@@ -100,6 +108,4 @@ async def test_get_services(test_app: AsyncClient, jwt_token_admin, seed_service
 
     # Проверяем, что в списке есть наша тестовая услуга
     service_ids = [service["service_id"] for service in services]
-    assert str(seed_service["service_id"]) in service_ids, (
-        "Тестовая услуга отсутствует в списке"
-    )
+    assert str(seed_service.id) in service_ids, "Тестовая услуга отсутствует в списке"

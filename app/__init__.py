@@ -1,24 +1,66 @@
+import asyncio
+from contextlib import asynccontextmanager
+from functools import partial
+
+import redis.asyncio as redis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from prometheus_client import make_asgi_app
-from tortoise.contrib.fastapi import register_tortoise
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from tiacore_lib.config import ConfigName, get_settings
+from tiacore_lib.rabbit.event_consumer import EventConsumer
+from tiacore_lib.rabbit.handlers import handle_user_event
+from tortoise import Tortoise
 
-from app.config import Settings
-from app.logger import setup_logger
+from app.config import TestConfig, _load_settings
 from app.routes import register_routes
+from app.utils.db_helpers import create_test_data
+from metrics.logger import setup_logger
+from metrics.tracer import init_tracer
 
 
-def create_app(config_name) -> FastAPI:
-    app = FastAPI(title="CRM")
+def provide_settings(config_name: ConfigName):
+    def _inner():
+        return _load_settings(config_name)
+
+    return _inner
+
+
+def create_app(config_name: ConfigName) -> FastAPI:
+    settings = _load_settings(config_name)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if type(settings) is not TestConfig:
+            from app.database.config import TORTOISE_ORM
+
+            await Tortoise.init(config=TORTOISE_ORM)
+            Tortoise.init_models(["app.database.models"], "models")
+            await create_test_data()
+            redis_url = settings.REDIS_URL
+            redis_client = redis.from_url(redis_url)
+            print("🔥 Redis инициализируется")
+            FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
+            consumer = EventConsumer(
+                rabbit_url=settings.AUTH_BROKER_URL,
+                queue_name="crm-service",
+                routing_keys=["user.*"],
+            )
+            task = asyncio.create_task(
+                consumer.connect_and_consume(
+                    partial(handle_user_event, settings=settings)
+                )
+            )
+            app.state.rabbit_task = task
+
+        yield
+
+        await Tortoise.close_connections()
+
+    app = FastAPI(title="CRM app", redirect_slashes=False, lifespan=lifespan)
+    app.dependency_overrides[get_settings] = provide_settings(config_name)
     setup_logger()
-    settings = Settings()
-    if config_name == "Test":
-        db_url = settings.TEST_DATABASE_URL
-    elif config_name == "Local_Development":
-        db_url = settings.DOCKER_DATABASE_URL
-    else:
-        db_url = settings.DATABASE_URL
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -27,20 +69,8 @@ def create_app(config_name) -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.mount("/metrics", make_asgi_app())
-    if config_name == "Production" or config_name == "Development":
-        from app.tracer import init_tracer
-
+    if config_name == "Production":
         init_tracer(app)
-
-    register_tortoise(
-        app,
-        db_url=db_url,
-        modules={"models": ["app.database.models"]},
-        add_exception_handlers=True,
-        generate_schemas=(config_name == "Test"),
-    )
-    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
     register_routes(app)
 

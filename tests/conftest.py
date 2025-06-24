@@ -1,23 +1,26 @@
-from datetime import timedelta
+from uuid import uuid4
 
 import pytest
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import AsyncClient
+from tiacore_lib.handlers.auth_handler import create_access_token, create_refresh_token
+from tiacore_lib.handlers.cache_handler import save_user_to_cache
 from tortoise import Tortoise
 
 from app import create_app
-from app.config import Settings
-from app.database.models import Service, create_user
-from app.handlers.auth import create_access_token, create_refresh_token, login_handler
+from app.config import ConfigName, _load_settings
 from app.utils.db_helpers import drop_all_tables
-
-settings = Settings()
 
 
 @pytest.fixture(scope="session")
+def test_settings():
+    return _load_settings(ConfigName.TEST)
+
+
+@pytest.fixture(scope="function")
 async def test_app():
-    app = create_app(config_name="Test")
+    app = create_app(config_name=ConfigName.TEST)
     FastAPICache.init(InMemoryBackend())
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -26,11 +29,10 @@ async def test_app():
 
 @pytest.fixture(scope="function", autouse=True)
 @pytest.mark.asyncio
-async def setup_and_clean_db():
-    settings = Settings()
+async def setup_and_clean_db(test_settings):
     await Tortoise.init(
         config={
-            "connections": {"default": settings.TEST_DATABASE_URL},
+            "connections": {"default": test_settings.db_url},
             "apps": {
                 "models": {
                     "models": ["app.database.models"],
@@ -48,108 +50,22 @@ async def setup_and_clean_db():
 
 
 pytest_plugins = [
-    "tests.fixtures.names",  # Фикстуры, связанные с именами, статусами, ролями
-    "tests.fixtures.company_relations",  # Фикстуры для компаний и связей
-    "tests.fixtures.legal_entity",  # Фикстуры для юридических лиц
-    "tests.fixtures.contract",
-    "tests.fixtures.bank_account",
     "tests.fixtures.acts",
     "tests.fixtures.bills",
-    "tests.fixtures.permissions",
+    "tests.fixtures.contract",
+    "tests.fixtures.bank_account",
+    "tests.fixtures.company_relations",
+    "tests.fixtures.names",
 ]
 
 
-@pytest.mark.usefixtures("setup_db")
 @pytest.fixture(scope="function")
 @pytest.mark.asyncio
-async def seed_user():
-    """Добавляет тестового пользователя в базу перед тестом."""
-    user = await create_user(
-        email="test_user", password="qweasdzcx", position="user", full_name="Test User"
-    )
-    user.is_verified = True
-    await user.save()
-    return {
-        "user_id": str(user.user_id),
-        "email": user.email,
-        "position": user.position,
-        "full_name": user.full_name,
-    }
-
-
-@pytest.mark.usefixtures("test_app")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_admin():
-    """Добавляет тестового администратора в базу перед тестом."""
-    admin = await create_user(
-        email="test_admin",
-        password="adminpass",
-        position="admin",
-        full_name="Test Admin",
-    )
-    admin.is_superadmin = True
-    await admin.save()
-    return {
-        "user_id": str(admin.user_id),
-        "email": admin.email,
-        "position": admin.position,
-        "full_name": admin.full_name,
-    }
-
-
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def jwt_token_user(seed_user):
-    """Генерирует JWT токен для обычного пользователя."""
-    token_data = {"sub": seed_user["email"]}
-    return {
-        "access_token": create_access_token(token_data),
-        "refresh_token": create_refresh_token(token_data),
-    }
-
-
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def jwt_token_admin(seed_admin):
+async def jwt_token_admin(test_settings):
     """Генерирует JWT токен для администратора."""
-    token_data = {"sub": seed_admin["email"]}
+    token_data = {"sub": "admin"}
+    await save_user_to_cache("admin", uuid4(), True, None, None, None)
     return {
-        "access_token": create_access_token(token_data),
-        "refresh_token": create_refresh_token(token_data),
+        "access_token": create_access_token(token_data, test_settings),
+        "refresh_token": create_refresh_token(token_data, test_settings),
     }
-
-
-@pytest.mark.usefixtures("setup_db")
-@pytest.fixture(scope="function")
-@pytest.mark.asyncio
-async def seed_service(seed_company):
-    """Добавляет тестового пользователя в базу перед тестом."""
-    service = await Service.create(
-        service_name="Test Service", company_id=seed_company["company_id"]
-    )
-    return {
-        "service_id": str(service.service_id),
-        "service_name": service.service_name,
-        "company": str(service.company),
-    }
-
-
-@pytest.fixture
-def get_token_for_user():
-    # по умолчанию пароль фиксированный
-    async def _get_token(user, password="123"):
-        auth_result = await login_handler(user.email, password)
-        if not auth_result:
-            raise Exception(f"Не удалось залогиниться для пользователя {user.email}")
-
-        user_obj, company_permissions = auth_result
-
-        token_data = {
-            "sub": user_obj.email,
-        }
-
-        token = create_access_token(token_data, expires_delta=timedelta(minutes=30))
-        return token
-
-    return _get_token

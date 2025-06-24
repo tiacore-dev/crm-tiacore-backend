@@ -1,35 +1,24 @@
 from decimal import Decimal
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, Query
-from pydantic import UUID4, Field, field_validator, model_validator
-
-from app.pydantic_models.clean_model import CleanableBaseModel
+from pydantic import Field, model_validator
+from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
 
 
 class ActCreateSchema(CleanableBaseModel):
-    act_number: str = Field(..., max_length=255)
-    act_date: int = Field(..., ge=0)  # Unix timestamp
-    contract: Optional[UUID4] = Field(None)
-    buyer: Optional[UUID4] = Field(None)
-    seller: Optional[UUID4] = Field(None)
-    company: UUID4 = Field(...)
-
-    @field_validator("act_number", "act_date", "contract")
-    @classmethod
-    def validate_required_fields(cls, value: str, info):
-        """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
-        if value in [None, "", " "]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Поле {info.field_name} обязательно для заполнения.",
-            )
-        return value
+    number: str = Field(..., max_length=255, alias="act_number")
+    date: int = Field(..., ge=0, alias="act_date")  # Unix timestamp
+    contract_id: Optional[UUID] = Field(None, alias="contract")
+    buyer_id: Optional[UUID] = Field(None, alias="buyer")
+    seller_id: Optional[UUID] = Field(None, alias="seller")
+    company_id: UUID = Field(..., alias="company")
 
     @model_validator(mode="after")
     def check_contract_or_parties(self) -> "ActCreateSchema":
-        if not self.contract:
-            if not self.buyer or not self.seller:
+        if not self.contract_id:
+            if not self.buyer_id or not self.seller_id:
                 raise HTTPException(
                     status_code=400,
                     detail="""Either 'contract' must be provided, 
@@ -39,24 +28,26 @@ class ActCreateSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class ActSchema(CleanableBaseModel):
-    act_id: UUID4
+    act_id: UUID
     act_number: str
     act_date: int
-    contract: Optional[UUID4] = None
-    buyer: UUID4
-    seller: UUID4
-    company: UUID4
+    contract: Optional[UUID] = None
+    buyer: UUID
+    seller: UUID
+    company: UUID
     summ: Decimal
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class ActResponseSchema(CleanableBaseModel):
-    act_id: UUID4
+    act_id: UUID
 
     class Config:
         from_attributes = True
@@ -72,22 +63,23 @@ class ActListResponseSchema(CleanableBaseModel):
 
 
 class ActEditSchema(CleanableBaseModel):
-    act_number: Optional[str] = None
-    act_date: Optional[int] = None
-    contract: Optional[UUID4] = None
-    buyer: Optional[UUID4] = None
-    seller: Optional[UUID4] = None
-    company: Optional[UUID4] = None
+    number: Optional[str] = Field(None, alias="act_number")
+    date: Optional[int] = Field(None, alias="act_date")
+    contract_id: Optional[UUID] = Field(None, alias="contract")
+    buyer_id: Optional[UUID] = Field(None, alias="buyer")
+    seller_id: Optional[UUID] = Field(None, alias="seller")
+    company_id: Optional[UUID] = Field(None, alias="company")
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 def act_filter_params(
-    contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
-    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
-    buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
-    seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
+    contract: Optional[UUID] = Query(None, description="Фильтр по контракту"),
+    company: Optional[UUID] = Query(None, description="Фильтр по компании"),
+    buyer: Optional[UUID] = Query(None, description="Фильтр по заказчику"),
+    seller: Optional[UUID] = Query(None, description="Фильтр по исполнителю"),
     act_date_to: Optional[int] = Query(None, description="Фильтр по дате до"),
     act_date_from: Optional[int] = Query(None, description="Фильтр по дате от"),
     sort_by: Optional[str] = Query("act_number", description="Поле сортировки"),

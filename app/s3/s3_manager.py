@@ -1,13 +1,17 @@
 import io
+import os
 import re
 
 import aioboto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 from loguru import logger
 
-from app.config import Settings
+from app.config import ConfigName, _load_settings
 
-settings = Settings()
+load_dotenv()
+CONFIG_NAME = ConfigName(os.getenv("CONFIG_NAME", "Development"))
+settings = _load_settings(config_name=CONFIG_NAME)
 
 
 class AsyncS3Manager:
@@ -16,7 +20,7 @@ class AsyncS3Manager:
     aws_access_key_id = settings.AWS_ACCESS_KEY_ID
     aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY
     bucket_name = settings.BUCKET_NAME
-    bucket_folder = "crm"
+    bucket_folder = settings.APP
 
     def _get_session(self):
         return aioboto3.Session()

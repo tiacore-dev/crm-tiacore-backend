@@ -1,36 +1,25 @@
 from decimal import Decimal
 from typing import List, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, Query
-from pydantic import UUID4, Field, field_validator, model_validator
-
-from app.pydantic_models.clean_model import CleanableBaseModel
+from pydantic import Field, model_validator
+from tiacore_lib.pydantic_models.clean_model import CleanableBaseModel
 
 
 class BillCreateSchema(CleanableBaseModel):
-    bank_account: UUID4 = Field(...)
-    bill_number: str = Field(..., max_length=255)
-    bill_date: int = Field(..., ge=0)  # Unix timestamp
-    contract: Optional[UUID4] = Field(None)
-    buyer: Optional[UUID4] = Field(None)
-    seller: Optional[UUID4] = Field(None)
-    company: UUID4 = Field(...)
-
-    @field_validator("bank_account", "bill_number", "bill_date", "contract")
-    @classmethod
-    def validate_required_fields(cls, value: str, info):
-        """Глобальная валидация обязательных полей с выбросом 400 ошибки"""
-        if value in [None, "", " "]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Поле {info.field_name} обязательно для заполнения.",
-            )
-        return value
+    bank_account_id: UUID = Field(..., alias="bank_account")
+    number: str = Field(..., max_length=255, alias="bill_number")
+    date: int = Field(..., ge=0, alias="bill_date")
+    contract_id: Optional[UUID] = Field(None, alias="contract")
+    buyer_id: Optional[UUID] = Field(None, alias="buyer")
+    seller_id: Optional[UUID] = Field(None, alias="seller")
+    company_id: UUID = Field(..., alias="company")
 
     @model_validator(mode="after")
     def check_contract_or_parties(self) -> "BillCreateSchema":
-        if not self.contract:
-            if not self.buyer or not self.seller:
+        if not self.contract_id:
+            if not self.buyer_id or not self.seller_id:
                 raise HTTPException(
                     status_code=400,
                     detail="""Either 'contract' must be provided, 
@@ -40,41 +29,44 @@ class BillCreateSchema(CleanableBaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillResponseSchema(CleanableBaseModel):
-    bill_id: UUID4
+    bill_id: UUID
 
     class Config:
         from_attributes = True
 
 
 class BillEditSchema(CleanableBaseModel):
-    bank_account: Optional[UUID4] = None
-    bill_number: Optional[str] = None
-    bill_date: Optional[int] = None
-    contract: Optional[UUID4] = None
-    buyer: Optional[UUID4] = None
-    seller: Optional[UUID4] = None
-    company: Optional[UUID4] = None
+    bank_account_id: Optional[UUID] = Field(None, alias="bank_account")
+    number: Optional[str] = Field(None, alias="bill_number")
+    date: Optional[int] = Field(None, alias="bill_date")
+    contract_id: Optional[UUID] = Field(None, alias="contract")
+    buyer_id: Optional[UUID] = Field(None, alias="buyer")
+    seller_id: Optional[UUID] = Field(None, alias="seller")
+    company_id: Optional[UUID] = Field(None, alias="company")
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillSchema(CleanableBaseModel):
-    bill_id: UUID4
+    bill_id: UUID
     bill_number: str
     bill_date: int
-    bank_account: UUID4
-    contract: Optional[UUID4] = None
-    buyer: UUID4
-    seller: UUID4
-    company: UUID4
+    bank_account: UUID
+    contract: Optional[UUID] = None
+    buyer: UUID
+    seller: UUID
+    company: UUID
     summ: Decimal
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class BillListResponseSchema(CleanableBaseModel):
@@ -87,13 +79,13 @@ class BillListResponseSchema(CleanableBaseModel):
 
 
 def bill_filter_params(
-    bank_account: Optional[UUID4] = Query(
+    bank_account: Optional[UUID] = Query(
         None, description="Фильтр по банковскому счету"
     ),
-    contract: Optional[UUID4] = Query(None, description="Фильтр по контракту"),
-    company: Optional[UUID4] = Query(None, description="Фильтр по компании"),
-    buyer: Optional[UUID4] = Query(None, description="Фильтр по заказчику"),
-    seller: Optional[UUID4] = Query(None, description="Фильтр по исполнителю"),
+    contract: Optional[UUID] = Query(None, description="Фильтр по контракту"),
+    company: Optional[UUID] = Query(None, description="Фильтр по компании"),
+    buyer: Optional[UUID] = Query(None, description="Фильтр по заказчику"),
+    seller: Optional[UUID] = Query(None, description="Фильтр по исполнителю"),
     bill_date_from: Optional[int] = Query(
         None, description="Фильтр по дате от (timestamp)"
     ),
