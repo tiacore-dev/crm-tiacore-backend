@@ -1,3 +1,4 @@
+from loguru import logger
 from tortoise import Tortoise
 from tortoise.transactions import in_transaction
 
@@ -18,14 +19,9 @@ async def create_test_data():
     from app.database.models import ContractStatus
 
     try:
-        await ContractStatus.get_or_create(
-            contract_status_id="active", status_name="Активен"
-        )
-        await ContractStatus.get_or_create(
-            contract_status_id="waiting", status_name="Ожидание"
-        )
-        await ContractStatus.get_or_create(
-            contract_status_id="completed", status_name="Завершен"
-        )
+        await ContractStatus.get_or_create(id="active", name="Активен")
+        await ContractStatus.get_or_create(id="waiting", name="Ожидание")
+        await ContractStatus.get_or_create(id="completed", name="Завершен")
+        logger.info("Данные статусов контрактов успешно созданы")
     except Exception as e:
         print(f"Exception: {e}")

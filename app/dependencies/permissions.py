@@ -25,11 +25,7 @@ async def context_maker(
     model_id: UUID,
     company_id_getter: Callable[[Model], UUID],
 ):
-    instance = (
-        await model.filter(**{f"{model_name}_id": model_id})
-        .prefetch_related("company")
-        .first()
-    )
+    instance = await model.filter(**{"id": model_id}).first()
     if not instance:
         raise HTTPException(
             status_code=404, detail=f"{model_name.capitalize()} не найден"
@@ -105,15 +101,13 @@ def with_permission_through_act(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        detail = await ActDetails.get_or_none(
-            act_detail_id=act_detail_id
-        ).prefetch_related("act__seller")
+        detail = await ActDetails.get_or_none(id=act_detail_id)
         if not detail:
             raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company_id"],
-            legal_entity=detail.act.seller,
+            legal_entity_id=detail.act.seller_id,
             relation_type="seller",
         )
 
@@ -136,22 +130,20 @@ def with_permission_through_bill(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        detail = await BillDetails.get_or_none(
-            bill_detail_id=bill_detail_id
-        ).prefetch_related("bill__seller")
+        detail = await BillDetails.get_or_none(id=bill_detail_id)
         if not detail:
-            raise HTTPException(status_code=404, detail="Деталь акта не найдена")
+            raise HTTPException(status_code=404, detail="Деталь счета не найдена")
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company_id"],
-            legal_entity=detail.bill.seller,
+            legal_entity_id=detail.bill.seller_id,
             relation_type="seller",
         )
 
         if not is_seller:
             raise HTTPException(
                 status_code=403,
-                detail="Вы не можете работать с деталями акта чужой компании",
+                detail="Вы не можете работать с деталями счета чужой компании",
             )
 
         return context
@@ -191,9 +183,7 @@ def with_permission_and_entity_company_check_for_bank(
         if context.get("is_superadmin"):
             return context
 
-        account = await BankAccount.get_or_none(
-            bank_account_id=bank_account_id
-        ).prefetch_related("legal_entity")
+        account = await BankAccount.get_or_none(id=bank_account_id)
         if not account:
             raise HTTPException(
                 status_code=404, detail=f"BankAccount {bank_account_id} не найден"
@@ -201,7 +191,7 @@ def with_permission_and_entity_company_check_for_bank(
 
         is_seller = await EntityCompanyRelation.exists(
             company_id=context["company_id"],
-            legal_entity=account.legal_entity_id,
+            legal_entity_id=account.legal_entity_id,
             relation_type="seller",
         )
 
@@ -218,27 +208,24 @@ def with_permission_and_entity_company_check_for_bank(
 
 def with_permission_and_template_check(permission: str):
     async def dependency(
-        template_id: UUID = Path(..., description="ID услуги"),
+        template_id: UUID = Path(..., description="ID шаблона"),
         context: dict = Depends(require_permission_in_context(permission)),
     ):
         if context.get("is_superadmin"):
             return context
 
-        # Проверка принадлежности услуги компании
-        template = await Templates.get_or_none(
-            template_id=template_id
-        ).prefetch_related("company")
+        template = await Templates.get_or_none(id=template_id)
 
         if not template:
             raise HTTPException(
                 status_code=403,
-                detail="Услуга не найдена",
+                detail="Шаблон не найден",
             )
         if template.company_id:
             if str(template.company_id) != str(context["company_id"]):
                 raise HTTPException(
                     status_code=403,
-                    detail="Услуга не принадлежит указанной компании",
+                    detail="Шаблон не принадлежит указанной компании",
                 )
 
         return context
@@ -254,9 +241,7 @@ def with_permission_and_legal_entity_company_check(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        relation = await EntityCompanyRelation.get_or_none(
-            entity_company_relation_id=relation_id
-        ).prefetch_related("company")
+        relation = await EntityCompanyRelation.get_or_none(id=relation_id)
 
         if not relation or str(relation.company_id) != str(context["company_id"]):
             raise HTTPException(
@@ -279,7 +264,7 @@ def with_permission_and_entity_company_check(permission: str):
 
         # Проверка, связано ли это юр. лицо с компанией пользователя
         is_related = await EntityCompanyRelation.exists(
-            legal_entity_id=legal_entity_id, company_id=context["company"]
+            legal_entity_id=legal_entity_id, company_id=context["company_id"]
         )
 
         if not is_related:
