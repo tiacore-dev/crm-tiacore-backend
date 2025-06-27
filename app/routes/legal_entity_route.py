@@ -203,10 +203,14 @@ async def get_buyers(
     context: dict = Depends(require_permission_in_context("get_buyers")),
     settings=Depends(get_settings),
 ):
-    related_entity_ids = await EntityCompanyRelation.filter(
-        company_id=context["company_id"], relation_type="buyer"
-    ).values_list("legal_entity_id", flat=True)
-
+    if context["is_superadmin"]:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            relation_type="buyer"
+        ).values_list("legal_entity_id", flat=True)
+    else:
+        related_entity_ids = await EntityCompanyRelation.filter(
+            relation_type="buyer", company_id=context["company_id"]
+        ).values_list("legal_entity_id", flat=True)
     if not related_entity_ids:
         return LegalEntityListResponseSchema(total=0, entities=[])
 
