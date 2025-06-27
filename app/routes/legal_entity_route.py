@@ -326,6 +326,16 @@ async def get_legal_entity(
     query_params = (
         {"company_id": str(context["company_id"])} if context.get("company_id") else {}
     )
+    entity_company_relations = await EntityCompanyRelation.filter(
+        legal_entity_id=legal_entity_id
+    ).all()
+    if not context["is_superadmin"]:
+        if not entity_company_relations:
+            raise HTTPException(status_code=403, detail="Нет доступа к этой записи")
+        related_company_ids = [rel.company_id for rel in entity_company_relations]
+        if context["company_id"] not in related_company_ids:
+            raise HTTPException(status_code=403, detail="Нет доступа к этой записи")
+
     response_data, status_code = await http_client.request(
         "GET",
         f"{settings.REFERENCE_URL}/api/legal-entities/{legal_entity_id}",
