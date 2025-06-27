@@ -74,13 +74,13 @@ async def update_act_detail(
     update_data = data.model_dump(exclude_unset=True)
 
     if "act" in update_data:
-        act = await Acts.get_or_none(act_id=update_data["act"])
+        act = await Acts.get_or_none(id=update_data["act"])
         if not act:
             raise HTTPException(status_code=400, detail="Акт не найден")
         update_data["act"] = act
 
     if "service" in update_data:
-        service = await Service.get_or_none(service_id=update_data["service"])
+        service = await Service.get_or_none(id=update_data["service"])
         if not service:
             raise HTTPException(status_code=400, detail="Услуга не найдена")
         update_data["service"] = service

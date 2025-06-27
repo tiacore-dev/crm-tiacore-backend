@@ -74,13 +74,13 @@ async def update_bill_detail(
     update_data = data.model_dump(exclude_unset=True)
 
     if "bill" in update_data:
-        bill = await Bills.get_or_none(bill_id=update_data["bill"])
+        bill = await Bills.get_or_none(id=update_data["bill"])
         if not bill:
             raise HTTPException(status_code=400, detail="Счет не найден")
         update_data["bill"] = bill
 
     if "service" in update_data:
-        service = await Service.get_or_none(service_id=update_data["service"])
+        service = await Service.get_or_none(id=update_data["service"])
         if not service:
             raise HTTPException(status_code=400, detail="Услуга не найдена")
         update_data["service"] = service

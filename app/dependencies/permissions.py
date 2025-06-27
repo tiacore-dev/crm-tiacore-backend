@@ -51,7 +51,7 @@ def with_permission_and_seller_contract_check(permission: str):
             Contract,
             "contract",
             contract_id,
-            lambda x: cast(Any, x).company.company_id,
+            lambda x: cast(Any, x).company_id,
         )
 
     return Depends(dependency)
@@ -101,7 +101,7 @@ def with_permission_through_act(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        detail = await ActDetails.get_or_none(id=act_detail_id)
+        detail = await ActDetails.get_or_none(id=act_detail_id).prefetch_related("act")
         if not detail:
             raise HTTPException(status_code=404, detail="Деталь акта не найдена")
 
@@ -130,7 +130,9 @@ def with_permission_through_bill(permission: str):
         if context.get("is_superadmin"):
             return context
 
-        detail = await BillDetails.get_or_none(id=bill_detail_id)
+        detail = await BillDetails.get_or_none(id=bill_detail_id).prefetch_related(
+            "bill"
+        )
         if not detail:
             raise HTTPException(status_code=404, detail="Деталь счета не найдена")
 
