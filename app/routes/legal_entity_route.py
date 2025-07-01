@@ -42,15 +42,12 @@ async def add_legal_entity(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-    query_params = (
-        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
-    )
+
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add",
         headers=headers,
         json=data.model_dump(mode="json", exclude={"relation_type"}),
-        params=query_params,
     )
     if data.relation_type:
         await EntityCompanyRelation.create(
@@ -75,15 +72,12 @@ async def add_legal_entity_by_inn(
     settings=Depends(get_settings),
 ):
     headers = get_auth_headers(request)
-    query_params = (
-        {"company_id": str(context["company_id"])} if context.get("company_id") else {}
-    )
+
     response_data, status_code = await http_client.request(
         "POST",
         f"{settings.REFERENCE_URL}/api/legal-entities/add-by-inn",
         headers=headers,
         json=data.model_dump(mode="json", exclude={"relation_type"}),
-        params=query_params,
     )
 
     relation = await EntityCompanyRelation.create(
