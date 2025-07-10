@@ -72,9 +72,7 @@ class Bills(Model):
     bank_account = fields.ForeignKeyField("models.BankAccount", related_name="bills")
     number = fields.CharField(max_length=255)
     date = fields.BigIntField()
-    contract = fields.ForeignKeyField(
-        "models.Contract", related_name="bills", null=True
-    )
+    contract = fields.ForeignKeyField("models.Contract", related_name="bills", null=True)
     buyer_id = fields.UUIDField()
     seller_id = fields.UUIDField()
     company_id = fields.UUIDField()
@@ -96,9 +94,7 @@ class Service(Model):
 
 class BillDetails(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    bill = fields.ForeignKeyField(
-        "models.Bills", related_name="details_in_bill", on_delete=fields.CASCADE
-    )
+    bill = fields.ForeignKeyField("models.Bills", related_name="details_in_bill", on_delete=fields.CASCADE)
     service = fields.ForeignKeyField("models.Service", related_name="services_in_bill")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
@@ -111,9 +107,7 @@ class BillDetails(Model):
 
 class ActDetails(Model):
     id = fields.UUIDField(pk=True, default=uuid.uuid4)
-    act = fields.ForeignKeyField(
-        "models.Acts", related_name="details_in_act", on_delete=fields.CASCADE
-    )
+    act = fields.ForeignKeyField("models.Acts", related_name="details_in_act", on_delete=fields.CASCADE)
     service = fields.ForeignKeyField("models.Service", related_name="services_in_act")
     quantity = fields.DecimalField(max_digits=8, decimal_places=3)
     summ = fields.DecimalField(max_digits=10, decimal_places=2)
